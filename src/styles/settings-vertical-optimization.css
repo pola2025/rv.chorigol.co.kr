@@ -1,0 +1,541 @@
+/* 
+ * 가격설정 & 옵션설정 세로 간격 최적화
+ * Created: 2025.08.23
+ * Target: PricingSettings & OptionsSettings Components
+ */
+
+/* ========== 가격설정 (PricingSettings) 최적화 ========== */
+
+/* 메인 컨테이너 */
+.pricing-settings {
+  padding: 1.25rem !important; /* 기존 2rem → 1.25rem */
+}
+
+.pricing-settings .settings-header {
+  margin-bottom: 1.25rem !important; /* 기존 2rem → 1.25rem */
+}
+
+.pricing-settings .settings-header h2 {
+  font-size: 1.5rem !important; /* 기존 1.75rem → 1.5rem */
+}
+
+/* 탭 메뉴 */
+.pricing-tabs {
+  margin-bottom: 1.25rem !important; /* 기존 2rem → 1.25rem */
+}
+
+.pricing-tabs button {
+  padding: 0.5rem 1rem !important; /* 기존 0.75rem 1.5rem → 0.5rem 1rem */
+}
+
+/* 가격 설정 섹션 */
+.price-setting-section {
+  padding: 1.25rem !important; /* 기존 2rem → 1.25rem */
+}
+
+.price-setting-section .section-header {
+  margin-bottom: 1.25rem !important; /* 기존 2rem → 1.25rem */
+}
+
+/* 객실 가격 카드 */
+.room-price-grid {
+  gap: 1rem !important; /* 기존 1.5rem → 1rem */
+}
+
+.room-price-card {
+  padding: 1rem !important; /* 기존 1.5rem → 1rem */
+}
+
+.room-price-card h4 {
+  margin: 0 0 0.75rem 0 !important; /* 기존 1rem → 0.75rem */
+  font-size: 1rem !important; /* 기존 1.125rem → 1rem */
+}
+
+.price-inputs {
+  gap: 0.75rem !important; /* 기존 1rem → 0.75rem */
+}
+
+.price-input-group {
+  gap: 0.375rem !important; /* 기존 0.5rem → 0.375rem */
+}
+
+.price-input-group label {
+  font-size: 0.8125rem !important; /* 기존 0.875rem → 0.8125rem */
+}
+
+.price-input-group input {
+  padding: 0.5rem !important; /* 기존 0.75rem → 0.5rem */
+  font-size: 0.875rem !important; /* 기존 1rem → 0.875rem */
+}
+
+/* 공휴일 관리 */
+.holidays-section {
+  padding: 1.25rem !important; /* 기존 2rem → 1.25rem */
+}
+
+.holidays-info {
+  padding: 1rem !important; /* 기존 1.5rem → 1rem */
+  margin-bottom: 1.25rem !important; /* 기존 2rem → 1.25rem */
+}
+
+.holidays-info p {
+  margin: 0 0 0.375rem 0 !important; /* 기존 0.5rem → 0.375rem */
+}
+
+.holidays-list h4 {
+  margin: 1rem 0 0.75rem 0 !important; /* 기존 1.5rem 0 1rem → 축소 */
+}
+
+.holiday-grid {
+  gap: 0.5rem !important; /* 기존 0.75rem → 0.5rem */
+  margin-bottom: 1rem !important; /* 기존 1.5rem → 1rem */
+}
+
+.holiday-item {
+  padding: 0.5rem !important; /* 기존 0.75rem → 0.5rem */
+  font-size: 0.8125rem !important; /* 기존 0.875rem → 0.8125rem */
+}
+
+/* 가격 캘린더 */
+.price-calendar-section {
+  padding: 1.25rem !important; /* 기존 2rem → 1.25rem */
+}
+
+.price-calendar-section h3 {
+  margin: 0 0 1rem 0 !important; /* 기존 1.5rem → 1rem */
+}
+
+.room-selector {
+  padding: 0.75rem !important; /* 기존 1rem → 0.75rem */
+  margin-bottom: 1rem !important; /* 기존 1.5rem → 1rem */
+}
+
+.calendar-header {
+  margin-bottom: 1rem !important; /* 기존 1.5rem → 1rem */
+}
+
+.calendar-header h4 {
+  font-size: 1.25rem !important; /* 기존 1.5rem → 1.25rem */
+}
+
+/* 캘린더 날짜 */
+.calendar-day {
+  min-height: 90px !important; /* 기존 120px → 90px */
+  padding: 0.5rem !important; /* 기존 0.75rem → 0.5rem */
+}
+
+.day-header {
+  margin-bottom: 0.375rem !important; /* 기존 0.5rem → 0.375rem */
+}
+
+.day-number {
+  font-size: 0.875rem !important; /* 기존 1rem → 0.875rem */
+}
+
+.price-amount {
+  font-size: 1rem !important; /* 기존 1.125rem → 1rem */
+}
+
+/* 캘린더 푸터 */
+.calendar-footer {
+  margin-top: 1.25rem !important; /* 기존 2rem → 1.25rem */
+  padding: 1rem !important; /* 기존 1.5rem → 1rem */
+}
+
+/* 시즌 가격 규칙 */
+.rules-section {
+  padding: 1.25rem !important; /* 기존 2rem → 1.25rem */
+}
+
+.rules-list {
+  gap: 1rem !important; /* 기존 1.5rem → 1rem */
+}
+
+.rule-header {
+  padding: 1rem !important; /* 기존 1.5rem → 1rem */
+}
+
+.rule-info h4 {
+  font-size: 1.125rem !important; /* 기존 1.25rem → 1.125rem */
+}
+
+.rule-details {
+  padding: 1rem !important; /* 기존 1.5rem → 1rem */
+}
+
+.room-season-price {
+  padding: 0.875rem !important; /* 기존 1.25rem → 0.875rem */
+}
+
+/* ========== 옵션설정 (OptionsSettings) 최적화 ========== */
+
+/* 메인 컨테이너 */
+.options-settings {
+  padding: 1.25rem !important; /* 기존 2rem → 1.25rem */
+}
+
+.options-settings .settings-header {
+  margin-bottom: 1.25rem !important; /* 기존 2rem → 1.25rem */
+}
+
+.options-settings .settings-header h2 {
+  font-size: 1.5rem !important; /* 기존 1.75rem → 1.5rem */
+}
+
+/* 탭 메뉴 */
+.option-tabs {
+  margin-bottom: 1.25rem !important; /* 기존 2rem → 1.25rem */
+}
+
+.option-tabs button {
+  padding: 0.5rem 1rem !important; /* 기존 0.75rem 1.5rem → 0.5rem 1rem */
+}
+
+/* 옵션 섹션 */
+.options-section {
+  padding: 1.25rem !important; /* 기존 2rem → 1.25rem */
+}
+
+.options-section h3 {
+  margin: 0 0 1rem 0 !important; /* 기존 1.5rem → 1rem */
+}
+
+/* 옵션 카드 */
+.option-card {
+  padding: 1rem !important; /* 기존 1.5rem → 1rem */
+  margin-bottom: 0.75rem !important; /* 기존 1rem → 0.75rem */
+}
+
+.option-header {
+  margin-bottom: 0.75rem !important; /* 기존 1rem → 0.75rem */
+}
+
+.option-header h4 {
+  font-size: 1rem !important; /* 기존 1.125rem → 1rem */
+}
+
+.option-type {
+  padding: 0.25rem 0.5rem !important; /* 기존 0.375rem 0.75rem → 축소 */
+  font-size: 0.75rem !important; /* 기존 0.813rem → 0.75rem */
+}
+
+.room-badge {
+  padding: 0.25rem 0.5rem !important; /* 기존 0.375rem 0.75rem → 축소 */
+  font-size: 0.75rem !important; /* 기존 0.813rem → 0.75rem */
+}
+
+.option-actions button {
+  padding: 0.25rem 0.5rem !important; /* 기존 0.375rem 0.75rem → 축소 */
+  font-size: 0.8125rem !important; /* 기존 0.875rem → 0.8125rem */
+}
+
+/* 옵션 상세 */
+.option-details {
+  font-size: 0.8125rem !important; /* 기존 0.875rem → 0.8125rem */
+}
+
+.option-details p {
+  margin: 0.375rem 0 !important; /* 기존 0.5rem → 0.375rem */
+}
+
+.room-info {
+  margin-top: 0.75rem !important; /* 기존 1rem → 0.75rem */
+  padding-top: 0.75rem !important; /* 기존 1rem → 0.75rem */
+}
+
+.room-settings-grid {
+  gap: 0.375rem !important; /* 기존 0.5rem → 0.375rem */
+  margin-top: 0.375rem !important; /* 기존 0.5rem → 0.375rem */
+}
+
+.room-setting-item {
+  padding: 0.25rem 0.5rem !important; /* 기존 0.375rem 0.75rem → 축소 */
+  font-size: 0.75rem !important; /* 기존 0.813rem → 0.75rem */
+}
+
+/* 객실별 적용 현황 */
+.room-mapping-section {
+  padding: 1.25rem !important; /* 기존 2rem → 1.25rem */
+}
+
+.room-mapping-grid {
+  gap: 1rem !important; /* 기존 1.5rem → 1rem */
+}
+
+.room-mapping-card {
+  padding: 1rem !important; /* 기존 1.5rem → 1rem */
+}
+
+.room-mapping-card h4 {
+  margin: 0 0 0.75rem 0 !important; /* 기존 1rem → 0.75rem */
+  font-size: 1rem !important; /* 기존 1.125rem → 1rem */
+  padding-bottom: 0.5rem !important; /* 기존 0.75rem → 0.5rem */
+}
+
+.applied-options {
+  gap: 0.375rem !important; /* 기존 0.5rem → 0.375rem */
+}
+
+.applied-option {
+  padding: 0.375rem !important; /* 기존 0.5rem → 0.375rem */
+  font-size: 0.8125rem !important; /* 기존 0.875rem → 0.8125rem */
+}
+
+/* ========== 공통 모달 최적화 ========== */
+
+.modal-content {
+  padding: 1.5rem !important; /* 기존 2rem → 1.5rem */
+}
+
+.modal-content h3 {
+  margin: 0 0 1rem 0 !important; /* 기존 1.5rem → 1rem */
+}
+
+/* 폼 그룹 */
+.form-group {
+  margin-bottom: 1rem !important; /* 기존 1.5rem/1.25rem → 1rem */
+}
+
+.form-group label {
+  margin-bottom: 0.375rem !important; /* 기존 0.5rem → 0.375rem */
+  font-size: 0.875rem !important; /* 기존 0.95rem → 0.875rem */
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 0.5rem !important; /* 기존 0.75rem → 0.5rem */
+  font-size: 0.875rem !important; /* 기존 0.95rem → 0.875rem */
+}
+
+/* 객실 체크박스 */
+.room-checkboxes {
+  gap: 0.5rem !important; /* 기존 0.75rem → 0.5rem */
+  margin-top: 0.375rem !important; /* 기존 0.5rem → 0.375rem */
+}
+
+.checkbox-label {
+  padding: 0.375rem !important; /* 기존 0.5rem → 0.375rem */
+}
+
+/* 개별 설정 */
+.individual-settings {
+  gap: 0.5rem !important; /* 기존 0.75rem → 0.5rem */
+}
+
+.room-setting {
+  padding: 0.5rem !important; /* 기존 0.75rem → 0.5rem */
+}
+
+/* 폼 액션 */
+.form-actions {
+  margin-top: 1.25rem !important; /* 기존 2rem → 1.25rem */
+}
+
+.btn-save,
+.btn-cancel {
+  padding: 0.375rem 1rem !important; /* 기존 0.5rem 1.5rem → 축소 */
+}
+
+/* 정보 섹션 */
+.info-section {
+  padding: 1rem !important; /* 기존 1.5rem → 1rem */
+  margin-bottom: 1rem !important; /* 기존 1.5rem → 1rem */
+}
+
+.info-section h3 {
+  margin: 0 0 0.75rem 0 !important; /* 기존 1rem → 0.75rem */
+  font-size: 1rem !important; /* 기존 1.125rem → 1rem */
+}
+
+.extra-charges-grid {
+  gap: 0.5rem !important; /* 기존 0.75rem → 0.5rem */
+}
+
+.charge-item {
+  padding: 0.5rem !important; /* 기존 0.75rem → 0.5rem */
+}
+
+/* ========== 모바일 반응형 추가 최적화 ========== */
+
+@media (max-width: 768px) {
+  .pricing-settings,
+  .options-settings {
+    padding: 1rem !important;
+  }
+  
+  .settings-header {
+    margin-bottom: 1rem !important;
+  }
+  
+  .settings-header h2 {
+    font-size: 1.25rem !important;
+  }
+  
+  .pricing-tabs,
+  .option-tabs {
+    margin-bottom: 1rem !important;
+  }
+  
+  .pricing-tabs button,
+  .option-tabs button {
+    padding: 0.4rem 0.75rem !important;
+    font-size: 0.8125rem !important;
+  }
+  
+  .price-setting-section,
+  .options-section,
+  .holidays-section,
+  .price-calendar-section,
+  .rules-section,
+  .room-mapping-section {
+    padding: 1rem !important;
+  }
+  
+  .room-price-card,
+  .option-card,
+  .room-mapping-card {
+    padding: 0.75rem !important;
+  }
+  
+  .calendar-day {
+    min-height: 70px !important;
+    padding: 0.375rem !important;
+  }
+  
+  .day-number {
+    font-size: 0.75rem !important;
+  }
+  
+  .price-amount {
+    font-size: 0.875rem !important;
+  }
+  
+  .modal-content {
+    padding: 1.25rem !important;
+  }
+  
+  .form-group {
+    margin-bottom: 0.875rem !important;
+  }
+  
+  .form-group label {
+    font-size: 0.8125rem !important;
+  }
+  
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    padding: 0.4rem !important;
+    font-size: 0.8125rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .pricing-settings,
+  .options-settings {
+    padding: 0.75rem !important;
+  }
+  
+  .settings-header h2 {
+    font-size: 1.125rem !important;
+  }
+  
+  .pricing-tabs button,
+  .option-tabs button {
+    padding: 0.375rem 0.625rem !important;
+    font-size: 0.75rem !important;
+  }
+  
+  .room-price-card,
+  .option-card {
+    padding: 0.625rem !important;
+  }
+  
+  .calendar-day {
+    min-height: 60px !important;
+    padding: 0.25rem !important;
+  }
+  
+  .option-type,
+  .room-badge {
+    font-size: 0.625rem !important;
+    padding: 0.15rem 0.375rem !important;
+  }
+  
+  .modal-content {
+    padding: 1rem !important;
+  }
+}
+
+/* ========== 추가 컴팩트 클래스 ========== */
+
+/* 매우 컴팩트한 레이아웃이 필요한 경우 */
+.settings-compact {
+  /* 전체 여백 20% 추가 감소 */
+}
+
+.settings-compact .pricing-settings,
+.settings-compact .options-settings {
+  padding: 1rem !important;
+}
+
+.settings-compact .settings-header {
+  margin-bottom: 0.875rem !important;
+}
+
+.settings-compact .room-price-card,
+.settings-compact .option-card {
+  padding: 0.75rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.settings-compact .form-group {
+  margin-bottom: 0.75rem !important;
+}
+
+/* ========== 애니메이션 최적화 ========== */
+
+/* 빠른 전환 */
+.pricing-settings *,
+.options-settings * {
+  transition-duration: 0.15s !important;
+}
+
+/* ========== 스크롤 최적화 ========== */
+
+.option-form,
+.modal-content {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.option-form::-webkit-scrollbar,
+.modal-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.option-form::-webkit-scrollbar-thumb,
+.modal-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+/* ========== 프린트 최적화 ========== */
+
+@media print {
+  .pricing-settings,
+  .options-settings {
+    padding: 0 !important;
+  }
+  
+  .btn-add,
+  .btn-edit,
+  .btn-delete,
+  .option-actions,
+  .form-actions {
+    display: none !important;
+  }
+}
+
+/* End of settings optimization */

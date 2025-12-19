@@ -1,0 +1,63 @@
+/* src/components/marketing-v2/StatusTab.css */
+.status-tab {
+  padding: 10px;
+}
+
+.status-tab h3 {
+  margin: 0 0 20px 0;
+  font-size: 20px;
+  color: #333;
+}
+
+.memo-section {
+  background: #f9f9f9;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.memo-section h4 {
+  margin: 0 0 15px 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.status-textarea {
+  width: 100%;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 1.6;
+  resize: vertical;
+  font-family: 'Noto Sans KR', sans-serif;
+}
+
+.status-textarea:focus {
+  outline: none;
+  border-color: #2196F3;
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+}
+
+.memo-display {
+  padding: 15px;
+  background: white;
+  border-radius: 6px;
+  min-height: 400px;
+}
+
+.memo-display pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 14px;
+  line-height: 1.8;
+  color: #333;
+}
+
+.no-content {
+  color: #999;
+  text-align: center;
+  padding: 40px;
+  font-size: 16px;
+}

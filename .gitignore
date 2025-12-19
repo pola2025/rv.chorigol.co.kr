@@ -1,0 +1,14 @@
+
+# Secrets
+functions/serviceAccountKey.json
+.env
+.env.local
+.env.production
+
+# Build output
+dist/
+
+# Dependencies
+node_modules/
+functions/node_modules/
+

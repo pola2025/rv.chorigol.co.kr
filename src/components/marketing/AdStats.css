@@ -1,0 +1,377 @@
+/* src/components/marketing/AdStats.css */
+
+.ad-stats {
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.ad-stats-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.ad-stats-header h3 {
+  margin: 0;
+  font-size: 20px;
+  color: #333;
+}
+
+.btn-add-platform {
+  padding: 8px 16px;
+  background: #4A90E2;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.btn-add-platform:hover {
+  background: #357ABD;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+}
+
+/* 플랫폼 탭 */
+.platform-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 0;
+}
+
+.platform-tab {
+  padding: 12px 20px;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: #666;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 500;
+  transition: all 0.2s;
+  position: relative;
+  margin-bottom: -2px;
+}
+
+.platform-tab:hover {
+  color: #4A90E2;
+  background: #f8f9fa;
+}
+
+.platform-tab.active {
+  color: #4A90E2;
+  border-bottom-color: #4A90E2;
+}
+
+.platform-tab.add-tab {
+  padding: 12px 16px;
+  color: #999;
+}
+
+/* 전체 요약 */
+.total-summary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  color: white;
+}
+
+.total-summary h4 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  opacity: 0.9;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+}
+
+.summary-item {
+  text-align: center;
+}
+
+.summary-item .label {
+  display: block;
+  font-size: 13px;
+  opacity: 0.8;
+  margin-bottom: 4px;
+}
+
+.summary-item .value {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* 플랫폼 상세 */
+.platform-detail {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.platform-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.platform-header h4 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.platform-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-input-data {
+  padding: 8px 16px;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.btn-input-data:hover {
+  background: #45a049;
+}
+
+.btn-delete {
+  padding: 8px 12px;
+  background: #f44336;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.btn-delete:hover {
+  background: #da190b;
+}
+
+/* 플랫폼 데이터 */
+.platform-data h5 {
+  margin: 20px 0 12px 0;
+  font-size: 15px;
+  color: #666;
+}
+
+.data-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.data-item {
+  background: white;
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.data-item .label {
+  display: block;
+  font-size: 12px;
+  color: #999;
+  margin-bottom: 4px;
+}
+
+.data-item .value {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+/* 자동 계산 지표 */
+.calculated-metrics {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 16px;
+  background: white;
+  border-radius: 8px;
+}
+
+.calculated-metrics .metric {
+  flex: 1;
+  min-width: 100px;
+  text-align: center;
+}
+
+.calculated-metrics .metric span {
+  display: block;
+  font-size: 12px;
+  color: #999;
+  margin-bottom: 4px;
+}
+
+.calculated-metrics .metric strong {
+  font-size: 16px;
+  color: #4A90E2;
+}
+
+/* 캠페인 데이터 */
+.campaign-data {
+  margin-top: 24px;
+}
+
+.campaign-item {
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.campaign-item h6 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: #333;
+  font-weight: 600;
+}
+
+.campaign-metrics {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.campaign-metrics .metric {
+  flex: 1;
+  min-width: 100px;
+}
+
+.campaign-metrics .metric span {
+  display: block;
+  font-size: 11px;
+  color: #999;
+  margin-bottom: 2px;
+}
+
+.campaign-metrics .metric strong {
+  font-size: 14px;
+  color: #333;
+}
+
+/* 시각화 섹션 */
+.visualization-section {
+  margin-top: 24px;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+}
+
+.viz-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.viz-controls h4 {
+  margin: 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.controls {
+  display: flex;
+  gap: 12px;
+}
+
+.select-chart,
+.select-metric {
+  padding: 8px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background: white;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.chart-placeholder {
+  height: 300px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 14px;
+}
+
+/* 빈 상태 */
+.empty-state {
+  text-align: center;
+  padding: 40px;
+}
+
+.empty-state p {
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.no-data {
+  text-align: center;
+  padding: 40px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.no-data p {
+  color: #666;
+  margin-bottom: 16px;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 768px) {
+  .ad-stats {
+    padding: 12px;
+  }
+  
+  .platform-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .data-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .calculated-metrics {
+    flex-direction: column;
+  }
+  
+  .controls {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .select-chart,
+  .select-metric {
+    width: 100%;
+  }
+}

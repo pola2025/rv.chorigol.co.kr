@@ -1,0 +1,163 @@
+/* 광고 효율 분석 텍스트 음영 제거 및 옵션 스타일 개선 */
+
+/* ============================== */
+/* 1. 광고 효율 분석 - 텍스트 음영 제거 */
+/* ============================== */
+
+/* IntegratedStats 컴포넌트 - 전체통합 카드 음영 제거 */
+.summary-card.total * {
+  text-shadow: none !important;
+}
+
+.summary-card.total .summary-value,
+.summary-card.total h4,
+.summary-card.total .summary-details,
+.summary-card.total span,
+.summary-card.total strong {
+  text-shadow: none !important;
+}
+
+/* 누적 통계 카드 음영 제거 */
+.cumulative-card.highlight * {
+  text-shadow: none !important;
+}
+
+.cumulative-card.highlight .cumulative-label,
+.cumulative-card.highlight .cumulative-value {
+  text-shadow: none !important;
+}
+
+/* AdEfficiencyDashboard - stat-card 음영 제거 */
+.stat-card.total * {
+  text-shadow: none !important;
+}
+
+.stat-card.total .stat-header,
+.stat-card.total .stat-title,
+.stat-card.total .stat-value,
+.stat-card.total .stat-sub {
+  text-shadow: none !important;
+}
+
+/* 기타 가능한 클래스들 */
+.platform-detail-card * {
+  text-shadow: none !important;
+}
+
+.kpi-card * {
+  text-shadow: none !important;
+}
+
+/* ============================== */
+/* 2. 예약 캘린더 옵션 스타일 개선 */
+/* ============================== */
+
+/* DateDetailPanel - 옵션 표시 영역 */
+.reservation-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+/* 옵션 아이템 크기 축소 */
+.option-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px !important;
+  border-radius: 4px;
+  font-size: 0.7rem !important; /* 0.875rem → 0.7rem */
+  font-weight: 500;
+}
+
+/* 옵션 라벨 크기 축소 */
+.option-label {
+  font-size: 0.65rem !important; /* 0.8rem → 0.65rem */
+  font-weight: 600;
+}
+
+/* 옵션 노트 크기 축소 */
+.option-note {
+  font-size: 0.6rem !important; /* 0.7rem → 0.6rem */
+  opacity: 0.8;
+}
+
+/* 요금 포함 옵션 (파란색) */
+.option-item.included,
+.option-included {
+  background: #e3f2fd !important;
+  color: #1565c0 !important;
+  border: 1px solid #90caf9;
+}
+
+/* 현장결제 옵션 (주황색) */
+.option-item.onsite,
+.option-onsite {
+  background: #fff3e0 !important;
+  color: #e65100 !important;
+  border: 1px solid #ffb74d;
+}
+
+/* 모바일에서 더 작게 */
+.date-detail-panel.mobile .option-item {
+  font-size: 0.65rem !important;
+  padding: 2px 4px !important;
+}
+
+.date-detail-panel.mobile .option-label {
+  font-size: 0.6rem !important;
+}
+
+.date-detail-panel.mobile .option-note {
+  font-size: 0.55rem !important;
+}
+
+/* 예약 상세 정보의 옵션 표시 */
+.reservation-details .options-info {
+  margin-top: 8px;
+  padding: 6px;
+  background: #f8f9fa;
+  border-radius: 4px;
+}
+
+.reservation-details .option-item {
+  margin-right: 4px;
+  margin-bottom: 4px;
+}
+
+/* ============================== */
+/* 3. 강제 적용을 위한 추가 규칙 */
+/* ============================== */
+
+/* 모든 그라데이션 배경의 텍스트 음영 제거 */
+[style*="background: linear-gradient"] *,
+[style*="background-image: linear-gradient"] * {
+  text-shadow: none !important;
+}
+
+/* 특정 색상 배경의 텍스트 음영 제거 */
+[style*="background: #667eea"] *,
+[style*="background: #764ba2"] *,
+[style*="background: #9b59b6"] *,
+[style*="background: #8e44ad"] * {
+  text-shadow: none !important;
+}
+
+/* ============================== */
+/* 4. 디버깅용 강제 스타일 */
+/* ============================== */
+
+/* 모든 요소의 text-shadow 제거 (테스트용) */
+/*
+* {
+  text-shadow: none !important;
+}
+*/
+
+/* 특정 컴포넌트 전체 음영 제거 */
+.integrated-stats *,
+.ad-efficiency-dashboard *,
+.marketing-stats-v2 * {
+  text-shadow: none !important;
+}

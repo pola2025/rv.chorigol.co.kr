@@ -1,0 +1,621 @@
+/* OptionsSettings.css */
+
+.options-settings {
+  max-width: 1400px;
+  margin: 0 auto;
+  background: #ffffff;
+  padding: 2rem;
+  border-radius: 12px;
+}
+
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.settings-header h2 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 1.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* 탭 메뉴 */
+.option-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.option-tabs button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  background: none;
+  color: #4b5563;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+}
+
+.option-tabs button:hover {
+  color: var(--color-primary);
+}
+
+.option-tabs button.active {
+  color: #2d5016;
+  border-bottom-color: #2d5016;
+  font-weight: 600;
+}
+
+/* 버튼 스타일 */
+.btn-add {
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  box-shadow: 0 2px 4px rgba(74, 144, 226, 0.2);
+}
+
+.btn-add:hover {
+  background: linear-gradient(135deg, #357ABD 0%, #2563EB 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(74, 144, 226, 0.3);
+}
+
+.btn-add-text-short {
+  display: none;
+}
+
+.btn-add-text-full {
+  display: inline;
+}
+
+/* 옵션 섹션 */
+.options-section {
+  background: white;
+  padding: 2rem;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.options-section h3 {
+  margin: 0 0 1.5rem 0;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+/* 옵션 카드 */
+.option-card {
+  background: white;
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 1rem;
+  transition: all 0.2s ease;
+  border: 1px solid #e0e0e0;
+}
+
+.option-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.option-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.option-header h4 {
+  margin: 0;
+  color: var(--color-dark);
+  font-size: 1.125rem;
+  flex: 1;
+}
+
+.option-badges {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.option-type {
+  display: inline-block;
+  padding: 0.375rem 0.75rem;
+  border-radius: 2rem;
+  font-size: 0.813rem;
+  font-weight: 500;
+}
+
+.option-type.included {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.option-type.onsite {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.option-type.late_checkout {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.option-type.custom {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.room-badge {
+  display: inline-block;
+  padding: 0.375rem 0.75rem;
+  background: #f5f5f5;
+  color: #666;
+  border-radius: 2rem;
+  font-size: 0.813rem;
+  font-weight: 500;
+}
+
+.option-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.option-actions button,
+.btn-edit {
+  padding: 0.375rem 0.75rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.option-actions button:first-child,
+.btn-edit {
+  background: #e0e0e0;
+  color: var(--color-dark);
+}
+
+.option-actions button:first-child:hover,
+.btn-edit:hover {
+  background: #d0d0d0;
+}
+
+.btn-delete {
+  background: var(--color-danger);
+  color: white;
+}
+
+.btn-delete:hover {
+  background: #d32f2f;
+}
+
+/* 옵션 상세 정보 */
+.option-details {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.option-details p {
+  margin: 0.5rem 0;
+}
+
+.description {
+  margin: 0 0 0.5rem 0;
+}
+
+.room-info {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+.selected-rooms {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.individual-info strong,
+.shared-info strong {
+  font-weight: 600;
+  color: var(--color-dark);
+}
+
+.room-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.room-setting-item {
+  padding: 0.375rem 0.75rem;
+  background: #f8f9fa;
+  border-radius: var(--radius-sm);
+  font-size: 0.813rem;
+}
+
+.shared-info {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.shared-info small {
+  color: #999;
+}
+
+/* 객실별 적용 현황 */
+.room-mapping-section {
+  background: white;
+  padding: 2rem;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.room-mapping-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.room-mapping-card {
+  border: 1px solid #e0e0e0;
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  background: #fafafa;
+}
+
+.room-mapping-card h4 {
+  margin: 0 0 1rem 0;
+  color: var(--color-dark);
+  font-size: 1.125rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--color-primary);
+}
+
+.applied-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.applied-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  background: white;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+}
+
+.option-name {
+  font-weight: 500;
+  color: var(--color-dark);
+}
+
+.option-value {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* 모달 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  max-width: 700px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.modal-content h3 {
+  margin: 0 0 1.5rem 0;
+  color: var(--color-dark);
+}
+
+/* 폼 스타일 */
+.option-form {
+  max-height: 70vh;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--color-dark);
+  font-size: 0.95rem;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+/* 객실 체크박스 */
+.room-checkboxes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: #f8f9fa;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.checkbox-label:hover {
+  background: #e8f5e9;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  cursor: pointer;
+}
+
+/* 객실별 개별 설정 */
+.individual-settings {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.room-setting {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: var(--radius-sm);
+}
+
+.room-name {
+  font-weight: 500;
+  color: var(--color-dark);
+}
+
+.room-setting input {
+  max-width: 150px;
+}
+
+.mt-3 {
+  margin-top: 1rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 2rem;
+}
+
+.btn-save,
+.btn-cancel {
+  padding: 0.5rem 1.5rem;
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-save {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.btn-cancel {
+  background-color: #e0e0e0;
+  color: var(--color-dark);
+}
+
+.btn-save:hover {
+  background-color: var(--color-secondary);
+}
+
+.btn-cancel:hover {
+  background-color: #d0d0d0;
+}
+
+/* 정보 섹션 (삭제됨) */
+.info-section {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 1.5rem;
+}
+
+.info-section h3 {
+  margin: 0 0 1rem 0;
+  color: var(--color-dark);
+  font-size: 1.125rem;
+}
+
+.extra-charges-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.charge-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: white;
+  border-radius: var(--radius-sm);
+}
+
+.charge-item .room-name {
+  font-weight: 500;
+  color: var(--color-dark);
+}
+
+.charge-item .price {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+  .settings-header {
+    flex-wrap: nowrap;
+    margin-bottom: 1.5rem;
+  }
+  
+  .settings-header h2 {
+    font-size: 1.25rem;
+    flex: 1;
+  }
+  
+  .btn-add {
+    padding: 0.5rem 0.875rem;
+    font-size: 0.875rem;
+    white-space: nowrap;
+  }
+  
+  .btn-add-text-full {
+    display: none;
+  }
+  
+  .btn-add-text-short {
+    display: inline;
+  }
+  
+  .options-section {
+    padding: 1rem;
+  }
+  
+  .option-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    margin-bottom: 1rem;
+  }
+  
+  .option-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .option-tabs button {
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+    white-space: nowrap;
+  }
+  
+  .room-mapping-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .room-checkboxes {
+    grid-template-columns: 1fr;
+  }
+  
+  .option-header {
+    flex-direction: column;
+  }
+  
+  .option-badges {
+    flex-wrap: wrap;
+  }
+  
+  .option-type,
+  .room-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+  }
+  
+  .option-card {
+    padding: 1rem;
+  }
+  
+  .modal-content {
+    padding: 1.5rem;
+    width: 95%;
+  }
+}
+
+@media (max-width: 480px) {
+  .settings-header h2 {
+    font-size: 1.125rem;
+  }
+  
+  .btn-add {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.813rem;
+  }
+  
+  .option-tabs button {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.813rem;
+  }
+  
+  .option-type,
+  .room-badge {
+    font-size: 0.688rem;
+    padding: 0.188rem 0.375rem;
+  }
+}

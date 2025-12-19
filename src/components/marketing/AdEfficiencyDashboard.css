@@ -1,0 +1,778 @@
+/* src/components/marketing/AdEfficiencyDashboard.css */
+
+.ad-efficiency-dashboard {
+  padding: 20px;
+  background: #f8f9fa;
+  min-height: 100vh;
+}
+
+/* 헤더 */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.dashboard-header h2 {
+  margin: 0;
+  font-size: 24px;
+  color: #2d3748;
+}
+
+.header-controls {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.data-selector,
+.view-selector {
+  display: flex;
+  gap: 10px;
+}
+
+.data-selector button,
+.view-selector button {
+  padding: 8px 16px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+  color: #4a5568;
+}
+
+.data-selector button:hover,
+.view-selector button:hover {
+  background: #f7fafc;
+}
+
+.data-selector button.active {
+  background: #f6ad55;
+  color: white;
+  border-color: #f6ad55;
+}
+
+.view-selector button.active {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+/* KPI 카드 */
+.kpi-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.kpi-card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.kpi-label {
+  font-size: 12px;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.kpi-value {
+  font-size: 28px;
+  font-weight: bold;
+  color: #2d3748;
+  margin-bottom: 4px;
+}
+
+.kpi-sub {
+  font-size: 13px;
+  color: #718096;
+}
+
+.kpi-breakdown {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #e2e8f0;
+  font-size: 12px;
+  color: #4a5568;
+}
+
+/* 차트 섹션 */
+.chart-section {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  margin-bottom: 20px;
+}
+
+.chart-section h3,
+.chart-section h4 {
+  margin: 0 0 20px 0;
+  color: #2d3748;
+}
+
+.chart-section h3 {
+  font-size: 18px;
+}
+
+.chart-section h4 {
+  font-size: 16px;
+}
+
+.chart-grid {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+/* 개요 컨텐츠 */
+.overview-content {
+  display: grid;
+  gap: 20px;
+}
+
+/* 플랫폼 컨텐츠 */
+.platform-content {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.platform-content h3 {
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  color: #2d3748;
+}
+
+.platform-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin-top: 30px;
+}
+
+.platform-detail-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  background: #f8f9fa;
+}
+
+.platform-detail-card h4 {
+  margin: 0 0 15px 0;
+  color: #2d3748;
+  font-size: 16px;
+}
+
+.platform-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+.metric-item {
+  text-align: center;
+}
+
+.metric-item span {
+  display: block;
+  font-size: 11px;
+  color: #718096;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.metric-item strong {
+  display: block;
+  font-size: 18px;
+  color: #2d3748;
+}
+
+/* 퍼널 컨텐츠 */
+.funnel-content {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.funnel-content h3 {
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  color: #2d3748;
+}
+
+.funnel-chart-container {
+  padding: 30px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 30px;
+}
+
+.funnel-step {
+  margin-bottom: 25px;
+  position: relative;
+}
+
+.funnel-bar-wrapper {
+  display: flex;
+  justify-content: center;
+}
+
+.funnel-bar {
+  height: 60px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  position: relative;
+}
+
+.funnel-bar:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.funnel-info {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  color: white;
+  font-weight: 500;
+}
+
+.funnel-name {
+  font-size: 14px;
+}
+
+.funnel-value {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.conversion-rate {
+  text-align: center;
+  font-size: 13px;
+  color: #718096;
+  margin-top: 10px;
+  font-weight: 500;
+}
+
+/* 퍼널 인사이트 */
+.funnel-insights {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.funnel-insights h4 {
+  margin: 0 0 15px 0;
+  font-size: 16px;
+  color: #2d3748;
+}
+
+.insights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.insight-card {
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
+  border: 1px solid #e2e8f0;
+}
+
+.insight-card strong {
+  display: block;
+  font-size: 12px;
+  color: #4a5568;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.insight-value {
+  display: block;
+  font-size: 24px;
+  font-weight: bold;
+  color: #2d3748;
+  margin-bottom: 8px;
+}
+
+.insight-status {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.insight-status.good {
+  background: #c6f6d5;
+  color: #22543d;
+}
+
+.insight-status.warning {
+  background: #fed7d7;
+  color: #742a2a;
+}
+
+/* 트렌드 컨텐츠 */
+.trend-content {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.trend-content h3 {
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  color: #2d3748;
+}
+
+.trend-content h4 {
+  margin: 0 0 15px 0;
+  font-size: 15px;
+  color: #4a5568;
+}
+
+/* 개선 제안 */
+.recommendations {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  margin-top: 30px;
+}
+
+.recommendations h3 {
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  color: #2d3748;
+}
+
+.recommendation-list {
+  display: grid;
+  gap: 15px;
+}
+
+.recommendation-item {
+  display: flex;
+  gap: 15px;
+  padding: 15px;
+  border-radius: 8px;
+  border-left: 4px solid;
+}
+
+.recommendation-item.warning {
+  background: #fff5f5;
+  border-color: #ed8936;
+}
+
+.recommendation-item.info {
+  background: #ebf8ff;
+  border-color: #4299e1;
+}
+
+.recommendation-item.success {
+  background: #f0fff4;
+  border-color: #48bb78;
+}
+
+.recommendation-item .icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.recommendation-item strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #2d3748;
+  font-size: 14px;
+}
+
+.recommendation-item p {
+  margin: 0;
+  color: #4a5568;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* 로딩 & 에러 상태 */
+.loading,
+.no-data {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+  background: white;
+  border-radius: 12px;
+  color: #718096;
+  font-size: 16px;
+}
+
+/* 반응형 */
+@media (max-width: 1024px) {
+  .chart-grid {
+    flex-direction: column;
+  }
+  
+  .chart-grid > * {
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .header-controls {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .data-selector,
+  .view-selector {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .kpi-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  .platform-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  .platform-metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .insights-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .funnel-bar {
+    height: 50px;
+    padding: 0 15px;
+  }
+  
+  .funnel-name {
+    font-size: 12px;
+  }
+  
+  .funnel-value {
+    font-size: 14px;
+  }
+}
+
+/* 애니메이션 */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.kpi-card,
+.chart-section,
+.platform-detail-card,
+.recommendation-item,
+.insight-card {
+  animation: slideIn 0.5s ease forwards;
+}
+
+.kpi-card:nth-child(1) { animation-delay: 0.1s; }
+.kpi-card:nth-child(2) { animation-delay: 0.2s; }
+.kpi-card:nth-child(3) { animation-delay: 0.3s; }
+.kpi-card:nth-child(4) { animation-delay: 0.4s; }
+
+/* 호버 효과 */
+.kpi-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+}
+
+.platform-detail-card:hover {
+  background: white;
+  border-color: #667eea;
+  transition: all 0.3s ease;
+}
+
+/* 툴팁 스타일 (Recharts) */
+.recharts-tooltip-wrapper {
+  outline: none;
+}
+
+.recharts-default-tooltip {
+  background: white !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
+  padding: 12px !important;
+}
+
+.recharts-tooltip-label {
+  color: #2d3748 !important;
+  font-weight: 600 !important;
+  margin-bottom: 8px !important;
+}
+
+.recharts-tooltip-item {
+  color: #4a5568 !important;
+  font-size: 13px !important;
+}
+
+/* 플랫폼별 통계 섹션 */
+.platform-stats-section {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  margin-bottom: 20px;
+}
+
+.platform-stats-section h3 {
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  color: #2d3748;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.platform-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.stat-card {
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 20px;
+  background: #f8f9fa;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  border-color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+}
+
+.stat-card.total {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border-color: #667eea;
+}
+
+.stat-card.total .stat-header,
+.stat-card.total .stat-value,
+.stat-card.total .stat-sub {
+  color: white;
+}
+
+.stat-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+}
+
+.stat-card.total .stat-header {
+  border-bottom-color: rgba(255,255,255,0.2);
+}
+
+.stat-icon {
+  font-size: 24px;
+}
+
+.stat-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #4a5568;
+}
+
+.stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #2d3748;
+  margin-bottom: 8px;
+}
+
+.stat-sub {
+  font-size: 13px;
+  color: #718096;
+}
+
+/* 시설별 방문 데이터 상세 - 제거 */
+.facility-visit-details {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  margin-bottom: 30px;
+}
+
+.facility-visit-details h3 {
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  color: #2d3748;
+}
+
+.facility-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 20px;
+}
+
+.facility-detail-card {
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 20px;
+  background: #f8f9fa;
+  transition: all 0.3s ease;
+}
+
+.facility-detail-card:hover {
+  border-color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.facility-detail-card h4 {
+  margin: 0 0 15px 0;
+  color: #2d3748;
+  font-size: 16px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.detail-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.metric-row {
+  display: grid;
+  grid-template-columns: 100px 1fr auto;
+  gap: 15px;
+  align-items: center;
+  padding: 8px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.metric-row:hover {
+  background: white;
+}
+
+.metric-row.highlight {
+  background: #667eea;
+  color: white;
+  font-weight: bold;
+  margin-top: 8px;
+  padding: 12px;
+}
+
+.metric-row.highlight .metric-label,
+.metric-row.highlight .metric-value,
+.metric-row.highlight .metric-sub {
+  color: white;
+}
+
+.metric-label {
+  font-size: 13px;
+  color: #718096;
+  font-weight: 600;
+}
+
+.metric-value {
+  font-size: 15px;
+  color: #2d3748;
+  font-weight: 600;
+}
+
+.metric-sub {
+  font-size: 12px;
+  color: #a0aec0;
+}
+
+/* KPI 카드 개선 */
+.kpi-sub {
+  font-size: 13px;
+  color: #718096;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* 추가 스타일 */
+.recharts-legend-wrapper {
+  margin-top: 20px !important;
+}
+
+.recharts-legend-item-text {
+  color: #4a5568 !important;
+  font-size: 13px !important;
+}
+
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: #e2e8f0;
+}
+
+.recharts-xAxis .recharts-text,
+.recharts-yAxis .recharts-text {
+  fill: #718096;
+  font-size: 12px;
+}

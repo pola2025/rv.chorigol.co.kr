@@ -1,0 +1,306 @@
+/* RoomManagement.css */
+
+.room-management {
+  background-color: white;
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-md);
+}
+
+.management-header {
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.management-header h2 {
+  margin: 0 0 0.5rem;
+  color: var(--color-primary);
+}
+
+.info-text {
+  margin: 0;
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.add-room-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 0.75rem 1.5rem;
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-room-btn:hover {
+  background-color: var(--color-primary-dark);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.rooms-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.5rem;
+}
+
+.room-card {
+  border: 1px solid #e0e0e0;
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  background-color: #f8f9fa;
+  transition: all 0.2s ease;
+}
+
+.room-card:hover {
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-2px);
+}
+
+.add-room-card {
+  background-color: #f0f8ff;
+  border: 2px dashed var(--color-primary);
+}
+
+.add-room-card:hover {
+  background-color: #e8f4f8;
+}
+
+.required {
+  color: #dc3545;
+  font-weight: bold;
+}
+
+.room-card h3 {
+  margin: 0 0 1rem;
+  color: var(--color-primary);
+  font-size: 1.2rem;
+}
+
+/* 보기 모드 */
+.view-mode .info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.info-item .label {
+  font-size: 0.875rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.info-item .value {
+  font-size: 1rem;
+  color: var(--color-dark);
+  font-weight: 600;
+}
+
+.room-description {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+.room-description p {
+  margin: 0;
+  color: #666;
+  line-height: 1.5;
+}
+
+/* 수정 모드 */
+.edit-mode .form-section {
+  margin-bottom: 1.5rem;
+}
+
+.form-section h4 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  color: #666;
+  font-weight: 600;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #666;
+}
+
+.form-group input,
+.form-group textarea {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.form-group small {
+  font-size: 0.8rem;
+  color: #999;
+}
+
+.form-group small.warning-text {
+  color: #ff9800;
+  font-weight: 500;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+/* 액션 버튼 */
+.card-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+.btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-edit {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.btn-edit:hover {
+  background-color: var(--color-primary-dark);
+}
+
+.btn-save {
+  background-color: var(--color-success);
+  color: white;
+}
+
+.btn-save:hover:not(:disabled) {
+  background-color: #218838;
+}
+
+.btn-cancel {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-cancel:hover {
+  background-color: #5a6268;
+}
+
+.btn-delete {
+  background-color: #dc3545;
+  color: white;
+}
+
+.btn-delete:hover:not(:disabled) {
+  background-color: #c82333;
+}
+
+.btn-primary {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: var(--color-primary-dark);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 로딩 상태 */
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  color: #666;
+  font-size: 1.1rem;
+}
+
+/* 순서 변경 핸들 */
+.room-card .drag-handle {
+  cursor: move;
+  color: #999;
+  font-size: 1.2rem;
+  margin-right: 0.5rem;
+}
+
+.room-card.dragging {
+  opacity: 0.5;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+  .room-management {
+    padding: 1rem;
+  }
+
+  .rooms-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .view-mode .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .card-actions {
+    flex-direction: column;
+  }
+
+  .btn {
+    width: 100%;
+  }
+
+  .add-room-btn {
+    position: static;
+    width: 100%;
+    margin-top: 1rem;
+  }
+}

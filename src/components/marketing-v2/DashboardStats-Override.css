@@ -1,0 +1,43 @@
+/* DashboardStats-Override.css - text-shadow 완전 제거 */
+
+/* 전역 text-shadow 제거 */
+.dashboard-stats-no-shadow,
+.dashboard-stats-no-shadow *,
+.dashboard-stats-no-shadow *::before,
+.dashboard-stats-no-shadow *::after {
+  text-shadow: none !important;
+  text-shadow: 0 0 0 transparent !important;
+  -webkit-text-shadow: none !important;
+  -moz-text-shadow: none !important;
+  -ms-text-shadow: none !important;
+  -o-text-shadow: none !important;
+  filter: none !important;
+}
+
+/* 특정 요소들 강제 제거 */
+.dashboard-stats-no-shadow h1,
+.dashboard-stats-no-shadow h2,
+.dashboard-stats-no-shadow h3,
+.dashboard-stats-no-shadow h4,
+.dashboard-stats-no-shadow h5,
+.dashboard-stats-no-shadow h6,
+.dashboard-stats-no-shadow p,
+.dashboard-stats-no-shadow span,
+.dashboard-stats-no-shadow div,
+.dashboard-stats-no-shadow strong,
+.dashboard-stats-no-shadow em,
+.dashboard-stats-no-shadow .stat-value,
+.dashboard-stats-no-shadow .stat-label,
+.dashboard-stats-no-shadow .stat-details,
+.dashboard-stats-no-shadow .unit {
+  text-shadow: none !important;
+  text-shadow: 0 0 0 transparent !important;
+}
+
+/* 숫자 관련 클래스 */
+.dashboard-stats-no-shadow .stat-value,
+.dashboard-stats-no-shadow .stat-value * {
+  text-shadow: none !important;
+  text-shadow: 0 0 0 transparent !important;
+  filter: drop-shadow(0 0 0 transparent) !important;
+}

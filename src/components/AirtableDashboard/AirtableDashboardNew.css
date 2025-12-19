@@ -1,0 +1,554 @@
+/* src/components/AirtableDashboard/AirtableDashboardNew.css */
+
+.airtable-dashboard-new {
+  padding: 20px;
+  max-width: 1800px;
+  margin: 0 auto;
+  background: #f5f6fa;
+  min-height: 100vh;
+}
+
+/* 헤더 */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.header-left h2 {
+  margin: 0;
+  font-size: 1.75rem;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-icon {
+  color: #667eea;
+}
+
+.header-controls {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+
+/* 뷰 모드 토글 */
+.view-mode-toggle {
+  display: flex;
+  gap: 4px;
+  background: #f0f2f5;
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.mode-btn {
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  color: #666;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.mode-btn:hover {
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+}
+
+.mode-btn.active {
+  background: #667eea;
+  color: white;
+}
+
+/* 날짜 선택 */
+.date-selector {
+  display: flex;
+  gap: 8px;
+}
+
+.year-select,
+.month-select {
+  padding: 8px 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+}
+
+.year-select:hover,
+.month-select:hover {
+  border-color: #667eea;
+}
+
+.year-select:focus,
+.month-select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* 서브 네비게이션 */
+.sub-navigation {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding: 16px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.sub-nav-btn {
+  padding: 10px 24px;
+  border: 2px solid #e0e0e0;
+  background: white;
+  color: #666;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.sub-nav-btn:hover {
+  border-color: #667eea;
+  color: #667eea;
+  background: rgba(102, 126, 234, 0.05);
+}
+
+.sub-nav-btn.active {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+/* 대시보드 컨텐츠 */
+.dashboard-content {
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 로딩 */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-container p {
+  margin-top: 20px;
+  color: #666;
+  font-size: 0.95rem;
+}
+
+/* 섹션 타이틀 */
+.section-title {
+  margin: 0 0 24px 0;
+  font-size: 1.5rem;
+  color: #2c3e50;
+  font-weight: 600;
+  padding: 16px 20px;
+  background: white;
+  border-radius: 12px;
+  border-left: 4px solid #667eea;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.sub-title {
+  margin: 0 0 16px 0;
+  font-size: 1.125rem;
+  color: #34495e;
+  font-weight: 600;
+  padding-left: 12px;
+  border-left: 3px solid #667eea;
+}
+
+/* 펜션별 뷰 */
+.pension-view {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* 예약 섹션 */
+.reservation-section {
+  margin-bottom: 32px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+}
+
+/* 통계 그리드 */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+/* 통계 카드 */
+.stat-card {
+  background: white;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e8e8e8;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card.reservation {
+  border-top: 3px solid #4CAF50;
+}
+
+.stat-card.revenue {
+  border-top: 3px solid #FFC107;
+}
+
+.stat-card.occupancy {
+  border-top: 3px solid #2196F3;
+}
+
+.stat-card.meta {
+  border-top: 3px solid #1877F2;
+}
+
+.stat-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.stat-icon {
+  font-size: 1.5rem;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: #666;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 8px;
+}
+
+.stat-detail {
+  font-size: 0.875rem;
+  color: #7f8c8d;
+  padding-top: 8px;
+  border-top: 1px solid #ecf0f1;
+}
+
+/* 플랫폼 섹션 */
+.platform-section {
+  margin-bottom: 32px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+}
+
+/* 플랫폼별 뷰 */
+.platform-view {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* 플랫폼 비교 */
+.platform-comparison {
+  margin-top: 24px;
+}
+
+.comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+/* 비교 카드 */
+.comparison-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 2px solid #e0e0e0;
+  transition: all 0.3s ease;
+}
+
+.comparison-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.comparison-card.choho {
+  border-color: #4CAF50;
+}
+
+.comparison-card.choho .card-title {
+  color: #4CAF50;
+}
+
+.comparison-card.shelter {
+  border-color: #2196F3;
+}
+
+.comparison-card.shelter .card-title {
+  color: #2196F3;
+}
+
+.comparison-card.total {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  color: white;
+}
+
+.comparison-card.total * {
+  color: white !important;
+}
+
+.card-title {
+  margin: 0 0 20px 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  padding-bottom: 12px;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.05);
+}
+
+.comparison-card.total .card-title {
+  border-bottom-color: rgba(255, 255, 255, 0.2);
+}
+
+.card-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px dashed #e0e0e0;
+}
+
+.comparison-card.total .stat-item {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.stat-item:last-child {
+  border-bottom: none;
+}
+
+.stat-item label {
+  font-size: 0.875rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.comparison-card.total .stat-item label {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.stat-item value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.comparison-card.total .stat-item value {
+  color: white;
+}
+
+.stat-item value.highlight {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #667eea;
+}
+
+.comparison-card.total .stat-item value.highlight {
+  color: white;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Meta 플랫폼 */
+.meta-platform {
+  margin-top: 24px;
+}
+
+.meta-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+/* 통합 뷰 */
+.integrated-view {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.integrated-summary {
+  padding: 40px;
+  text-align: center;
+  color: #666;
+}
+
+/* 반응형 */
+@media (max-width: 1024px) {
+  .dashboard-header {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .header-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .comparison-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .airtable-dashboard-new {
+    padding: 12px;
+  }
+  
+  .view-mode-toggle {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .mode-btn {
+    width: 100%;
+  }
+  
+  .date-selector {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .year-select,
+  .month-select {
+    width: 100%;
+  }
+  
+  .sub-navigation {
+    flex-direction: column;
+  }
+  
+  .sub-nav-btn {
+    width: 100%;
+  }
+  
+  .meta-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 애니메이션 */
+.stat-card,
+.comparison-card {
+  animation: slideUp 0.5s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 호버 효과 */
+.stat-value {
+  transition: color 0.3s ease;
+}
+
+.stat-card:hover .stat-value {
+  color: #667eea;
+}
+
+/* 스크롤바 스타일 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #667eea;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #5a6fe8;
+}

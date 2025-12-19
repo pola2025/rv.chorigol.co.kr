@@ -1,0 +1,981 @@
+/* BookingModal.css */
+
+/* 글로벌 span 배경 문제 해결 */
+.modal-body span {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* 모달 오버레이 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 옵션 상세 표시 */
+.options-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-top: 0.25rem;
+}
+
+.option-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem;
+  background: #f0f7ff;
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+.option-icon {
+  font-size: 1.125rem;
+  flex-shrink: 0;
+}
+
+.option-name {
+  font-weight: 500;
+  color: #333;
+  flex: 1;
+}
+
+.option-price {
+  font-size: 0.8125rem;
+  color: #666;
+  white-space: nowrap;
+}
+
+/* 편집 모드 옵션 리스트 */
+.options-edit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 0.5rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.option-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border-radius: 4px;
+}
+
+.option-checkbox:hover {
+  background-color: #e3f2fd;
+}
+
+.option-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.option-checkbox span {
+  font-size: 0.875rem;
+  color: #333;
+}
+
+/* 모바일 옵션 스타일 */
+@media (max-width: 768px) {
+  .options-detail {
+    gap: 0.25rem;
+    margin-top: 0.125rem;
+  }
+  
+  .option-item {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0.375rem;
+    font-size: 0.8125rem;
+    gap: 0.125rem;
+  }
+  
+  .option-icon {
+    display: none;
+  }
+  
+  .option-name {
+    font-size: 0.8125rem;
+    font-weight: 600;
+  }
+  
+  .option-price {
+    font-size: 0.75rem;
+    margin-left: 0.5rem;
+  }
+}
+
+/* 모달 컨테이너 */
+.modal-container {
+  background: white;
+  border-radius: var(--radius-lg);
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* 모달 헤더 */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--color-dark);
+}
+
+.modal-close {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: #999;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+  background-color: #f0f0f0;
+  color: #666;
+}
+
+/* 모달 바디 */
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+
+/* 상태 배지 스타일 */
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.status-badge.large {
+  font-size: 1rem;
+  padding: 6px 16px;
+}
+
+.status-badge.status-예약확정 {
+  background: #10b981;
+  color: white;
+}
+
+.status-badge.status-입금대기,
+.status-badge.status-이체대기 {
+  background: #f59e0b;
+  color: white;
+}
+
+.status-badge.status-예약취소 {
+  background: #ef4444;
+  color: white;
+}
+
+/* 상태 섹션 */
+.booking-status-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.status-badge.large {
+  font-size: 1.125rem;
+  padding: 0.5rem 1.5rem;
+  border-radius: 2rem;
+}
+
+.booking-id {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+/* 상태 정보 그룹 */
+.status-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* 예약출처 배지 */
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* 정보 섹션 */
+.info-section {
+  margin-bottom: 2rem;
+}
+
+.info-section:last-child {
+  margin-bottom: 0;
+}
+
+.info-section h3 {
+  font-size: 1.125rem;
+  color: var(--color-dark);
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+/* 정보 행 */
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #f8f9fa;
+  background: transparent !important;  /* info-row에도 투명 배경 추가 */
+  background-color: transparent !important;
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-row.small {
+  padding: 0.5rem 0;
+}
+
+.info-label {
+  font-size: 0.95rem;
+  color: #666 !important;  /* 회색 텍스트로 복원 */
+  font-weight: 500;
+  background: transparent !important;  /* 명시적으로 투명 설정 */
+  background-color: transparent !important;
+}
+
+.info-value {
+  font-size: 0.95rem;
+  color: #333 !important;  /* 검정색 텍스트로 복원 */
+  font-weight: 600;
+  background: transparent !important;  /* 명시적으로 투명 설정 */
+  background-color: transparent !important;
+}
+
+.info-value.price {
+  font-size: 1.125rem;
+  color: var(--color-primary);
+}
+
+/* 폼 요소 */
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+textarea.form-input {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* 메모 텍스트 */
+.memo-text {
+  margin: 0;
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-radius: var(--radius-md);
+  color: #666;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* 모달 푸터 */
+.modal-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-top: 1px solid #e0e0e0;
+  background-color: #f8f9fa;
+}
+
+.footer-left,
+.footer-right {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* 버튼 스타일 */
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--color-secondary);
+}
+
+.btn-success {
+  background-color: var(--color-success);
+  color: white;
+}
+
+.btn-success:hover:not(:disabled) {
+  background-color: #218838;
+}
+
+.btn-danger {
+  background-color: var(--color-danger);
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: #c82333;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: #5a6268;
+}
+
+/* 고객 정보 스타일 */
+.customer-detail {
+  background: #f5f5f5;
+  border-left: 4px solid var(--color-primary);
+}
+
+.customer-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 0.75rem;
+  background: white;
+  border-radius: var(--radius-sm);
+}
+
+.stat-label {
+  display: block;
+  font-size: 0.75rem;
+  color: #666 !important;  /* 회색 텍스트로 복원 */
+  margin-bottom: 0.25rem;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+.stat-value {
+  display: block;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #333 !important;  /* 검정색 텍스트로 복원 */
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+.customer-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 768px) {
+  .modal-container {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* 전체 컨테이너 높이 최적화 */
+  .modal-overlay {
+    padding: 0;
+  }
+
+  .modal-header {
+    padding: 0.375rem 0.625rem;
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 10;
+    border-bottom: 1px solid #e0e0e0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  }
+
+  .modal-header h2 {
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  .modal-close {
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: 1.25rem;
+  }
+
+  .modal-body {
+    padding: 0.25rem;
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 상태 섹션 모바일 최적화 */
+  .booking-status-section {
+    flex-direction: column;
+    gap: 0.125rem;
+    align-items: flex-start;
+    margin-bottom: 0.25rem;
+    padding: 0.25rem;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-bottom: none;
+  }
+
+  .status-badge.large {
+    font-size: 0.9375rem;
+    padding: 0.375rem 0.75rem;
+  }
+
+  .booking-id {
+    font-size: 0.6875rem;
+    color: #888;
+  }
+
+  /* 정보 섹션 모바일 최적화 */
+  .info-section {
+    margin-bottom: 0.1875rem;
+    padding: 0.25rem;
+    background: white;
+    border: 1px solid #e8e8e8;
+    border-radius: 6px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  }
+
+  .info-section h3 {
+    font-size: 0.8125rem;
+    margin-bottom: 0.125rem;
+    padding-bottom: 0;
+    color: #1976D2;
+    font-weight: 600;
+    border-bottom: none;
+  }
+
+  /* 정보 행 모바일 최적화 */
+  .info-row {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.125rem 0;
+    gap: 0.25rem;
+    border-bottom: none;
+  }
+
+  .info-label {
+    font-size: 0.8125rem;
+    color: #666 !important;  /* 회색 텍스트로 복원 */
+    font-weight: 600;
+    min-width: 70px;
+    flex-shrink: 0;
+    background: transparent !important;  /* 명시적으로 투명 설정 */
+    background-color: transparent !important;
+  }
+
+  .info-value {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #333 !important;  /* 검정색 텍스트로 복원 */
+    text-align: right;
+    flex: 1;
+    word-break: break-word;
+    background: transparent !important;  /* 명시적으로 투명 설정 */
+    background-color: transparent !important;
+  }
+
+  .info-value.price {
+    font-size: 1.125rem;
+    color: #e74c3c;
+    font-weight: 700;
+  }
+
+  /* 폼 입력 모바일 최적화 */
+  .form-group {
+    margin-bottom: 0.25rem;
+  }
+
+  .form-group label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 0.125rem;
+  }
+
+  .form-input {
+    padding: 0.625rem;
+    font-size: 0.9375rem;
+    border: 1px solid #e0e0e0;
+    background: #f8f9fa;
+  }
+
+  .form-input:focus {
+    border-color: #1976D2;
+    background: white;
+  }
+
+  /* 메모 텍스트 */
+  .memo-text {
+    padding: 0.5rem;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    background: #f8f9fa;
+  }
+
+  /* 고객 상세 정보 모바일 최적화 */
+  .customer-detail {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0.25rem;
+    margin-bottom: 0.25rem;
+    box-shadow: none;
+    border-left: 2px solid #1565C0;
+    margin-left: 0.25rem;
+  }
+
+  .customer-detail h3 {
+    color: #1565C0;
+    font-size: 0.8125rem;
+    margin-bottom: 0.125rem;
+    font-weight: 600;
+  }
+
+  .customer-stats {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.125rem;
+    margin-bottom: 0;
+  }
+
+  .stat-item {
+    padding: 0.25rem 0.125rem;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    text-align: center;
+  }
+  
+  .stat-item:active {
+    transform: scale(0.98);
+  }
+
+  .stat-label {
+    font-size: 0.625rem;
+    color: #888 !important;  /* 연회색 텍스트로 복원 */
+    margin-bottom: 0;
+    font-weight: 400;
+    line-height: 1;
+    display: block;
+    background: transparent !important;
+    background-color: transparent !important;
+  }
+  
+  .stat-value {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #1565C0 !important;  /* 파란색 텍스트로 복원 */
+    line-height: 1.2;
+    display: block;
+    background: transparent !important;
+    background-color: transparent !important;
+  }
+
+  /* 고객 배지 */
+  .customer-badge {
+    display: inline-block;
+    margin-left: 4px;
+    padding: 1px 4px;
+    border-radius: 6px;
+    font-size: 0.5625rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  /* 모달 푸터 모바일 최적화 */
+  .modal-footer {
+    position: sticky;
+    bottom: 0;
+    padding: 0.25rem;
+    background: white;
+    border-top: 1px solid #e0e0e0;
+    box-shadow: 0 -1px 3px rgba(0,0,0,0.05);
+    gap: 0.125rem;
+    flex-direction: column;
+  }
+
+  .footer-left,
+  .footer-right {
+    width: 100%;
+    justify-content: stretch;
+    gap: 0.25rem;
+  }
+
+  .footer-right {
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    flex: 1;
+    padding: 0.625rem 0.875rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    border-radius: 6px;
+    min-width: 0;
+  }
+
+  .btn-danger {
+    flex: 0 0 auto;
+    min-width: 80px;
+  }
+
+  .btn-secondary {
+    background-color: #e0e0e0;
+    color: #333;
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    background-color: #d0d0d0;
+  }
+
+  /* 예약 이력 섹션 */
+  .info-section:last-child {
+    background: #fafafa;
+    border: 1px dashed #ddd;
+    margin-bottom: 0;
+    padding: 0.25rem;
+  }
+
+  .info-section:last-child h3 {
+    font-size: 0.75rem;
+    color: #666;
+    margin-bottom: 0.125rem;
+  }
+
+  .info-row.small {
+    padding: 0.125rem 0;
+  }
+
+  .info-row.small .info-label,
+  .info-row.small .info-value {
+    font-size: 0.6875rem;
+  }
+  
+  /* 고객 히스토리 세부 조정 */
+  .customer-detail .info-row {
+    padding: 0.125rem 0;
+  }
+  
+  .customer-detail .info-row .info-label {
+    font-size: 0.625rem;
+    color: #1565C0;
+    font-weight: 500;
+    min-width: 30px;
+  }
+  
+  .customer-detail .info-row .info-value {
+    font-size: 0.625rem;
+    color: #333;
+  }
+  
+  /* 폼 그룹 간격 조정 */
+  .form-group {
+    margin-bottom: 0.1875rem;
+  }
+  
+  /* 메모 텍스트 여백 조정 */
+  .memo-text {
+    padding: 0.5rem;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+  }
+  
+  /* 추가 정보 영역 */
+  .customer-extra-info {
+    margin-top: 0.125rem;
+    padding-top: 0.125rem;
+    border-top: 1px dashed #e0e0e0;
+  }
+  
+  .info-row.compact {
+    padding: 0.0625rem 0;
+  }
+  
+  .info-row.compact .info-label {
+    font-size: 0.625rem;
+    min-width: 30px;
+  }
+  
+  .info-row.compact .info-value {
+    font-size: 0.625rem;
+  }
+  
+  /* 예약정보, 결제정보 특별 처리 - 위아래 여백만 축소 */
+  .info-section:nth-of-type(2),  /* 예약 정보 */
+  .info-section:nth-of-type(3) { /* 결제 정보 */
+    padding-top: 0.1875rem;
+    padding-bottom: 0.1875rem;
+    margin-bottom: 0.125rem;
+  }
+  
+  .info-section:nth-of-type(2) h3,
+  .info-section:nth-of-type(3) h3 {
+    font-size: 0.8125rem;
+    margin-bottom: 0.0625rem;
+  }
+  
+  .info-section:nth-of-type(2) .info-row,
+  .info-section:nth-of-type(3) .info-row {
+    padding: 0.0625rem 0;
+  }
+  
+  /* 인라인 고객 히스토리 */
+  .customer-history-inline {
+    margin-top: 0.125rem;
+    padding-top: 0.125rem;
+    border-top: 1px solid #e0e0e0;
+  }
+  
+  .customer-stats-inline {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.25rem;
+    margin-bottom: 0.125rem;
+  }
+  
+  .customer-stats-inline .stat-item {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.125rem;
+    padding: 0;
+    background: transparent;
+    border: none;
+    min-width: 0;
+    overflow: hidden;
+  }
+  
+  .customer-stats-inline .stat-label {
+    font-size: 0.625rem;
+    color: #888;
+    font-weight: 400;
+    margin: 0;
+  }
+  
+  .customer-stats-inline .stat-value {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+    white-space: nowrap;
+  }
+}
+
+/* 초소형 모바일 디바이스 (375px 이하) */
+@media (max-width: 375px) {
+  .modal-header {
+    padding: 0.375rem 0.5rem;
+  }
+  
+  .modal-header h2 {
+    font-size: 1rem;
+  }
+  
+  .modal-body {
+    padding: 0.25rem;
+  }
+  
+  .info-section {
+    padding: 0.1875rem;
+    margin-bottom: 0.125rem;
+  }
+  
+  .info-section h3 {
+    font-size: 0.75rem;
+    margin-bottom: 0.1875rem;
+  }
+  
+  .info-row {
+    padding: 0.0625rem 0;
+  }
+  
+  .info-label {
+    font-size: 0.75rem;
+    min-width: 60px;
+    color: #666 !important;  /* 회색 텍스트로 복원 */
+    background: transparent !important;
+    background-color: transparent !important;
+  }
+  
+  .info-value {
+    font-size: 0.75rem;
+    color: #333 !important;  /* 검정색 텍스트로 복원 */
+    background: transparent !important;
+    background-color: transparent !important;
+  }
+  
+  .customer-detail {
+    padding: 0.25rem;
+  }
+  
+  .stat-item {
+    padding: 0.25rem 0.125rem;
+  }
+  
+  .stat-label {
+    font-size: 0.5625rem;
+    color: #888 !important;  /* 연회색 텍스트로 복원 */
+  }
+  
+  .stat-value {
+    font-size: 0.75rem;
+    color: #333 !important;  /* 검정색 텍스트로 복원 */
+  }
+  
+  .modal-footer {
+    padding: 0.25rem;
+  }
+  
+  .btn {
+    padding: 0.625rem 0.75rem;
+    font-size: 0.8125rem;
+  }
+  
+  .form-input {
+    padding: 0.5rem;
+    font-size: 0.875rem;
+  }
+  
+  .customer-stats-inline .stat-label {
+    font-size: 0.5625rem;
+  }
+  
+  .customer-stats-inline .stat-value {
+    font-size: 0.75rem;
+  }
+}

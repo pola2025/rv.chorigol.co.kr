@@ -1,0 +1,500 @@
+/* src/components/MonthlyStats/MonthlyStatsInput.css */
+
+.monthly-stats-input {
+  padding: 20px;
+  background: #f8f9fa;
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+/* 펜션 선택 탭 */
+.business-selector {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 15px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.business-tab {
+  flex: 1;
+  padding: 12px 24px;
+  border: 2px solid #ecf0f1;
+  background: white;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #7f8c8d;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.business-tab:hover {
+  background: #f8f9fa;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.business-tab.active {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+  border-color: #2980b9;
+  box-shadow: 0 2px 6px rgba(52, 152, 219, 0.3);
+}
+
+.business-tab.integrated {
+  background: linear-gradient(135deg, #9b59b6, #8e44ad);
+  color: white;
+  border-color: #8e44ad;
+}
+
+.business-tab.integrated:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(155, 89, 182, 0.3);
+}
+
+/* 헤더 */
+.stats-header {
+  margin-bottom: 30px;
+  padding: 20px 30px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  min-height: 40px;
+}
+
+.stats-header h2 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 24px;
+  font-weight: 700;
+  flex: 1;
+}
+
+/* 년/월 선택기 */
+.period-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f8f9fa;
+  padding: 5px;
+  border-radius: 8px;
+}
+
+.nav-btn {
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  min-width: 70px;
+}
+
+.nav-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
+.year-select,
+.month-select {
+  padding: 8px 12px;
+  border: 2px solid #ecf0f1;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 80px;
+}
+
+.year-select:hover,
+.month-select:hover {
+  border-color: #3498db;
+}
+
+.year-select:focus,
+.month-select:focus {
+  outline: none;
+  border-color: #2980b9;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.header-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.auto-indicator {
+  background: linear-gradient(135deg, #27ae60, #2ecc71);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(39, 174, 96, 0.3);
+}
+
+.save-button {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(52, 152, 219, 0.3);
+}
+
+.save-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
+}
+
+.save-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* 그리드 레이아웃 */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 25px;
+}
+
+/* 섹션 공통 스타일 */
+.stats-section {
+  background: white;
+  border-radius: 12px;
+  padding: 25px 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.stats-section:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.stats-section h3 {
+  margin: 0 0 20px 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #2c3e50;
+  border-bottom: 2px solid #ecf0f1;
+  padding-bottom: 10px;
+}
+
+/* 자동 집계 섹션 */
+.auto-section {
+  background: linear-gradient(135deg, #e8f8f5, #d5f4e6);
+  border: 2px solid #27ae60;
+}
+
+.auto-section h3 {
+  color: #27ae60;
+  border-bottom-color: #27ae60;
+}
+
+.auto-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.auto-stat-item {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(39, 174, 96, 0.1);
+}
+
+.auto-stat-item label {
+  display: block;
+  font-size: 14px;
+  color: #7f8c8d;
+  font-weight: 600;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.auto-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #27ae60;
+  margin: 0;
+}
+
+/* 수동 입력 섹션 */
+.manual-section {
+  background: white;
+}
+
+.input-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.input-group label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.help-text {
+  font-size: 12px;
+  color: #7f8c8d;
+  font-weight: 400;
+  font-style: italic;
+}
+
+.input-group input {
+  padding: 12px 16px;
+  border: 2px solid #ecf0f1;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  background: #f8f9fa;
+}
+
+.input-group input:focus {
+  outline: none;
+  border-color: #3498db;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+/* 광고 성과 섹션 */
+.performance-tabs {
+  display: grid;
+  gap: 25px;
+}
+
+.performance-section h4 {
+  margin: 0 0 15px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #34495e;
+  padding: 10px 15px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border-left: 4px solid #3498db;
+}
+
+/* 계산된 지표 섹션 */
+.calculated-section {
+  background: linear-gradient(135deg, #fff9e6, #fef5e7);
+  border: 2px solid #f39c12;
+}
+
+.calculated-section h3 {
+  color: #f39c12;
+  border-bottom-color: #f39c12;
+}
+
+.calculated-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.calculated-item {
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(243, 156, 18, 0.1);
+  transition: all 0.3s ease;
+}
+
+.calculated-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(243, 156, 18, 0.2);
+}
+
+.calculated-item label {
+  display: block;
+  font-size: 12px;
+  color: #7f8c8d;
+  font-weight: 600;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.calculated-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #f39c12;
+  margin: 0;
+}
+
+.roi-value {
+  font-size: 20px !important;
+  color: #e67e22 !important;
+}
+
+/* 로딩 상태 */
+.monthly-stats-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+  font-size: 18px;
+  color: #7f8c8d;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .monthly-stats-input {
+    padding: 15px;
+  }
+
+  .stats-header {
+    padding: 20px;
+  }
+
+  .header-top {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+
+  .stats-header h2 {
+    font-size: 24px;
+  }
+
+  .period-selector {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .nav-btn {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .year-select,
+  .month-select {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .header-info {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .stats-section {
+    padding: 20px;
+  }
+
+  .input-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .auto-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .calculated-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-header h2 {
+    font-size: 20px;
+  }
+
+  .auto-indicator {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+
+  .calculated-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .auto-value {
+    font-size: 20px;
+  }
+
+  .calculated-value {
+    font-size: 16px;
+  }
+}
+
+/* 애니메이션 */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stats-section {
+  animation: slideInUp 0.5s ease-out;
+}
+
+/* 포커스 상태 개선 */
+.input-group input:focus,
+.save-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+/* 접근성 개선 */
+@media (prefers-reduced-motion: reduce) {
+  .stats-section,
+  .calculated-item,
+  .save-button {
+    transition: none;
+    animation: none;
+  }
+
+  .stats-section:hover,
+  .calculated-item:hover,
+  .save-button:hover {
+    transform: none;
+  }
+}

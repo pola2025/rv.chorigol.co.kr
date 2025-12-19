@@ -1,0 +1,147 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 관리자 확인 함수 (email_verified 체크 제거)
+    function isAdmin() {
+      return request.auth != null && 
+        request.auth.token.email != null &&
+        // 관리자 이메일 목록
+        request.auth.token.email in [
+          'choho140@naver.com',
+          'mkt@polarad.co.kr',
+          'mkt9834@gmail.com'
+        ];
+    }
+    
+    // 예약 컬렉션
+    match /reservations/{reservationId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // 객실 컬렉션
+    match /rooms/{roomId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+    
+    // 고객 컬렉션
+    match /customers/{customerId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+    
+    // 옵션 설정
+    match /options/{optionId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+    
+    // 가격 규칙
+    match /pricing_rules/{ruleId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+    
+    // 막힌 날짜
+    match /blocked_dates/{dateId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+    
+    // 재고 오버라이드
+    match /inventory_overrides/{overrideId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+    
+    // IP 차단 관련 컬렉션들
+    match /blocked_ips/{ipId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+    
+    match /login_attempts/{attemptId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+    
+    match /ip_login_tracking/{ipId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+    
+    // 알림 설정 관련 컬렉션들
+    match /settings/{settingId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+    
+    match /message_templates/{templateId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+    
+    match /notification_logs/{logId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+    
+    // ===== 마케팅 통계 관련 컬렉션 추가 =====
+    
+    // 마케팅 통계 (기존)
+    match /marketing_stats/{statId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+    
+    // 마케팅 통계 V2 (새 버전)
+    match /marketing_stats_v2/{docId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+    
+    // 월별 목표
+    match /marketing_stats/monthly_goals/{goalId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+    
+    // 광고 플랫폼 설정
+    match /ad_platforms/{platformId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+    
+    // 월별 광고 데이터
+    match /monthly_ads/{monthId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+    
+    // 방문 채널 설정
+    match /visit_channels/{channelId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+    
+    // 월별 방문 데이터
+    match /monthly_visits/{monthId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+    
+    // 마케팅 지출 내역
+    match /marketing_expenses/{expenseId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+    
+    // 기타 모든 문서는 차단
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

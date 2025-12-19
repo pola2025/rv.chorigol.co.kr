@@ -1,0 +1,297 @@
+/* src/components/marketing-v2/IntegratedStats.css */
+
+/* 통합 통계 컨테이너 - 보라색 그라데이션 배경 */
+.integrated-stats {
+  padding: 25px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.integrated-stats.loading {
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 16px;
+}
+
+.integrated-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.integrated-header h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: white;
+}
+
+.header-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.toggle-details,
+.toggle-cumulative {
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.3s;
+}
+
+.toggle-details:hover,
+.toggle-cumulative:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.integrated-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.summary-card {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.summary-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.summary-card.total {
+  background: rgba(76, 175, 80, 0.2);
+  border: 1px solid rgba(76, 175, 80, 0.4);
+}
+
+/* 텍스트 음영 제거 */
+.summary-card.total * {
+  text-shadow: none !important;
+}
+
+.summary-card.total .summary-value,
+.summary-card.total h4,
+.summary-card.total .summary-details,
+.summary-card.total span,
+.summary-card.total strong {
+  text-shadow: none !important;
+}
+
+.summary-card h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.summary-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 8px;
+}
+
+.summary-details {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.summary-details div {
+  margin: 4px 0;
+}
+
+/* 상세 정보 섹션 */
+.integrated-details {
+  margin-top: 20px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.detail-section {
+  margin-bottom: 20px;
+}
+
+.detail-section:last-child {
+  margin-bottom: 0;
+}
+
+.detail-section h4 {
+  margin: 0 0 15px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.detail-section h5 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.room-details,
+.ad-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.pension-rooms,
+.shelter-rooms,
+.pension-ads,
+.shelter-ads {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.pension-rooms div,
+.shelter-rooms div,
+.pension-ads div,
+.shelter-ads div {
+  padding: 6px 8px;
+  margin: 4px 0;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+}
+
+.pension-rooms div:hover,
+.shelter-rooms div:hover,
+.pension-ads div:hover,
+.shelter-ads div:hover {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 6px 8px;
+  border-radius: 4px;
+}
+
+/* 누적 통계 섹션 */
+.cumulative-section {
+  margin-top: 30px;
+  padding: 25px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+}
+
+.cumulative-title {
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+}
+
+.cumulative-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.cumulative-card {
+  background: white;
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.cumulative-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.cumulative-card.highlight {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.cumulative-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #666;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cumulative-card.highlight .cumulative-label {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.cumulative-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #333;
+}
+
+.cumulative-card.highlight .cumulative-value {
+  color: white;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .integrated-stats {
+    padding: 20px;
+  }
+  
+  .integrated-summary {
+    grid-template-columns: 1fr;
+  }
+  
+  .room-details,
+  .ad-details {
+    grid-template-columns: 1fr;
+  }
+  
+  .integrated-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  
+  .header-buttons {
+    width: 100%;
+    display: flex;
+    gap: 10px;
+  }
+  
+  .toggle-details,
+  .toggle-cumulative {
+    flex: 1;
+  }
+  
+  .cumulative-stats {
+    grid-template-columns: 1fr;
+  }
+}

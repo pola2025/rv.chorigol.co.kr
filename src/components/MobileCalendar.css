@@ -1,0 +1,1257 @@
+/* MobileCalendar.css */
+
+.mobile-calendar {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #f5f5f5;
+}
+
+/* 헤더 */
+.mobile-calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.mobile-calendar-header button {
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: none;
+  font-size: 1.5rem;
+  color: var(--color-primary);
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.mobile-calendar-header button:active {
+  background: rgba(0,0,0,0.05);
+}
+
+.mobile-calendar-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--color-dark);
+}
+
+/* 뷰 모드 선택 */
+.view-mode-selector {
+  display: flex;
+  padding: 0.5rem;
+  gap: 0.5rem;
+  background: white;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.view-mode-selector button {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #e0e0e0;
+  background: white;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.view-mode-selector button.active {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+/* 모바일 캘린더 컨텐츠 */
+.mobile-calendar-content {
+  flex: 1;
+  overflow-y: auto; /* 전체 컨텐츠 스크롤 */
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  /* 월간 뷰에서는 스크롤 허용 */
+}
+
+/* 주간 뷰일 때만 스크롤 제거 */
+.mobile-calendar-content:has(.mobile-week-view) {
+  overflow: visible !important;
+  height: auto !important;
+}
+
+/* 주간 뷰 내부 모든 요소 스크롤 제거 */
+.mobile-week-view,
+.mobile-week-view * {
+  overflow: visible !important;
+  overflow-y: visible !important;
+  overflow-x: visible !important;
+  -webkit-overflow-scrolling: auto !important;
+  max-height: none !important;
+  height: auto !important;
+}
+
+/* 주간 뷰 칼럼별 스크롤 완전 제거 */
+.week-day-column,
+.week-day-content,
+.week-calendar-container {
+  overflow: visible !important;
+  overflow-y: visible !important;
+  overflow-x: visible !important;
+  height: auto !important;
+  max-height: none !important;
+  min-height: auto !important;
+}
+
+/* 리스트 뷰 */
+.mobile-list-view {
+  padding: 0.5rem;
+}
+
+.date-section {
+  margin-bottom: 0.5rem;
+  background: white;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.date-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.date-text {
+  font-weight: 600;
+  color: var(--color-dark);
+}
+
+.booking-count {
+  font-size: 0.875rem;
+  color: #666;
+  background: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 1rem;
+}
+
+/* 개선된 예약 카드 */
+.booking-card {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background 0.2s;
+}
+
+.booking-card.enhanced {
+  padding: 0;
+  border-bottom: none;
+}
+
+.booking-card:last-child {
+  border-bottom: none;
+}
+
+.booking-card:active {
+  background: #f8f9fa;
+}
+
+/* 예약 카드 헤더 */
+.booking-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.room-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.room-name {
+  font-weight: 600;
+  color: var(--color-dark);
+  font-size: 0.9375rem;
+}
+
+.source-badge {
+  font-size: 1.125rem;
+}
+
+.status-badge {
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-badge.예약확정 {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-badge.입금대기 {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-badge.예약취소 {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status-badge.blocked {
+  background: #616161;
+  color: white;
+}
+
+/* 고객 정보 섹션 */
+.booking-card-customer {
+  padding: 0.625rem 1rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.customer-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.customer-name {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 0.875rem;
+}
+
+.customer-phone {
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+
+/* 상세 정보 섹션 */
+.booking-card-details {
+  padding: 0.75rem 1rem;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0.375rem 0;
+  font-size: 0.8125rem;
+}
+
+.detail-row.payment {
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e5e7eb;
+  margin-top: 0.5rem;
+}
+
+.detail-row.memo {
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e5e7eb;
+  margin-top: 0.5rem;
+}
+
+.detail-label {
+  color: #6b7280;
+  font-weight: 500;
+  flex-shrink: 0;
+  min-width: 50px;
+}
+
+.detail-value {
+  color: #1f2937;
+  text-align: right;
+  flex: 1;
+}
+
+.guest-breakdown {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-left: 0.25rem;
+}
+
+.option-item {
+  display: inline;
+}
+
+/* 결제 정보 */
+.payment-details {
+  width: 100%;
+}
+
+.payment-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.payment-item {
+  display: block;
+  font-size: 0.75rem;
+  color: #6b7280;
+  padding-left: 1rem;
+}
+
+.payment-total {
+  padding: 0.5rem;
+  background: #f0f9ff;
+  border-radius: 6px;
+  text-align: right;
+}
+
+.payment-total strong {
+  color: #2d5016;
+  font-size: 0.9375rem;
+}
+
+/* 메모 */
+.detail-row.memo .detail-value {
+  text-align: left;
+  margin-top: 0.25rem;
+  padding: 0.5rem;
+  background: #f9fafb;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: #4b5563;
+}
+
+/* 기존 스타일 유지 (구버전 호환용) */
+.booking-room {
+  font-weight: 500;
+  color: var(--color-dark);
+  margin-bottom: 0.25rem;
+}
+
+.booking-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.status {
+  padding: 0.25rem 0.5rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.status.예약확정 {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status.입금대기 {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status.blocked {
+  background: #616161;
+  color: white;
+}
+
+/* 주간 뷰 */
+.mobile-week-view {
+  background: #f5f5f5;
+  height: auto !important; /* 높이를 내용에 맞게 자동 조정 */
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 20px;  /* 하단 여백 추가 */
+  overflow: visible !important; /* 스크롤 제거, 전체 페이지 스크롤 사용 */
+}
+
+/* 주간 네비게이션 */
+.week-navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: white;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.week-nav-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: #f8f9fa;
+  border-radius: 50%;
+  font-size: 1.25rem;
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.week-nav-btn:active {
+  transform: scale(0.95);
+  background: #e9ecef;
+}
+
+.week-info {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-dark);
+}
+
+/* 주간 캘린더 컨테이너 */
+.week-calendar-container {
+  display: flex;
+  gap: 1px;
+  background: #e0e0e0;
+  padding: 1px;
+  overflow: visible !important; /* 모든 스크롤 제거 */
+  height: auto !important; /* 높이를 내용에 맞게 자동 조정 */
+  min-height: 400px; /* 최소 높이 설정 */
+}
+
+/* 각 날짜 칼럼 */
+.week-day-column {
+  background: white;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;  /* flex: 1이 제대로 작동하도록 수정 */
+  width: auto;   /* 자동으로 남은 공간 채우기 */
+  height: auto !important; /* 높이를 내용에 맞게 자동 조정 */
+  overflow: visible !important; /* 스크롤 제거 */
+}
+
+.week-day-column.today {
+  background: #fffde7;
+}
+
+.week-day-column.sunday .week-day-header {
+  background: #ffebee;
+}
+
+.week-day-column.saturday .week-day-header {
+  background: #e3f2fd;
+}
+
+/* 날짜 헤더 */
+.week-day-header {
+  padding: 10px 6px;
+  background: #f8f9fa;
+  border-bottom: 2px solid #e0e0e0;
+  text-align: center;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.week-day-header .day-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #555;
+  margin-bottom: 4px;
+}
+
+.week-day-header .day-label.sunday {
+  color: #e74c3c;
+}
+
+.week-day-header .day-label.saturday {
+  color: #3498db;
+}
+
+.week-day-header .day-date {
+  font-size: 20px;
+  font-weight: 800;
+  color: #222;
+  margin-bottom: 6px;
+}
+
+.day-occupancy {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  display: inline-block;
+  font-weight: 700;
+}
+
+.day-occupancy.high {
+  background: #ffcdd2;
+  color: #c62828;
+}
+
+.day-occupancy.medium {
+  background: #ffe0b2;
+  color: #e65100;
+}
+
+.day-occupancy.low {
+  background: #c8e6c9;
+  color: #2e7d32;
+}
+
+.day-occupancy.zero {
+  background: #f5f5f5;
+  color: #9e9e9e;
+}
+
+/* 예약 컨텐츠 영역 */
+.week-day-content {
+  padding: 6px;
+  padding-bottom: 12px;  /* 하단 여백 추가 */
+  overflow: visible !important; /* 모든 스크롤 제거 */
+  height: auto !important; /* 높이를 내용에 맞게 자동 조정 */
+  min-height: 200px; /* 최소 높이 설정 */
+  max-height: none !important; /* 최대 높이 제한 없음 */
+}
+
+/* 예약 없음 */
+.no-bookings {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 10px;
+  color: #999;
+}
+
+.no-bookings span {
+  font-size: 13px;
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+.add-btn {
+  width: 30px;
+  height: 30px;
+  border: 2px dashed #ddd;
+  background: white;
+  border-radius: 50%;
+  font-size: 18px;
+  color: #999;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.add-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: #f8f9fa;
+}
+
+/* 예약 리스트 */
+.bookings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  height: auto !important; /* 높이를 내용에 맞게 자동 조정 */
+  overflow: visible !important; /* 스크롤 제거 */
+}
+
+/* 주간 예약 아이템 */
+.week-booking-item {
+  padding: 8px 6px;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.week-booking-item:active {
+  transform: scale(0.98);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.week-booking-item.type-1 {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.week-booking-item.type-2 {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+}
+
+.week-booking-item.type-3 {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: #333;
+}
+
+.week-booking-item.type-3 .booking-info {
+  border-top-color: rgba(0,0,0,0.1);
+}
+
+.week-booking-item.type-4 {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  color: #333;
+}
+
+.week-booking-item.type-4 .booking-info {
+  border-top-color: rgba(0,0,0,0.1);
+}
+
+.week-booking-item.type-5 {
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  color: #333;
+}
+
+.week-booking-item.type-5 .booking-info {
+  border-top-color: rgba(0,0,0,0.1);
+}
+
+.week-booking-item.type-6 {
+  background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+  color: white;
+}
+
+.week-booking-item.blocked {
+  background: linear-gradient(135deg, #757575 0%, #424242 100%);
+  color: white;
+}
+
+.booking-room-name {
+  font-weight: 800;
+  font-size: 12px;
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.booking-guest {
+  font-size: 11px;
+  opacity: 0.95;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+
+.booking-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255,255,255,0.2);
+}
+
+.guest-count {
+  font-weight: 600;
+}
+
+.status-icon {
+  font-weight: 700;
+  font-size: 11px;
+}
+
+/* 어두운 배경용 상태 아이콘 */
+.week-booking-item.type-1 .status-icon.예약확정,
+.week-booking-item.type-2 .status-icon.예약확정,
+.week-booking-item.type-6 .status-icon.예약확정,
+.week-booking-item.blocked .status-icon.예약확정 {
+  color: #90ee90;
+}
+
+.week-booking-item.type-1 .status-icon.입금대기,
+.week-booking-item.type-2 .status-icon.입금대기,
+.week-booking-item.type-6 .status-icon.입금대기,
+.week-booking-item.blocked .status-icon.입금대기 {
+  color: #ffd700;
+}
+
+/* 밝은 배경용 상태 아이콘 */
+.week-booking-item.type-3 .status-icon.예약확정,
+.week-booking-item.type-4 .status-icon.예약확정,
+.week-booking-item.type-5 .status-icon.예약확정 {
+  color: #2e7d32;
+}
+
+.week-booking-item.type-3 .status-icon.입금대기,
+.week-booking-item.type-4 .status-icon.입금대기,
+.week-booking-item.type-5 .status-icon.입금대기 {
+  color: #f57c00;
+}
+
+/* 추가 버튼 */
+.add-more-btn {
+  width: 100%;
+  padding: 6px;
+  border: 2px dashed #ddd;
+  background: white;
+  border-radius: 4px;
+  color: #666;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 4px;
+}
+
+.add-more-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: #f8f9fa;
+}
+
+/* 바텀시트 */
+.bottom-sheet-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 1000;
+  animation: fadeIn 0.2s;
+}
+
+.bottom-sheet {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-radius: 1rem 1rem 0 0;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.bottom-sheet-handle {
+  width: 40px;
+  height: 4px;
+  background: #ccc;
+  border-radius: 2px;
+  margin: 0.5rem auto;
+}
+
+.bottom-sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.bottom-sheet-header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  color: var(--color-dark);
+}
+
+.close-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  font-size: 1.25rem;
+  color: #666;
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+.close-btn:active {
+  background: #f0f0f0;
+}
+
+/* 빠른 통계 */
+.quick-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: #f8f9fa;
+}
+
+.stat {
+  text-align: center;
+}
+
+.stat-icon {
+  font-size: 1.5rem;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: #666;
+  display: block;
+}
+
+.stat-value {
+  font-weight: 600;
+  color: var(--color-dark);
+}
+
+/* 객실 목록 */
+.room-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 1.5rem;
+}
+
+.room-item {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.room-item:last-child {
+  border-bottom: none;
+}
+
+.room-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.room-name {
+  font-weight: 600;
+  color: var(--color-dark);
+}
+
+.room-availability {
+  font-size: 0.875rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 1rem;
+}
+
+.room-availability.available {
+  background: #d4edda;
+  color: #155724;
+}
+
+.room-availability.full {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.room-booking {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  margin-top: 0.25rem;
+  background: #f8f9fa;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.room-booking:active {
+  background: #e9ecef;
+}
+
+.status-chip {
+  font-size: 0.75rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 1rem;
+}
+
+.status-chip.예약확정 {
+  background: var(--color-success);
+  color: white;
+}
+
+.status-chip.입금대기 {
+  background: var(--color-warning);
+  color: white;
+}
+
+/* 예약 추가 버튼 */
+.add-booking-btn {
+  width: calc(100% - 3rem);
+  margin: 1rem 1.5rem;
+  padding: 1rem;
+  border: none;
+  background: var(--color-primary);
+  color: white;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.add-booking-btn:active {
+  background: var(--color-secondary);
+}
+
+/* 월간 뷰 */
+.mobile-month-view {
+  background: #f5f5f5;
+  min-height: calc(100% - 88px);
+  height: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.month-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  padding: 0.75rem 0.5rem;
+  background: white;
+  border-bottom: 1px solid #e0e0e0;
+  flex-shrink: 0;
+}
+
+.month-weekday {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #555;
+}
+
+.month-weekday.sunday {
+  color: #e74c3c;
+}
+
+.month-weekday.saturday {
+  color: #3498db;
+}
+
+.month-grid {
+  flex: 1;
+  display: grid;
+  grid-auto-rows: auto; /* 내용에 따라 자동 높이 */
+  gap: 1px;
+  padding: 1px;
+  background: #e0e0e0;
+  overflow: visible; /* 스크롤 제거 */
+}
+
+.month-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  min-height: 100px;
+  height: auto; /* 내용에 따라 자동 확장 */
+}
+
+.month-day {
+  position: relative;
+  background: white;
+  display: flex;
+  flex-direction: column;
+  padding: 3px;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: 100px;
+  height: auto !important; /* 내용에 따라 자동 확장 */
+  max-height: none !important; /* 최대 높이 제한 없음 */
+}
+
+.month-day:active {
+  background: #f0f0f0;
+}
+
+.month-day.other-month {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.month-day.today {
+  background: #fffde7;
+  border: 2px solid #ffc107;
+  padding: 2px;
+}
+
+.month-day-number {
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 2px;
+  color: #333;
+  line-height: 1;
+}
+
+.month-day.sunday .month-day-number {
+  color: #e74c3c;
+}
+
+.month-day.saturday .month-day-number {
+  color: #3498db;
+}
+
+/* 예약 정보 영역 - 모든 예약이 표시되도록 수정 */
+.month-day-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: visible !important; /* 모든 내용 표시 */
+  max-height: none !important; /* 높이 제한 없음 */
+}
+
+/* 스크롤 가능 클래스 제거 - 더 이상 필요 없음 */
+
+/* 스크롤바 스타일 */
+.month-day-content::-webkit-scrollbar {
+  width: 2px;
+}
+
+.month-day-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.month-day-content::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 1px;
+}
+
+.booking-item {
+  padding: 2px 3px;
+  border-radius: 3px;
+  font-size: 9px;
+  line-height: 1.2;
+  color: white;
+  margin-bottom: 1px;
+}
+
+.booking-item.type-1 {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.booking-item.type-2 {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+}
+
+.booking-item.type-3 {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: #333;
+}
+
+.booking-item.type-4 {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  color: #333;
+}
+
+.booking-item.type-5 {
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  color: #333;
+}
+
+.booking-item.type-6 {
+  background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+  color: white;
+}
+
+/* 관리자 막기 스타일 */
+.booking-item.blocked {
+  background: linear-gradient(135deg, #757575 0%, #424242 100%);
+  opacity: 0.9;
+}
+
+.booking-item.blocked .guest-info {
+  font-weight: 600;
+  opacity: 1;
+}
+
+.booking-item .room-name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 9px;
+}
+
+.booking-item .guest-info {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 8px;
+}
+
+/* 어두운 배경의 guest-info */
+.booking-item.type-1 .guest-info,
+.booking-item.type-2 .guest-info,
+.booking-item.type-6 .guest-info,
+.booking-item.blocked .guest-info {
+  opacity: 0.9;
+}
+
+/* 밝은 배경의 guest-info */
+.booking-item.type-3 .guest-info,
+.booking-item.type-4 .guest-info,
+.booking-item.type-5 .guest-info {
+  opacity: 0.8;
+  font-weight: 500;
+}
+
+.more-bookings {
+  font-size: 9px;
+  color: #666;
+  text-align: center;
+  padding: 1px 2px;
+  background: #f0f0f0;
+  border-radius: 3px;
+  margin-top: 1px;
+}
+
+/* 점유율 표시 */
+.occupancy-rate {
+  font-size: 9px;
+  text-align: center;
+  padding: 1px 3px;
+  border-radius: 3px;
+  margin-top: auto;
+  line-height: 1.2;
+}
+
+.occupancy-rate.high {
+  background: #ffebee;
+  color: #e74c3c;
+  font-weight: 600;
+}
+
+.occupancy-rate.medium {
+  background: #fff3e0;
+  color: #ff9800;
+  font-weight: 600;
+}
+
+.occupancy-rate.low {
+  background: #e8f5e9;
+  color: #4caf50;
+}
+
+.occupancy-rate.zero {
+  background: #f5f5f5;
+  color: #9e9e9e;
+  font-size: 8px;
+}
+
+/* 객실 범례 */
+.room-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  padding: 15px;
+  background: white;
+  border-top: 1px solid #e0e0e0;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+}
+
+.legend-color {
+  width: 20px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.legend-color.type-1 {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.legend-color.type-2 {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.legend-color.type-3 {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  border: 1px solid #4facfe;
+}
+
+.legend-color.type-4 {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  border: 1px solid #43e97b;
+}
+
+.legend-color.type-5 {
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  border: 1px solid #fa709a;
+}
+
+.legend-color.type-6 {
+  background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+}
+
+/* 태블릿 대응 */
+@media (min-width: 768px) {
+  .week-calendar-container {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  
+  .week-day-column {
+    min-width: 0;  /* flex: 1이 제대로 작동하도록 유지 */
+    width: auto;   /* 자동으로 남은 공간 채우기 */
+  }
+  
+  .week-day-header .day-date {
+    font-size: 24px;
+  }
+  
+  .booking-room-name {
+    font-size: 14px;
+  }
+  
+  .booking-guest {
+    font-size: 12px;
+  }
+  
+  .bottom-sheet {
+    max-width: 600px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+
+/* 작은 모바일 화면 최적화 */
+@media (max-width: 360px) {
+  .week-day-header {
+    padding: 8px 4px;
+  }
+  
+  .week-day-header .day-date {
+    font-size: 18px;
+  }
+  
+  .week-booking-item {
+    padding: 6px 5px;
+  }
+  
+  .booking-room-name {
+    font-size: 11px;
+  }
+  
+  .booking-guest {
+    font-size: 10px;
+  }
+}

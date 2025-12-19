@@ -1,0 +1,401 @@
+/**
+ * AI_FIRST_FunnelChart.css
+ * 퍼널 차트 스타일
+ */
+
+.ai-first-funnel-chart {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  padding: 24px;
+  margin-bottom: 32px;
+}
+
+/* 퍼널 헤더 */
+.funnel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.funnel-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 퍼널 타입 선택 */
+.funnel-type-selector {
+  display: flex;
+  gap: 4px;
+  background: #f8f9fa;
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.funnel-type-selector .type-btn {
+  padding: 8px 20px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #6c757d;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.funnel-type-selector .type-btn:hover {
+  background: white;
+  color: #495057;
+}
+
+.funnel-type-selector .type-btn.active {
+  background: white;
+  color: #667eea;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 퍼널 컨테이너 */
+.funnel-container {
+  background: #fafbfc;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+/* 전환율 카드 섹션 */
+.conversion-rates {
+  margin-bottom: 24px;
+}
+
+.rates-title {
+  margin: 0 0 16px 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.rates-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+/* 전환율 카드 */
+.conversion-card {
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  transition: all 0.3s ease;
+}
+
+.conversion-card:hover {
+  background: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.conversion-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.conversion-icon {
+  font-size: 1.25rem;
+}
+
+.conversion-path {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+.conversion-metrics {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+
+.conversion-rate {
+  font-size: 1.75rem;
+  font-weight: 800;
+}
+
+.conversion-count {
+  font-size: 0.875rem;
+  color: #6c757d;
+}
+
+.conversion-bar {
+  height: 8px;
+  background: #e9ecef;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.conversion-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 1s ease-out;
+}
+
+/* 단계별 분석 */
+.stage-analysis {
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.stage-analysis .analysis-title {
+  margin: 0 0 16px 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.analysis-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+.stage-item {
+  padding: 16px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.stage-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.stage-from,
+.stage-to {
+  font-weight: 600;
+  color: #495057;
+}
+
+.stage-arrow {
+  color: #6c757d;
+}
+
+.stage-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.metric-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metric-label {
+  font-size: 0.75rem;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metric-value {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.metric-value.negative {
+  color: #dc3545;
+}
+
+/* 최적화 제안 */
+.optimization-suggestions {
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea15, #764ba215);
+  border-radius: 12px;
+  border: 1px solid #667eea30;
+}
+
+.suggestions-title {
+  margin: 0 0 16px 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.suggestions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.suggestion-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+  border-left: 3px solid;
+  transition: all 0.3s ease;
+}
+
+.suggestion-item:hover {
+  transform: translateX(4px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.suggestion-item.critical {
+  border-left-color: #dc3545;
+}
+
+.suggestion-item.warning {
+  border-left-color: #ffc107;
+}
+
+.suggestion-item.info {
+  border-left-color: #17a2b8;
+}
+
+.suggestion-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.suggestion-content {
+  flex: 1;
+}
+
+.suggestion-stage {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 4px;
+}
+
+.suggestion-message {
+  font-size: 0.875rem;
+  color: #6c757d;
+  line-height: 1.5;
+}
+
+/* 로딩 상태 */
+.ai-first-funnel-chart.loading {
+  min-height: 500px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-skeleton .skeleton-header {
+  height: 60px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.loading-skeleton .skeleton-funnel {
+  height: 400px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  border-radius: 8px;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* 에러 상태 */
+.ai-first-funnel-chart.error {
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff5f5;
+  border: 2px solid #feb2b2;
+}
+
+.error-message {
+  text-align: center;
+  padding: 24px;
+}
+
+.error-icon {
+  font-size: 2rem;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.error-message p {
+  margin: 8px 0;
+  color: #c53030;
+  font-weight: 600;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+  .funnel-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+  
+  .funnel-type-selector {
+    justify-content: center;
+  }
+  
+  .rates-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .analysis-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .stage-metrics {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 프린트 스타일 */
+@media print {
+  .ai-first-funnel-chart {
+    box-shadow: none;
+    border: 1px solid #dee2e6;
+  }
+  
+  .funnel-type-selector {
+    display: none;
+  }
+  
+  .suggestion-item:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}

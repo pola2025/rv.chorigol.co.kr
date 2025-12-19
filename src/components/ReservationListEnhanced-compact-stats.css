@@ -1,0 +1,233 @@
+/* 모바일 통계 카드 - 컴팩트 디자인 */
+
+@media (max-width: 768px) {
+  /* 통계 바 컨테이너 */
+  .statistics-bar-compact {
+    background: white;
+    border-bottom: 1px solid #e5e5e7;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* 날짜/기준 헤더 */
+  .stat-date-header {
+    height: 24px;
+    background: #f9fafb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #6b7280;
+    border-bottom: 1px solid #e5e5e7;
+  }
+
+  .date-icon {
+    font-size: 0.875rem;
+  }
+
+  .date-text {
+    font-size: 0.75rem;
+  }
+
+  /* 컴팩트 그리드 - 한 줄로 표시 */
+  .stat-compact-grid {
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 0.75rem;
+    background: white;
+  }
+
+  /* 각 통계 아이템 */
+  .stat-item-compact {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+    min-width: 0;
+    flex: 1;
+    justify-content: center;
+  }
+
+  /* 구분선 */
+  .stat-divider {
+    color: #e5e5e7;
+    font-size: 0.875rem;
+    margin: 0 0.5rem;
+    opacity: 0.5;
+  }
+
+  /* 값 (숫자) */
+  .stat-compact-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    line-height: 1;
+  }
+
+  /* 라벨 */
+  .stat-compact-label {
+    font-size: 0.625rem;
+    font-weight: 500;
+    color: #6b7280;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  /* 매출 항목 강조 */
+  .stat-item-compact.revenue .stat-compact-value {
+    color: #2D5016;
+  }
+
+  .stat-item-compact.revenue .stat-compact-label {
+    color: #2D5016;
+    font-weight: 600;
+  }
+
+  /* 기존 stat-grid 숨기기 */
+  .stat-grid {
+    display: none;
+  }
+}
+
+/* 작은 화면 대응 (iPhone SE, Galaxy Fold) */
+@media (max-width: 374px) {
+  .stat-compact-grid {
+    padding: 0 0.5rem;
+  }
+
+  .stat-compact-value {
+    font-size: 0.875rem;
+  }
+
+  .stat-compact-label {
+    font-size: 0.5625rem; /* 9px */
+  }
+
+  .stat-divider {
+    margin: 0 0.25rem;
+  }
+
+  /* 라벨 줄임 */
+  .stat-item-compact:nth-child(1) .stat-compact-label::after {
+    content: '';
+  }
+}
+
+/* 중간 화면 (iPhone 12, 13) */
+@media (min-width: 375px) and (max-width: 413px) {
+  .stat-compact-value {
+    font-size: 0.9375rem;
+  }
+
+  .stat-compact-label {
+    font-size: 0.625rem;
+  }
+}
+
+/* 큰 모바일 화면 (iPhone Pro Max, Pixel) */
+@media (min-width: 414px) and (max-width: 768px) {
+  .stat-date-header {
+    height: 28px;
+    font-size: 0.8125rem;
+  }
+
+  .stat-compact-grid {
+    height: 40px;
+  }
+
+  .stat-compact-value {
+    font-size: 1.0625rem;
+  }
+
+  .stat-compact-label {
+    font-size: 0.6875rem;
+  }
+}
+
+/* 추가 스타일 옵션 */
+
+/* 옵션 1: 배경색 구분 */
+.stat-item-compact:nth-child(1) {
+  /* 전체 - 파란색 계열 */
+}
+
+.stat-item-compact:nth-child(3) {
+  /* 대기 - 주황색 계열 */
+}
+
+.stat-item-compact:nth-child(5) {
+  /* 확정 - 초록색 계열 */
+}
+
+/* 옵션 2: 아이콘 추가 (필요시) */
+.stat-compact-label::before {
+  /* content: ''; 아이콘 추가 가능 */
+}
+
+/* 애니메이션 */
+.stat-compact-value {
+  transition: all 0.3s ease;
+}
+
+.stat-item-compact:active .stat-compact-value {
+  transform: scale(1.1);
+}
+
+/* 다크모드 대응 */
+@media (prefers-color-scheme: dark) and (max-width: 768px) {
+  .statistics-bar-compact {
+    background: #1c1c1e;
+    border-bottom-color: #3a3a3c;
+  }
+
+  .stat-date-header {
+    background: #2c2c2e;
+    color: #98989d;
+    border-bottom-color: #3a3a3c;
+  }
+
+  .stat-compact-grid {
+    background: #1c1c1e;
+  }
+
+  .stat-compact-value {
+    color: white;
+  }
+
+  .stat-compact-label {
+    color: #98989d;
+  }
+
+  .stat-divider {
+    color: #3a3a3c;
+  }
+
+  .stat-item-compact.revenue .stat-compact-value,
+  .stat-item-compact.revenue .stat-compact-label {
+    color: #86DC3D;
+  }
+}
+
+/* 접근성 */
+@media (max-width: 768px) {
+  .stat-item-compact {
+    min-height: 36px; /* 터치 영역 확보 */
+  }
+
+  /* 포커스 스타일 */
+  .stat-item-compact:focus-within {
+    outline: 2px solid #2563EB;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+/* 프린트 대응 */
+@media print and (max-width: 768px) {
+  .statistics-bar-compact {
+    display: none; /* 프린트시 통계 숨김 */
+  }
+}

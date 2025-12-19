@@ -1,0 +1,388 @@
+/* 예약출처 선택 */
+.booking-source-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .booking-source-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.booking-source-item {
+  position: relative;
+  cursor: pointer;
+  display: block;
+}
+
+.booking-source-item input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.source-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 2px solid #e0e0e0;
+  border-radius: var(--radius-md);
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.booking-source-item:hover .source-content {
+  border-color: var(--color-primary);
+  background: #f0f7ff;
+}
+
+.booking-source-item.selected .source-content {
+  border-color: var(--color-primary);
+  background: #e3f2fd;
+}
+
+.source-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.source-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-dark);
+}
+
+/* 예약출처 배지 */
+.source-badge {
+  font-size: 1.2rem;
+  display: inline-block;
+  vertical-align: middle;
+  cursor: help;
+}
+
+/* 날짜별 가격 표시 */
+.daily-prices {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background-color: #f0f7ff;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+}
+
+.daily-price-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+  color: #666;
+}
+
+.daily-price-item:not(:last-child) {
+  border-bottom: 1px solid #e0e0e0;
+}
+
+/* 재고 정보 섹션 */
+.stock-info-section {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-radius: var(--radius-md);
+}
+
+.stock-info-section label {
+  display: block;
+  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+  color: #333;
+  font-weight: 500;
+}
+
+.daily-stock-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.daily-stock-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background-color: white;
+  border: 1px solid #e0e0e0;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+}
+
+.daily-stock-item.unavailable {
+  background-color: #fee;
+  border-color: #fcc;
+}
+
+.stock-date {
+  color: #666;
+  font-weight: 500;
+}
+
+.stock-count {
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+.stock-count.no-stock {
+  color: var(--color-danger);
+}
+
+/* 객실 선택 드롭다운에서 비활성화된 옵션 스타일 */
+.form-group select option:disabled {
+  color: #999;
+  background-color: #f5f5f5;
+}/* NewReservationModal.css */
+
+.new-reservation-modal {
+  background: white;
+  border-radius: var(--radius-lg);
+  width: 90%;
+  max-width: 700px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.3s ease;
+}
+
+.new-reservation-modal.mobile {
+  width: 100%;
+  height: 100vh;
+  max-height: 100vh;
+  border-radius: 0;
+}
+
+/* 폼 섹션 */
+.form-section {
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.form-section:last-of-type {
+  margin-bottom: 1rem;
+  border-bottom: none;
+}
+
+.form-section h3 {
+  font-size: 1.125rem;
+  color: var(--color-dark);
+  margin: 0 0 1rem 0;
+  font-weight: 600;
+}
+
+/* 폼 그룹 */
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+  color: #333;
+  font-weight: 500;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease;
+  background-color: white;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.form-group input.error,
+.form-group select.error {
+  border-color: var(--color-danger);
+}
+
+.error-message {
+  display: block;
+  color: var(--color-danger);
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+/* 폼 행 */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+/* 옵션 리스트 */
+.options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.option-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid #e0e0e0;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  font-size: 0.875rem; /* 폰트 크기 축소 (2025.01.08) */
+}
+
+.option-item:hover {
+  background-color: #f8f9fa;
+  border-color: var(--color-primary);
+}
+
+.option-item input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}
+
+/* 옵션 라벨 텍스트 */
+.option-label {
+  flex: 1;
+  font-size: 0.8rem; /* 옵션 텍스트 더 작게 (2025.01.08) */
+  color: #333;
+}
+
+.option-note {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.7rem; /* 노트 폰트 크기 축소 (2025.01.08) */
+  padding: 0.25rem 0.5rem;
+  border-radius: 1rem;
+  background-color: #e3f2fd; /* 요금 포함 - 파란색 (2025.01.08) */
+  color: #1565c0;
+  font-weight: 500;
+}
+
+.option-note.onsite {
+  background-color: #fff3e0; /* 현장결제 - 주황색 (2025.01.08) */
+  color: #e65100;
+  font-weight: 600;
+}
+
+/* 가격 섹션 */
+.price-section {
+  background-color: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: var(--radius-md);
+  margin-top: 1rem;
+}
+
+.price-section h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.125rem;
+  color: var(--color-dark);
+}
+
+.price-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.95rem;
+  color: #666;
+}
+
+.price-row.total {
+  padding-top: 0.75rem;
+  border-top: 1px solid #dee2e6;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-dark);
+}
+
+.price-row.onsite {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed #dee2e6;
+  color: #e65100; /* 현장결제 주황색과 통일 (2025.01.08) */
+}
+
+.total-price {
+  color: var(--color-primary);
+  font-size: 1.25rem;
+}
+
+.onsite-price {
+  color: #e65100; /* 현장결제 주황색과 통일 (2025.01.08) */
+  font-weight: 600;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 768px) {
+  .new-reservation-modal {
+    margin: 0;
+  }
+
+  .modal-body {
+    padding: 1rem;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .form-section {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+  }
+
+  .price-section {
+    padding: 1rem;
+  }
+  
+  .option-note {
+    position: static;
+    display: block;
+    margin-top: 0.25rem;
+    width: fit-content;
+  }
+}
+
+/* 버튼 비활성화 상태 */
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 텍스트영역 */
+textarea {
+  resize: vertical;
+  min-height: 80px;
+}

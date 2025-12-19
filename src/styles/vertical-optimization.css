@@ -1,0 +1,516 @@
+/* 
+ * 초호펜션 객실관리 프로그램 - 세로 길이 최적화
+ * Created: 2025.08.23
+ * Purpose: 화면 세로 공간 효율적 활용
+ */
+
+/* ========== 전역 최적화 ========== */
+
+/* 기본 여백 축소 */
+* {
+  --spacing-xs: 0.25rem;  /* 4px */
+  --spacing-sm: 0.5rem;   /* 8px */
+  --spacing-md: 0.75rem;  /* 12px */
+  --spacing-lg: 1rem;     /* 16px */
+  --spacing-xl: 1.5rem;   /* 24px */
+}
+
+/* ========== 헤더 영역 최적화 ========== */
+
+/* 메인 헤더 높이 축소 */
+.dashboard-header {
+  height: 48px !important; /* 기존 52px → 48px */
+  padding: 0 1rem !important;
+}
+
+.header-left .logo-icon {
+  width: 28px !important;
+  height: 28px !important;
+}
+
+.header-user {
+  padding: 0.375rem 0.75rem !important;
+}
+
+.user-avatar {
+  width: 22px !important;
+  height: 22px !important;
+}
+
+/* ========== 네비게이션 탭 최적화 ========== */
+
+.dashboard-nav {
+  min-height: auto !important;
+}
+
+.nav-tab {
+  padding: 0.625rem 1rem !important; /* 기존 0.75rem → 0.625rem */
+  min-height: 40px !important;
+}
+
+.nav-tab-icon {
+  width: 18px !important;
+  height: 18px !important;
+}
+
+.nav-tab-label {
+  font-size: 0.875rem !important;
+  line-height: 1.2 !important;
+}
+
+/* ========== 콘텐츠 영역 최적화 ========== */
+
+.dashboard-content {
+  padding: 1rem !important; /* 기존 1.5rem → 1rem */
+}
+
+.page-header {
+  margin-bottom: 1rem !important; /* 기존 1.5rem → 1rem */
+}
+
+.page-title h2 {
+  font-size: 1.5rem !important;
+  line-height: 1.2 !important;
+}
+
+/* ========== 통계 카드 최적화 ========== */
+
+.stat-cards {
+  gap: 0.75rem !important; /* 기존 1rem → 0.75rem */
+  margin-bottom: 1rem !important; /* 기존 1.5rem → 1rem */
+}
+
+.stat-card {
+  padding: 1rem !important; /* 기존 1.25rem → 1rem */
+  min-height: auto !important;
+}
+
+.stat-content h3 {
+  font-size: 0.75rem !important;
+  margin-bottom: 0.375rem !important;
+}
+
+.stat-value {
+  font-size: 1.75rem !important;
+  line-height: 1 !important;
+}
+
+.stat-trend {
+  margin-top: 0.375rem !important;
+  padding: 0.2rem 0.4rem !important;
+  font-size: 0.7rem !important;
+}
+
+/* ========== 예약 리스트 최적화 ========== */
+
+/* 리스트 헤더 */
+.reservation-list-header {
+  padding: 0.75rem 1rem !important;
+  margin-bottom: 0.75rem !important;
+}
+
+.list-title {
+  font-size: 1.125rem !important;
+}
+
+/* 리스트 아이템 */
+.reservation-item {
+  padding: 0.875rem !important;
+  margin-bottom: 0.625rem !important;
+}
+
+.reservation-item-header {
+  margin-bottom: 0.5rem !important;
+}
+
+.reservation-item-body {
+  gap: 0.5rem !important;
+}
+
+.reservation-info-row {
+  margin-bottom: 0.375rem !important;
+}
+
+.reservation-info-label {
+  font-size: 0.75rem !important;
+}
+
+.reservation-info-value {
+  font-size: 0.875rem !important;
+}
+
+/* 옵션 태그 */
+.option-tag {
+  padding: 0.2rem 0.5rem !important;
+  font-size: 0.7rem !important;
+  line-height: 1 !important;
+}
+
+/* ========== 캘린더 최적화 ========== */
+
+/* 캘린더 헤더 */
+.calendar-header {
+  padding: 0.75rem !important;
+  margin-bottom: 0.75rem !important;
+}
+
+.calendar-title {
+  font-size: 1.125rem !important;
+}
+
+/* 캘린더 셀 */
+.calendar-day {
+  min-height: 80px !important; /* 기존 100px → 80px */
+  padding: 0.5rem !important;
+}
+
+.calendar-day-number {
+  font-size: 0.875rem !important;
+  margin-bottom: 0.25rem !important;
+}
+
+.calendar-day-content {
+  font-size: 0.75rem !important;
+  line-height: 1.2 !important;
+}
+
+/* 예약 블록 */
+.reservation-block {
+  padding: 0.25rem 0.375rem !important;
+  margin-bottom: 0.25rem !important;
+  font-size: 0.7rem !important;
+  line-height: 1.2 !important;
+}
+
+/* ========== 모달 최적화 ========== */
+
+.modal-header {
+  padding: 1rem 1.25rem !important;
+}
+
+.modal-title {
+  font-size: 1.125rem !important;
+}
+
+.modal-body {
+  padding: 1rem 1.25rem !important;
+}
+
+.modal-footer {
+  padding: 0.75rem 1.25rem !important;
+}
+
+/* 폼 요소 */
+.form-group {
+  margin-bottom: 0.875rem !important;
+}
+
+.form-label {
+  font-size: 0.8125rem !important;
+  margin-bottom: 0.375rem !important;
+}
+
+.form-control {
+  padding: 0.5rem 0.75rem !important;
+  font-size: 0.875rem !important;
+}
+
+/* ========== 버튼 최적화 ========== */
+
+.btn {
+  padding: 0.5rem 1rem !important;
+  font-size: 0.875rem !important;
+  line-height: 1.2 !important;
+}
+
+.btn-sm {
+  padding: 0.375rem 0.75rem !important;
+  font-size: 0.8125rem !important;
+}
+
+.btn-lg {
+  padding: 0.625rem 1.25rem !important;
+  font-size: 0.9375rem !important;
+}
+
+/* ========== 테이블 최적화 ========== */
+
+.table th {
+  padding: 0.625rem !important;
+  font-size: 0.8125rem !important;
+}
+
+.table td {
+  padding: 0.5rem !important;
+  font-size: 0.875rem !important;
+}
+
+/* ========== 모바일 반응형 최적화 ========== */
+
+@media (max-width: 768px) {
+  /* 모바일 헤더 */
+  .dashboard-header {
+    height: 44px !important;
+  }
+  
+  /* 모바일 네비게이션 탭 */
+  .nav-tab {
+    padding: 0.5rem 0.2rem !important;
+    min-height: 44px !important;
+  }
+  
+  .nav-tab-icon {
+    width: 16px !important;
+    height: 16px !important;
+  }
+  
+  .nav-tab-label {
+    font-size: 0.625rem !important;
+  }
+  
+  /* 모바일 콘텐츠 */
+  .dashboard-content {
+    padding: 0.75rem !important;
+  }
+  
+  /* 모바일 통계 카드 */
+  .stat-card {
+    padding: 0.75rem !important;
+    min-height: 70px !important;
+  }
+  
+  .stat-value {
+    font-size: 1.25rem !important;
+  }
+  
+  .stat-content h3 {
+    font-size: 0.7rem !important;
+  }
+  
+  /* 모바일 리스트 */
+  .reservation-item {
+    padding: 0.75rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+  
+  /* 모바일 캘린더 */
+  .calendar-day {
+    min-height: 60px !important;
+    padding: 0.375rem !important;
+  }
+  
+  .calendar-day-number {
+    font-size: 0.75rem !important;
+  }
+  
+  .reservation-block {
+    font-size: 0.625rem !important;
+    padding: 0.2rem 0.25rem !important;
+  }
+  
+  /* 모바일 모달 */
+  .modal-header {
+    padding: 0.875rem 1rem !important;
+  }
+  
+  .modal-body {
+    padding: 0.875rem 1rem !important;
+  }
+  
+  .modal-footer {
+    padding: 0.625rem 1rem !important;
+  }
+  
+  /* 모바일 페이지 타이틀 */
+  .mobile-page-title {
+    padding: 0.75rem 0.875rem !important;
+    margin-bottom: 0.875rem !important;
+  }
+  
+  .mobile-page-title h2 {
+    font-size: 1rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  /* 초소형 화면 추가 최적화 */
+  .dashboard-header {
+    height: 40px !important;
+  }
+  
+  .nav-tab {
+    min-height: 40px !important;
+    padding: 0.4rem 0.15rem !important;
+  }
+  
+  .nav-tab-icon {
+    width: 14px !important;
+    height: 14px !important;
+  }
+  
+  .nav-tab-label {
+    font-size: 0.5625rem !important; /* 9px */
+  }
+  
+  .dashboard-content {
+    padding: 0.5rem !important;
+  }
+  
+  .stat-card {
+    padding: 0.625rem !important;
+    min-height: 60px !important;
+  }
+  
+  .stat-value {
+    font-size: 1rem !important;
+  }
+}
+
+/* ========== 스크롤바 최적화 ========== */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* ========== 컴팩트 모드 클래스 ========== */
+
+/* 컴팩트 모드 활성화시 추가 축소 */
+.compact-mode {
+  /* 전체 폰트 크기 90% */
+  font-size: 90% !important;
+}
+
+.compact-mode .dashboard-header {
+  height: 42px !important;
+}
+
+.compact-mode .nav-tab {
+  min-height: 36px !important;
+  padding: 0.5rem 0.75rem !important;
+}
+
+.compact-mode .stat-card {
+  padding: 0.75rem !important;
+}
+
+.compact-mode .reservation-item {
+  padding: 0.625rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+/* ========== 인쇄 최적화 ========== */
+
+@media print {
+  /* 불필요한 요소 숨김 */
+  .dashboard-header,
+  .dashboard-nav,
+  .mobile-menu-trigger,
+  .btn-logout {
+    display: none !important;
+  }
+  
+  /* 콘텐츠 여백 조정 */
+  .dashboard-content {
+    padding: 0 !important;
+  }
+  
+  /* 페이지 나누기 방지 */
+  .stat-card,
+  .reservation-item {
+    page-break-inside: avoid;
+  }
+}
+
+/* ========== 애니메이션 최적화 ========== */
+
+/* 빠른 전환 효과 */
+* {
+  transition-duration: 0.2s !important;
+}
+
+/* 애니메이션 비활성화 옵션 */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ========== 터치 친화적 최적화 ========== */
+
+@media (hover: none) and (pointer: coarse) {
+  /* 터치 타겟 최소 크기 유지 */
+  .btn,
+  .nav-tab,
+  .reservation-item {
+    min-height: 44px;
+  }
+  
+  /* 터치 영역 확대 */
+  .clickable::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    bottom: -8px;
+    left: -8px;
+  }
+}
+
+/* ========== 다크 모드 최적화 ========== */
+
+@media (prefers-color-scheme: dark) {
+  /* 다크 모드에서 더 얇은 보더 */
+  * {
+    border-width: 0.5px !important;
+  }
+  
+  /* 대비 향상 */
+  .stat-value {
+    font-weight: 600 !important;
+  }
+}
+
+/* ========== 고밀도 디스플레이 최적화 ========== */
+
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  /* 선명한 텍스트 렌더링 */
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* ========== 최종 미세 조정 ========== */
+
+/* 불필요한 여백 제거 */
+.no-margin { margin: 0 !important; }
+.no-padding { padding: 0 !important; }
+
+/* 컴팩트 여백 클래스 */
+.p-compact { padding: 0.5rem !important; }
+.m-compact { margin: 0.5rem !important; }
+
+/* 라인 높이 최적화 */
+.line-compact { line-height: 1.2 !important; }
+
+/* 텍스트 크기 조정 */
+.text-compact { font-size: 0.875rem !important; }
+.text-xs-compact { font-size: 0.75rem !important; }
+
+/* End of vertical optimization */

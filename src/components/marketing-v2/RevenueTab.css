@@ -1,0 +1,107 @@
+/* src/components/marketing-v2/RevenueTab.css */
+.revenue-tab {
+  padding: 10px;
+}
+
+.revenue-tab h3 {
+  margin: 0 0 20px 0;
+  font-size: 20px;
+  color: #333;
+}
+
+.revenue-summary {
+  margin-bottom: 30px;
+  padding: 20px;
+  background: #f9f9f9;
+  border-radius: 8px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.summary-row:last-child {
+  border-bottom: none;
+}
+
+.summary-row label {
+  font-weight: 500;
+  color: #666;
+}
+
+.summary-row input {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
+  text-align: right;
+  width: 200px;
+}
+
+.summary-row .value {
+  font-size: 18px;
+  font-weight: bold;
+  color: #2196F3;
+}
+
+.room-revenue h4 {
+  margin: 0 0 15px 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.room-list {
+  padding: 15px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.room-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.room-row label {
+  color: #555;
+}
+
+.room-row input {
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  text-align: right;
+  width: 150px;
+}
+
+.room-row .value {
+  font-weight: 500;
+  color: #333;
+}
+
+.room-total {
+  margin-top: 15px;
+  padding: 15px;
+  background: #e3f2fd;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.room-total label {
+  font-weight: 600;
+  color: #333;
+}
+
+.room-total .value {
+  font-size: 20px;
+  font-weight: bold;
+  color: #2196F3;
+}

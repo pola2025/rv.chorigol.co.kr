@@ -1,0 +1,97 @@
+/* CustomerBadge.css */
+
+.customer-badge-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.customer-badge-wrapper .customer-name {
+  font-weight: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+.reservation-count-badge {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  border-radius: 10px;
+  background: #ff6b6b;
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  vertical-align: middle;
+  margin-left: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+/* VIP 고객 (3회 이상) 스타일 */
+.reservation-count-badge.vip {
+  background: linear-gradient(135deg, #ffd700, #ffed4e);
+  color: #333;
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.3), 0 2px 4px rgba(255, 215, 0, 0.5);
+  font-weight: 800;
+  animation: vipPulse 2s ease-in-out infinite;
+}
+
+@keyframes vipPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+/* 호버 효과 */
+.reservation-count-badge:hover {
+  transform: scale(1.1);
+  cursor: help;
+}
+
+/* 다크 모드 지원 */
+@media (prefers-color-scheme: dark) {
+  .reservation-count-badge {
+    background: #4a4a4a;
+    color: #fff;
+  }
+  
+  .reservation-count-badge.vip {
+    background: linear-gradient(135deg, #ffd700, #ffed4e);
+    color: #333;
+  }
+}
+
+/* 모바일 환경에서 크기 조정 */
+@media (max-width: 768px) {
+  .reservation-count-badge {
+    min-width: 18px;
+    height: 18px;
+    font-size: 11px;
+    padding: 0 3px;
+  }
+}
+
+/* 테이블 내에서 사용될 때 */
+.reservation-table .customer-badge-wrapper {
+  white-space: nowrap;
+}
+
+/* 카드 내에서 사용될 때 */
+.reservation-card .customer-badge-wrapper {
+  font-weight: 500;
+}
+
+/* 캘린더 내에서 사용될 때 (작은 크기) */
+.calendar-booking .customer-badge-wrapper .reservation-count-badge {
+  width: 14px;
+  height: 14px;
+  font-size: 9px;
+}
