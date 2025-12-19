@@ -1,7 +1,8 @@
 // Dashboard.jsx - 선언형 마이그레이션 버전
 // useEffect 완전 제거, React Query 기반
-import React, { useState, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useMemo, useEffect, lazy, Suspense } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useLocation, useNavigate } from 'react-router-dom';
 import ReservationCalendar from './ReservationCalendar';
 import BookingModal from './BookingModal';
 import NewReservationModal from '../common/NewReservationModal';
@@ -92,7 +93,32 @@ const Dashboard = ({ user, onLogout }) => {
   migrationDebugger.startPerformance('Dashboard');
   migrationDebugger.log(DEBUG_LEVELS.INFO, 'Dashboard', 'Component initialized', { user: user?.email });
 
-  const [activeTab, setActiveTab] = useState('calendar');
+  // React Router 훅
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // URL 경로에서 탭 ID 추출
+  const getTabFromPath = (pathname) => {
+    const path = pathname.replace('/', '') || 'calendar';
+    const validTabs = TABS.map(t => t.id);
+    return validTabs.includes(path) ? path : 'calendar';
+  };
+
+  const [activeTab, setActiveTab] = useState(() => getTabFromPath(location.pathname));
+
+  // URL 변경 시 탭 동기화
+  useEffect(() => {
+    const newTab = getTabFromPath(location.pathname);
+    if (newTab !== activeTab) {
+      setActiveTab(newTab);
+    }
+  }, [location.pathname]);
+
+  // 탭 변경 핸들러 (URL도 함께 변경)
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    navigate(`/${tabId}`);
+  };
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -605,7 +631,7 @@ const Dashboard = ({ user, onLogout }) => {
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => handleTabChange(tab.id)}
               className={`nav-tab ${activeTab === tab.id ? 'active' : ''}`}
             >
               <TabIcon className="nav-tab-icon" size={18} />
@@ -639,7 +665,7 @@ const Dashboard = ({ user, onLogout }) => {
         onClose={() => setIsMobileMenuOpen(false)}
         tabs={TABS}
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
       />
 
       {/* 날짜 상세 패널 */}

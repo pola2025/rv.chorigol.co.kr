@@ -1,6 +1,7 @@
-// src/App.jsx - Fixed version with React Query
+// src/App.jsx - Fixed version with React Query + React Router
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { BrowserRouter } from 'react-router-dom';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from './config/firebase';
 import { FirebaseProvider } from './providers/FirebaseProvider';
@@ -117,11 +118,13 @@ function App() {
 
     if (user) {
       return (
-        <div className="app">
-          <FirebaseProvider>
-            <Dashboard user={user} onLogout={handleLogout} />
-          </FirebaseProvider>
-        </div>
+        <BrowserRouter>
+          <div className="app">
+            <FirebaseProvider>
+              <Dashboard user={user} onLogout={handleLogout} />
+            </FirebaseProvider>
+          </div>
+        </BrowserRouter>
       );
     }
 
