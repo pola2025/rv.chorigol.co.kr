@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRD - 초호 펜션 관리 시스템 디자인 리뉴얼 2025</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Pretendard', -apple-system, sans-serif; scroll-behavior: smooth; }
+        .check-item:has(input:checked) { background: #f0fdf4; border-color: #86efac; }
+        .priority-high { background: #fef2f2; border-left: 4px solid #ef4444; }
+        .priority-medium { background: #fffbeb; border-left: 4px solid #f59e0b; }
+        .priority-low { background: #f0fdf4; border-left: 4px solid #22c55e; }
+
+        /* 목차 Active State */
+        .toc-link { transition: all 0.2s ease; }
+        .toc-link.active {
+            background: #ecfdf5;
+            color: #047857;
+            font-weight: 600;
+            padding-left: 12px;
+            border-left: 3px solid #10b981;
+        }
+
+        /* 플로팅 버튼 */
+        .scroll-top-btn {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #059669, #047857);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        .scroll-top-btn.visible { opacity: 1; visibility: visible; }
+        .scroll-top-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(5, 150, 105, 0.5); }
+
+        /* 프로그레스 바 */
+        .progress-bar {
+            background: linear-gradient(90deg, #10b981, #059669);
+            transition: width 0.5s ease;
+        }
+
+        /* 디자인 프리뷰 카드 */
+        .design-preview {
+            background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+            border: 1px solid #d1fae5;
+        }
+        .design-preview:hover {
+            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.15);
+            transform: translateY(-2px);
+            transition: all 0.3s ease;
+        }
+
+        /* Glass 효과 미리보기 */
+        .glass-demo {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        /* 위험 요소 아이콘 */
+        .risk-icon { animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* 인쇄 스타일 */
+        @media print {
+            .scroll-top-btn, .toc-sticky { display: none !important; }
+            section { break-inside: avoid; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 진행률 표시 바 (상단 고정) -->
+    <div class="fixed top-0 left-0 right-0 h-1 bg-gray-200 z-50">
+        <div id="progressBar" class="progress-bar h-full" style="width: 0%"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-emerald-800 to-emerald-600 text-white py-8 px-4 mt-1">
+        <div class="max-w-5xl mx-auto">
+            <div class="flex items-center gap-3 mb-2">
+                <span class="bg-white/20 px-3 py-1 rounded-full text-sm">PRD v1.1</span>
+                <span class="text-emerald-200">2025-12-19</span>
+            </div>
+            <h1 class="text-3xl font-bold mb-2">초호 펜션 관리 시스템</h1>
+            <p class="text-xl text-emerald-100">디자인 리뉴얼 2025 기획서</p>
+
+            <!-- 진행률 요약 -->
+            <div class="mt-4 p-3 bg-white/10 rounded-lg">
+                <div class="flex items-center justify-between text-sm">
+                    <span>전체 진행률</span>
+                    <span id="progressText" class="font-bold">0%</span>
+                </div>
+                <div class="mt-2 h-2 bg-white/20 rounded-full overflow-hidden">
+                    <div id="progressBarHeader" class="h-full bg-white rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+                <div class="mt-2 flex justify-between text-xs text-emerald-200">
+                    <span id="completedCount">0</span>개 완료
+                    <span id="totalCount">0</span>개 항목
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-4 py-8">
+        <!-- 목차 (스크롤 시 하이라이트) -->
+        <nav class="bg-white rounded-xl shadow-sm p-6 mb-8 toc-sticky">
+            <h2 class="text-lg font-bold mb-4">목차</h2>
+            <div class="grid md:grid-cols-2 gap-2 text-sm" id="tocContainer">
+                <a href="#overview" class="toc-link px-3 py-2 rounded hover:bg-emerald-50 transition" data-section="overview">1. 프로젝트 개요</a>
+                <a href="#current" class="toc-link px-3 py-2 rounded hover:bg-emerald-50 transition" data-section="current">2. 현재 상태 분석</a>
+                <a href="#goals" class="toc-link px-3 py-2 rounded hover:bg-emerald-50 transition" data-section="goals">3. 목표 및 KPI</a>
+                <a href="#trends" class="toc-link px-3 py-2 rounded hover:bg-emerald-50 transition" data-section="trends">4. 2025 디자인 트렌드</a>
+                <a href="#preview" class="toc-link px-3 py-2 rounded hover:bg-emerald-50 transition" data-section="preview">5. 디자인 미리보기</a>
+                <a href="#reactbits" class="toc-link px-3 py-2 rounded hover:bg-emerald-50 transition" data-section="reactbits">6. React Bits 활용 계획</a>
+                <a href="#screens" class="toc-link px-3 py-2 rounded hover:bg-emerald-50 transition" data-section="screens">7. 화면별 개선 계획</a>
+                <a href="#risks" class="toc-link px-3 py-2 rounded hover:bg-emerald-50 transition" data-section="risks">8. 위험 요소 및 대응</a>
+                <a href="#priority" class="toc-link px-3 py-2 rounded hover:bg-emerald-50 transition" data-section="priority">9. 우선순위 및 일정</a>
+                <a href="#tech" class="toc-link px-3 py-2 rounded hover:bg-emerald-50 transition" data-section="tech">10. 기술 스택</a>
+            </div>
+        </nav>
+
+        <!-- 1. 프로젝트 개요 -->
+        <section id="overview" class="bg-white rounded-xl shadow-sm p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                <span class="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-lg flex items-center justify-center text-sm font-bold">1</span>
+                프로젝트 개요
+            </h2>
+
+            <div class="grid md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="font-semibold text-gray-700 mb-2">프로젝트명</h3>
+                    <p class="text-gray-600">초호 펜션 관리 시스템 UI/UX 리뉴얼</p>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-gray-700 mb-2">대상 URL</h3>
+                    <p class="text-gray-600">rv.chorigol.co.kr</p>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-gray-700 mb-2">프로젝트 범위</h3>
+                    <p class="text-gray-600">기존 기능 유지 + 디자인/UX 전면 개선</p>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-gray-700 mb-2">핵심 원칙</h3>
+                    <p class="text-gray-600">기존 작동 구조는 그대로, 시각적 개선에 집중</p>
+                </div>
+            </div>
+
+            <div class="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <h4 class="font-semibold text-amber-800 mb-2">중요 제약사항</h4>
+                <ul class="text-amber-700 text-sm space-y-1">
+                    <li>• 예약 캘린더 작동 로직 변경 없음</li>
+                    <li>• Firebase 데이터 구조 유지</li>
+                    <li>• 기존 8개 메뉴 구조 유지</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- 2. 현재 상태 분석 -->
+        <section id="current" class="bg-white rounded-xl shadow-sm p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                <span class="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-lg flex items-center justify-center text-sm font-bold">2</span>
+                현재 상태 분석
+            </h2>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-gray-50">
+                            <th class="px-4 py-3 text-left font-semibold">구분</th>
+                            <th class="px-4 py-3 text-left font-semibold">현재 상태</th>
+                            <th class="px-4 py-3 text-left font-semibold">평가</th>
+                            <th class="px-4 py-3 text-left font-semibold">개선 필요</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y">
+                        <tr>
+                            <td class="px-4 py-3 font-medium">테마 시스템</td>
+                            <td class="px-4 py-3">CSS 변수 기반</td>
+                            <td class="px-4 py-3"><span class="text-green-600">Good</span></td>
+                            <td class="px-4 py-3">색상 팔레트 현대화</td>
+                        </tr>
+                        <tr>
+                            <td class="px-4 py-3 font-medium">색상</td>
+                            <td class="px-4 py-3">보라/파랑 그라디언트</td>
+                            <td class="px-4 py-3"><span class="text-amber-600">Average</span></td>
+                            <td class="px-4 py-3">자연 친화적 그린 계열로 변경</td>
+                        </tr>
+                        <tr>
+                            <td class="px-4 py-3 font-medium">카드/컴포넌트</td>
+                            <td class="px-4 py-3">기본 그림자, 단순 보더</td>
+                            <td class="px-4 py-3"><span class="text-amber-600">Average</span></td>
+                            <td class="px-4 py-3">Glassmorphism 적용</td>
+                        </tr>
+                        <tr>
+                            <td class="px-4 py-3 font-medium">애니메이션</td>
+                            <td class="px-4 py-3">기본 transition</td>
+                            <td class="px-4 py-3"><span class="text-red-600">Weak</span></td>
+                            <td class="px-4 py-3">마이크로 인터랙션 추가</td>
+                        </tr>
+                        <tr>
+                            <td class="px-4 py-3 font-medium">다크 모드</td>
+                            <td class="px-4 py-3">prefers-color-scheme</td>
+                            <td class="px-4 py-3"><span class="text-green-600">Good</span></td>
+                            <td class="px-4 py-3">수동 토글 추가</td>
+                        </tr>
+                        <tr>
+                            <td class="px-4 py-3 font-medium">반응형</td>
+                            <td class="px-4 py-3">모바일 대응됨</td>
+                            <td class="px-4 py-3"><span class="text-green-600">Good</span></td>
+                            <td class="px-4 py-3">터치 인터랙션 개선</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 3. 목표 및 KPI -->
+        <section id="goals" class="bg-white rounded-xl shadow-sm p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                <span class="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-lg flex items-center justify-center text-sm font-bold">3</span>
+                목표 및 KPI
+            </h2>
+
+            <div class="grid md:grid-cols-3 gap-4">
+                <div class="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                    <h3 class="font-bold text-emerald-800 mb-2">시각적 현대화</h3>
+                    <p class="text-sm text-emerald-700">2025 디자인 트렌드 반영으로 프리미엄 펜션 이미지 구축</p>
+                </div>
+                <div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h3 class="font-bold text-blue-800 mb-2">사용성 개선</h3>
+                    <p class="text-sm text-blue-700">직관적인 UI로 관리자 업무 효율성 향상</p>
+                </div>
+                <div class="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                    <h3 class="font-bold text-purple-800 mb-2">브랜드 일관성</h3>
+                    <p class="text-sm text-purple-700">자연 친화적 펜션 컨셉에 맞는 디자인 언어</p>
+                </div>
+            </div>
+
+            <div class="mt-6">
+                <h3 class="font-semibold mb-3">측정 가능한 KPI</h3>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div class="p-3 bg-gray-50 rounded-lg">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm font-medium">Lighthouse Performance</span>
+                            <span class="text-emerald-600 font-bold">목표: 90+</span>
+                        </div>
+                        <div class="h-2 bg-gray-200 rounded-full">
+                            <div class="h-full bg-emerald-500 rounded-full" style="width: 75%"></div>
+                        </div>
+                        <span class="text-xs text-gray-500">현재: ~75</span>
+                    </div>
+                    <div class="p-3 bg-gray-50 rounded-lg">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm font-medium">First Contentful Paint</span>
+                            <span class="text-emerald-600 font-bold">목표: 1.5s 이하</span>
+                        </div>
+                        <div class="h-2 bg-gray-200 rounded-full">
+                            <div class="h-full bg-amber-500 rounded-full" style="width: 60%"></div>
+                        </div>
+                        <span class="text-xs text-gray-500">현재: ~2.1s</span>
+                    </div>
+                    <div class="p-3 bg-gray-50 rounded-lg">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm font-medium">모바일 터치 타겟</span>
+                            <span class="text-emerald-600 font-bold">목표: 44px+</span>
+                        </div>
+                        <div class="h-2 bg-gray-200 rounded-full">
+                            <div class="h-full bg-green-500 rounded-full" style="width: 85%"></div>
+                        </div>
+                        <span class="text-xs text-gray-500">현재: 대부분 충족</span>
+                    </div>
+                    <div class="p-3 bg-gray-50 rounded-lg">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm font-medium">WCAG 2.1 AA 색상 대비</span>
+                            <span class="text-emerald-600 font-bold">목표: 100%</span>
+                        </div>
+                        <div class="h-2 bg-gray-200 rounded-full">
+                            <div class="h-full bg-amber-500 rounded-full" style="width: 70%"></div>
+                        </div>
+                        <span class="text-xs text-gray-500">현재: ~70%</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. 2025 디자인 트렌드 -->
+        <section id="trends" class="bg-white rounded-xl shadow-sm p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                <span class="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-lg flex items-center justify-center text-sm font-bold">4</span>
+                2025 디자인 트렌드 적용
+            </h2>
+
+            <div class="space-y-4">
+                <!-- Glassmorphism -->
+                <div class="p-4 border rounded-lg">
+                    <div class="flex items-start gap-4">
+                        <div class="w-16 h-16 bg-gradient-to-br from-white/80 to-white/40 backdrop-blur rounded-xl border border-white/50 shadow-lg flex items-center justify-center text-2xl">
+                            🪟
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-lg">Glassmorphism (Liquid Glass)</h3>
+                            <p class="text-gray-600 text-sm mb-2">Apple이 2025년 선보인 Liquid Glass 스타일. 반투명 배경 + blur 효과로 레이어 깊이감 표현</p>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="px-2 py-1 bg-gray-100 text-xs rounded">헤더</span>
+                                <span class="px-2 py-1 bg-gray-100 text-xs rounded">카드</span>
+                                <span class="px-2 py-1 bg-gray-100 text-xs rounded">모달</span>
+                                <span class="px-2 py-1 bg-gray-100 text-xs rounded">사이드패널</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Soft Shadows -->
+                <div class="p-4 border rounded-lg">
+                    <div class="flex items-start gap-4">
+                        <div class="w-16 h-16 bg-white rounded-xl shadow-xl flex items-center justify-center text-2xl">
+                            🌫️
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-lg">Soft Shadows & Elevation</h3>
+                            <p class="text-gray-600 text-sm mb-2">더 부드럽고 자연스러운 그림자로 깊이감과 계층 구조 표현</p>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="px-2 py-1 bg-gray-100 text-xs rounded">카드 hover</span>
+                                <span class="px-2 py-1 bg-gray-100 text-xs rounded">버튼</span>
+                                <span class="px-2 py-1 bg-gray-100 text-xs rounded">드롭다운</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Micro Interactions -->
+                <div class="p-4 border rounded-lg">
+                    <div class="flex items-start gap-4">
+                        <div class="w-16 h-16 bg-emerald-100 rounded-xl flex items-center justify-center text-2xl">
+                            ✨
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-lg">Micro Interactions</h3>
+                            <p class="text-gray-600 text-sm mb-2">세밀한 애니메이션으로 사용자 피드백 제공 및 인터페이스 생동감 부여</p>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="px-2 py-1 bg-gray-100 text-xs rounded">버튼 클릭</span>
+                                <span class="px-2 py-1 bg-gray-100 text-xs rounded">탭 전환</span>
+                                <span class="px-2 py-1 bg-gray-100 text-xs rounded">카드 진입</span>
+                                <span class="px-2 py-1 bg-gray-100 text-xs rounded">로딩 상태</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Natural Color Palette -->
+                <div class="p-4 border rounded-lg">
+                    <div class="flex items-start gap-4">
+                        <div class="w-16 h-16 bg-gradient-to-br from-emerald-800 to-emerald-500 rounded-xl flex items-center justify-center text-2xl text-white">
+                            🎨
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-lg">Natural Color Palette</h3>
+                            <p class="text-gray-600 text-sm mb-2">펜션 컨셉에 맞는 자연 친화적 그린 계열 색상 팔레트</p>
+                            <div class="flex gap-2 mt-2">
+                                <div class="w-8 h-8 rounded bg-emerald-900" title="#1B4332"></div>
+                                <div class="w-8 h-8 rounded bg-emerald-700" title="#2D6A4F"></div>
+                                <div class="w-8 h-8 rounded bg-emerald-600" title="#40916C"></div>
+                                <div class="w-8 h-8 rounded bg-emerald-400" title="#74C69D"></div>
+                                <div class="w-8 h-8 rounded bg-emerald-200" title="#B7E4C7"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. 디자인 미리보기 (NEW) -->
+        <section id="preview" class="bg-white rounded-xl shadow-sm p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                <span class="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-lg flex items-center justify-center text-sm font-bold">5</span>
+                디자인 미리보기
+                <span class="ml-2 px-2 py-1 bg-emerald-100 text-emerald-700 text-xs rounded-full">NEW</span>
+            </h2>
+
+            <p class="text-gray-600 mb-6">실제 적용될 디자인 스타일의 미리보기입니다.</p>
+
+            <!-- 색상 팔레트 실제 적용 -->
+            <div class="mb-8">
+                <h3 class="font-semibold mb-4">색상 팔레트 적용 예시</h3>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <!-- Primary 버튼 -->
+                    <div class="p-4 bg-gray-50 rounded-lg">
+                        <h4 class="text-sm font-medium text-gray-500 mb-3">버튼 스타일</h4>
+                        <div class="flex flex-wrap gap-2">
+                            <button class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition shadow-md">Primary</button>
+                            <button class="px-4 py-2 bg-white text-emerald-700 border border-emerald-300 rounded-lg hover:bg-emerald-50 transition">Secondary</button>
+                            <button class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition">Danger</button>
+                        </div>
+                    </div>
+
+                    <!-- 상태 색상 -->
+                    <div class="p-4 bg-gray-50 rounded-lg">
+                        <h4 class="text-sm font-medium text-gray-500 mb-3">예약 상태 색상</h4>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-sm">확정</span>
+                            <span class="px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-sm">대기</span>
+                            <span class="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm">취소</span>
+                            <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">완료</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Before / After 비교 -->
+            <div class="mb-8">
+                <h3 class="font-semibold mb-4">Before / After 비교</h3>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <!-- Before -->
+                    <div class="border-2 border-gray-200 rounded-xl overflow-hidden">
+                        <div class="bg-gray-100 px-4 py-2 text-sm font-medium text-gray-600">Before (현재)</div>
+                        <div class="p-4 bg-gradient-to-br from-purple-600 to-blue-500">
+                            <div class="bg-white rounded-lg p-4 shadow">
+                                <div class="h-6 w-24 bg-gray-300 rounded mb-2"></div>
+                                <div class="h-4 w-full bg-gray-200 rounded mb-2"></div>
+                                <div class="h-4 w-3/4 bg-gray-200 rounded"></div>
+                                <div class="mt-4 flex gap-2">
+                                    <div class="px-3 py-1 bg-purple-500 text-white text-xs rounded">버튼</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- After -->
+                    <div class="border-2 border-emerald-300 rounded-xl overflow-hidden">
+                        <div class="bg-emerald-100 px-4 py-2 text-sm font-medium text-emerald-700">After (개선)</div>
+                        <div class="p-4 bg-gradient-to-br from-emerald-800 to-emerald-600">
+                            <div class="glass-demo rounded-xl p-4 shadow-lg">
+                                <div class="h-6 w-24 bg-emerald-200 rounded mb-2"></div>
+                                <div class="h-4 w-full bg-emerald-100 rounded mb-2"></div>
+                                <div class="h-4 w-3/4 bg-emerald-100 rounded"></div>
+                                <div class="mt-4 flex gap-2">
+                                    <div class="px-3 py-1 bg-emerald-600 text-white text-xs rounded-lg shadow">버튼</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Glass 효과 데모 -->
+            <div class="mb-8">
+                <h3 class="font-semibold mb-4">Glassmorphism 카드 미리보기</h3>
+                <div class="relative p-8 bg-gradient-to-br from-emerald-700 via-emerald-600 to-teal-500 rounded-xl overflow-hidden">
+                    <!-- 배경 블롭 -->
+                    <div class="absolute top-4 left-4 w-32 h-32 bg-emerald-400 rounded-full opacity-40 blur-xl"></div>
+                    <div class="absolute bottom-4 right-4 w-40 h-40 bg-teal-300 rounded-full opacity-30 blur-xl"></div>
+
+                    <!-- Glass 카드들 -->
+                    <div class="relative grid md:grid-cols-3 gap-4">
+                        <div class="glass-demo rounded-xl p-4">
+                            <div class="text-white/80 text-sm mb-1">오늘 예약</div>
+                            <div class="text-white text-2xl font-bold">12건</div>
+                        </div>
+                        <div class="glass-demo rounded-xl p-4">
+                            <div class="text-white/80 text-sm mb-1">이번 주 매출</div>
+                            <div class="text-white text-2xl font-bold">₩2,450,000</div>
+                        </div>
+                        <div class="glass-demo rounded-xl p-4">
+                            <div class="text-white/80 text-sm mb-1">객실 가동률</div>
+                            <div class="text-white text-2xl font-bold">87%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 헤더 스타일 미리보기 -->
+            <div>
+                <h3 class="font-semibold mb-4">헤더 네비게이션 미리보기</h3>
+                <div class="border rounded-xl overflow-hidden">
+                    <div class="bg-gradient-to-r from-emerald-800 to-emerald-600 p-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center text-white font-bold">초</div>
+                                <span class="text-white font-semibold">초호 펜션</span>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <!-- 탭 네비게이션 -->
+                                <div class="hidden md:flex glass-demo rounded-lg p-1 gap-1">
+                                    <button class="px-3 py-1.5 bg-white/30 text-white text-sm rounded-md">예약 캘린더</button>
+                                    <button class="px-3 py-1.5 text-white/70 text-sm rounded-md hover:bg-white/10">가격 설정</button>
+                                    <button class="px-3 py-1.5 text-white/70 text-sm rounded-md hover:bg-white/10">통계</button>
+                                </div>
+                                <!-- 다크모드 토글 -->
+                                <button class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center text-white hover:bg-white/30 transition">
+                                    🌙
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. React Bits 활용 계획 -->
+        <section id="reactbits" class="bg-white rounded-xl shadow-sm p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                <span class="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-lg flex items-center justify-center text-sm font-bold">6</span>
+                React Bits 활용 계획
+            </h2>
+
+            <p class="text-gray-600 mb-4">
+                <a href="https://reactbits.dev" target="_blank" class="text-emerald-600 hover:underline">React Bits</a>는
+                110+ 애니메이션 컴포넌트를 제공하는 오픈소스 라이브러리입니다.
+            </p>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-gray-50">
+                            <th class="px-4 py-3 text-left font-semibold">컴포넌트</th>
+                            <th class="px-4 py-3 text-left font-semibold">적용 위치</th>
+                            <th class="px-4 py-3 text-left font-semibold">효과</th>
+                            <th class="px-4 py-3 text-left font-semibold">데모</th>
+                            <th class="px-4 py-3 text-left font-semibold">우선순위</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y">
+                        <tr>
+                            <td class="px-4 py-3 font-medium">Aurora Background</td>
+                            <td class="px-4 py-3">로그인 화면 배경</td>
+                            <td class="px-4 py-3">몰입감 있는 첫 인상</td>
+                            <td class="px-4 py-3">
+                                <a href="https://reactbits.dev/backgrounds/aurora" target="_blank" class="text-emerald-600 hover:underline text-xs">데모 보기 →</a>
+                            </td>
+                            <td class="px-4 py-3"><span class="px-2 py-1 bg-red-100 text-red-700 text-xs rounded">High</span></td>
+                        </tr>
+                        <tr>
+                            <td class="px-4 py-3 font-medium">Spotlight Card</td>
+                            <td class="px-4 py-3">통계 카드</td>
+                            <td class="px-4 py-3">마우스 따라다니는 하이라이트</td>
+                            <td class="px-4 py-3">
+                                <a href="https://reactbits.dev/components/spotlight-card" target="_blank" class="text-emerald-600 hover:underline text-xs">데모 보기 →</a>
+                            </td>
+                            <td class="px-4 py-3"><span class="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded">Medium</span></td>
+                        </tr>
+                        <tr>
+                            <td class="px-4 py-3 font-medium">Text Animation (Blur)</td>
+                            <td class="px-4 py-3">대시보드 타이틀</td>
+                            <td class="px-4 py-3">텍스트 등장 애니메이션</td>
+                            <td class="px-4 py-3">
+                                <a href="https://reactbits.dev/text-animations/blur-text" target="_blank" class="text-emerald-600 hover:underline text-xs">데모 보기 →</a>
+                            </td>
+                            <td class="px-4 py-3"><span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded">Low</span></td>
+                        </tr>
+                        <tr>
+                            <td class="px-4 py-3 font-medium">Tilted Card</td>
+                            <td class="px-4 py-3">예약 카드 hover</td>
+                            <td class="px-4 py-3">3D 기울기 효과</td>
+                            <td class="px-4 py-3">
+                                <a href="https://reactbits.dev/components/tilted-card" target="_blank" class="text-emerald-600 hover:underline text-xs">데모 보기 →</a>
+                            </td>
+                            <td class="px-4 py-3"><span class="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded">Medium</span></td>
+                        </tr>
+                        <tr>
+                            <td class="px-4 py-3 font-medium">Animated Counter</td>
+                            <td class="px-4 py-3">통계 숫자</td>
+                            <td class="px-4 py-3">카운트업 애니메이션</td>
+                            <td class="px-4 py-3">
+                                <a href="https://reactbits.dev/text-animations/counter" target="_blank" class="text-emerald-600 hover:underline text-xs">데모 보기 →</a>
+                            </td>
+                            <td class="px-4 py-3"><span class="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded">Medium</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm">
+                <strong class="text-blue-800">설치 완료:</strong>
+                <code class="ml-2 bg-blue-100 px-2 py-1 rounded text-blue-900">react-bits, gsap, framer-motion, @react-spring/web</code>
+            </div>
+        </section>
+
+        <!-- 7. 화면별 개선 계획 -->
+        <section id="screens" class="bg-white rounded-xl shadow-sm p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                <span class="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-lg flex items-center justify-center text-sm font-bold">7</span>
+                화면별 개선 계획
+            </h2>
+
+            <!-- 로그인 화면 -->
+            <div class="mb-6 p-4 border rounded-lg priority-high">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-bold text-lg">7.1 로그인 화면</h3>
+                    <span class="px-2 py-1 bg-red-100 text-red-700 text-xs rounded font-medium">P1 - High</span>
+                </div>
+                <div class="grid md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <h4 class="font-semibold text-gray-700 mb-2">현재</h4>
+                        <ul class="space-y-1 text-gray-600">
+                            <li>• 단순 그라디언트 배경 (녹색)</li>
+                            <li>• 기본 카드 스타일</li>
+                            <li>• 비밀번호만 입력</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-700 mb-2">개선</h4>
+                        <ul class="space-y-1 text-gray-600">
+                            <li>• Aurora 배경 애니메이션 적용</li>
+                            <li>• Glassmorphism 로그인 카드</li>
+                            <li>• 입력 필드 focus 애니메이션</li>
+                            <li>• 로고 애니메이션 추가</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 대시보드 헤더 -->
+            <div class="mb-6 p-4 border rounded-lg priority-high">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-bold text-lg">7.2 대시보드 헤더 & 네비게이션</h3>
+                    <span class="px-2 py-1 bg-red-100 text-red-700 text-xs rounded font-medium">P1 - High</span>
+                </div>
+                <div class="grid md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <h4 class="font-semibold text-gray-700 mb-2">현재</h4>
+                        <ul class="space-y-1 text-gray-600">
+                            <li>• 흰색 배경 단순 헤더</li>
+                            <li>• 기본 탭 네비게이션</li>
+                            <li>• 단순 아바타</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-700 mb-2">개선</h4>
+                        <ul class="space-y-1 text-gray-600">
+                            <li>• Glass 효과 헤더 (스크롤 시 blur)</li>
+                            <li>• 애니메이션 탭 인디케이터</li>
+                            <li>• 다크 모드 토글 추가</li>
+                            <li>• 호버 마이크로 인터랙션</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 예약 캘린더 -->
+            <div class="mb-6 p-4 border rounded-lg priority-medium">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-bold text-lg">7.3 예약 캘린더</h3>
+                    <span class="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded font-medium">P2 - Medium</span>
+                </div>
+                <div class="grid md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <h4 class="font-semibold text-gray-700 mb-2">현재</h4>
+                        <ul class="space-y-1 text-gray-600">
+                            <li>• FullCalendar 기본 스타일</li>
+                            <li>• 보라색 헤더 그라디언트</li>
+                            <li>• 기본 예약 칩</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-700 mb-2">개선</h4>
+                        <ul class="space-y-1 text-gray-600">
+                            <li>• 그린 계열 헤더로 변경</li>
+                            <li>• 날짜 셀 hover 효과 강화</li>
+                            <li>• 예약 칩 디자인 개선</li>
+                            <li>• 오늘 날짜 강조 스타일</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="mt-3 p-2 bg-amber-50 text-amber-800 text-xs rounded">
+                    ⚠️ 캘린더 로직은 변경하지 않음 - 스타일만 수정
+                </div>
+            </div>
+
+            <!-- 사이드 패널 -->
+            <div class="mb-6 p-4 border rounded-lg priority-medium">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-bold text-lg">7.4 예약 상세 패널</h3>
+                    <span class="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded font-medium">P2 - Medium</span>
+                </div>
+                <div class="grid md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <h4 class="font-semibold text-gray-700 mb-2">현재</h4>
+                        <ul class="space-y-1 text-gray-600">
+                            <li>• 파란색 헤더</li>
+                            <li>• 기본 카드 리스트</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-700 mb-2">개선</h4>
+                        <ul class="space-y-1 text-gray-600">
+                            <li>• Glassmorphism 패널</li>
+                            <li>• 예약 카드 Tilted 효과</li>
+                            <li>• 슬라이드 인 애니메이션</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 모달 -->
+            <div class="mb-6 p-4 border rounded-lg priority-medium">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-bold text-lg">7.5 모달 / 팝업</h3>
+                    <span class="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded font-medium">P2 - Medium</span>
+                </div>
+                <div class="grid md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <h4 class="font-semibold text-gray-700 mb-2">현재</h4>
+                        <ul class="space-y-1 text-gray-600">
+                            <li>• 기본 오버레이</li>
+                            <li>• 단순 fade 애니메이션</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-700 mb-2">개선</h4>
+                        <ul class="space-y-1 text-gray-600">
+                            <li>• blur 배경 오버레이</li>
+                            <li>• Glass 모달 컨테이너</li>
+                            <li>• scale + fade 애니메이션</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 설정 페이지들 -->
+            <div class="p-4 border rounded-lg priority-low">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-bold text-lg">7.6 설정 페이지 (가격/옵션/알림/보안)</h3>
+                    <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded font-medium">P3 - Low</span>
+                </div>
+                <div class="text-sm text-gray-600">
+                    <p>공통 스타일 적용으로 자동 개선:</p>
+                    <ul class="mt-2 space-y-1">
+                        <li>• 카드 스타일 통일</li>
+                        <li>• 버튼 스타일 통일</li>
+                        <li>• 입력 필드 스타일 통일</li>
+                        <li>• 테이블 스타일 개선</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- 8. 위험 요소 및 대응 (NEW) -->
+        <section id="risks" class="bg-white rounded-xl shadow-sm p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                <span class="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-lg flex items-center justify-center text-sm font-bold">8</span>
+                위험 요소 및 대응
+                <span class="ml-2 px-2 py-1 bg-emerald-100 text-emerald-700 text-xs rounded-full">NEW</span>
+            </h2>
+
+            <div class="space-y-4">
+                <!-- 기술적 위험 -->
+                <div class="p-4 border-l-4 border-red-400 bg-red-50 rounded-r-lg">
+                    <div class="flex items-start gap-3">
+                        <span class="risk-icon text-xl">⚠️</span>
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between">
+                                <h3 class="font-bold text-red-800">기술적 위험</h3>
+                                <span class="px-2 py-1 bg-red-200 text-red-800 text-xs rounded">High</span>
+                            </div>
+                            <table class="w-full mt-3 text-sm">
+                                <tr class="border-b border-red-200">
+                                    <td class="py-2 font-medium text-red-700 w-1/3">위험 요소</td>
+                                    <td class="py-2 text-red-700">React Bits 라이브러리 호환성 이슈</td>
+                                </tr>
+                                <tr class="border-b border-red-200">
+                                    <td class="py-2 font-medium text-red-700">영향도</td>
+                                    <td class="py-2 text-red-700">애니메이션 미작동, 빌드 실패</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-2 font-medium text-red-700">대응 방안</td>
+                                    <td class="py-2 text-red-700">순수 CSS/Framer Motion으로 대체 구현 준비</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 성능 위험 -->
+                <div class="p-4 border-l-4 border-amber-400 bg-amber-50 rounded-r-lg">
+                    <div class="flex items-start gap-3">
+                        <span class="text-xl">⏱️</span>
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between">
+                                <h3 class="font-bold text-amber-800">성능 위험</h3>
+                                <span class="px-2 py-1 bg-amber-200 text-amber-800 text-xs rounded">Medium</span>
+                            </div>
+                            <table class="w-full mt-3 text-sm">
+                                <tr class="border-b border-amber-200">
+                                    <td class="py-2 font-medium text-amber-700 w-1/3">위험 요소</td>
+                                    <td class="py-2 text-amber-700">과도한 애니메이션으로 성능 저하</td>
+                                </tr>
+                                <tr class="border-b border-amber-200">
+                                    <td class="py-2 font-medium text-amber-700">영향도</td>
+                                    <td class="py-2 text-amber-700">모바일 기기에서 버벅임, 배터리 소모</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-2 font-medium text-amber-700">대응 방안</td>
+                                    <td class="py-2 text-amber-700">prefers-reduced-motion 존중, 필수 애니메이션만 적용</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 롤백 위험 -->
+                <div class="p-4 border-l-4 border-blue-400 bg-blue-50 rounded-r-lg">
+                    <div class="flex items-start gap-3">
+                        <span class="text-xl">🔄</span>
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between">
+                                <h3 class="font-bold text-blue-800">롤백 계획</h3>
+                                <span class="px-2 py-1 bg-blue-200 text-blue-800 text-xs rounded">Low</span>
+                            </div>
+                            <table class="w-full mt-3 text-sm">
+                                <tr class="border-b border-blue-200">
+                                    <td class="py-2 font-medium text-blue-700 w-1/3">전략</td>
+                                    <td class="py-2 text-blue-700">theme-2025.css를 별도 파일로 관리</td>
+                                </tr>
+                                <tr class="border-b border-blue-200">
+                                    <td class="py-2 font-medium text-blue-700">롤백 방법</td>
+                                    <td class="py-2 text-blue-700">CSS import 제거로 즉시 원복 가능</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-2 font-medium text-blue-700">롤백 시간</td>
+                                    <td class="py-2 text-blue-700">5분 이내</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 브라우저 호환성 -->
+                <div class="p-4 border-l-4 border-green-400 bg-green-50 rounded-r-lg">
+                    <div class="flex items-start gap-3">
+                        <span class="text-xl">🌐</span>
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between">
+                                <h3 class="font-bold text-green-800">브라우저 호환성</h3>
+                                <span class="px-2 py-1 bg-green-200 text-green-800 text-xs rounded">Low</span>
+                            </div>
+                            <table class="w-full mt-3 text-sm">
+                                <tr class="border-b border-green-200">
+                                    <td class="py-2 font-medium text-green-700 w-1/3">위험 요소</td>
+                                    <td class="py-2 text-green-700">backdrop-filter 미지원 브라우저</td>
+                                </tr>
+                                <tr class="border-b border-green-200">
+                                    <td class="py-2 font-medium text-green-700">영향 범위</td>
+                                    <td class="py-2 text-green-700">IE, 구형 Safari (사용률 &lt;2%)</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-2 font-medium text-green-700">대응 방안</td>
+                                    <td class="py-2 text-green-700">@supports 쿼리로 fallback 스타일 제공</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 9. 우선순위 및 일정 -->
+        <section id="priority" class="bg-white rounded-xl shadow-sm p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                <span class="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-lg flex items-center justify-center text-sm font-bold">9</span>
+                우선순위 및 구현 순서
+            </h2>
+
+            <div class="space-y-4">
+                <!-- Phase 1 -->
+                <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="px-3 py-1 bg-red-500 text-white text-sm font-bold rounded">Phase 1</span>
+                        <span class="text-red-800 font-semibold">기반 작업</span>
+                    </div>
+                    <ul class="space-y-2 text-sm">
+                        <li class="flex items-center gap-2">
+                            <input type="checkbox" id="p1-1" class="w-4 h-4 text-emerald-600 rounded" checked>
+                            <label for="p1-1">테마 시스템 구축 (theme-2025.css)</label>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <input type="checkbox" id="p1-2" class="w-4 h-4 text-emerald-600 rounded" checked>
+                            <label for="p1-2">React Bits 설치</label>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <input type="checkbox" id="p1-3" class="w-4 h-4 text-emerald-600 rounded">
+                            <label for="p1-3">공통 컴포넌트 스타일 정의</label>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Phase 2 -->
+                <div class="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="px-3 py-1 bg-amber-500 text-white text-sm font-bold rounded">Phase 2</span>
+                        <span class="text-amber-800 font-semibold">핵심 화면</span>
+                    </div>
+                    <ul class="space-y-2 text-sm">
+                        <li class="flex items-center gap-2">
+                            <input type="checkbox" id="p2-1" class="w-4 h-4 text-emerald-600 rounded">
+                            <label for="p2-1">로그인 화면 리디자인</label>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <input type="checkbox" id="p2-2" class="w-4 h-4 text-emerald-600 rounded">
+                            <label for="p2-2">대시보드 헤더/네비게이션 개선</label>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <input type="checkbox" id="p2-3" class="w-4 h-4 text-emerald-600 rounded">
+                            <label for="p2-3">예약 캘린더 스타일 개선</label>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Phase 3 -->
+                <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="px-3 py-1 bg-green-500 text-white text-sm font-bold rounded">Phase 3</span>
+                        <span class="text-green-800 font-semibold">세부 화면</span>
+                    </div>
+                    <ul class="space-y-2 text-sm">
+                        <li class="flex items-center gap-2">
+                            <input type="checkbox" id="p3-1" class="w-4 h-4 text-emerald-600 rounded">
+                            <label for="p3-1">예약 상세 패널 개선</label>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <input type="checkbox" id="p3-2" class="w-4 h-4 text-emerald-600 rounded">
+                            <label for="p3-2">모달/팝업 스타일 개선</label>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <input type="checkbox" id="p3-3" class="w-4 h-4 text-emerald-600 rounded">
+                            <label for="p3-3">설정 페이지들 통일</label>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Phase 4 -->
+                <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="px-3 py-1 bg-blue-500 text-white text-sm font-bold rounded">Phase 4</span>
+                        <span class="text-blue-800 font-semibold">폴리싱</span>
+                    </div>
+                    <ul class="space-y-2 text-sm">
+                        <li class="flex items-center gap-2">
+                            <input type="checkbox" id="p4-1" class="w-4 h-4 text-emerald-600 rounded">
+                            <label for="p4-1">다크 모드 완성</label>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <input type="checkbox" id="p4-2" class="w-4 h-4 text-emerald-600 rounded">
+                            <label for="p4-2">애니메이션 미세 조정</label>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <input type="checkbox" id="p4-3" class="w-4 h-4 text-emerald-600 rounded">
+                            <label for="p4-3">성능 최적화</label>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <input type="checkbox" id="p4-4" class="w-4 h-4 text-emerald-600 rounded">
+                            <label for="p4-4">QA 및 버그 수정</label>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- 10. 기술 스택 -->
+        <section id="tech" class="bg-white rounded-xl shadow-sm p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                <span class="w-8 h-8 bg-emerald-100 text-emerald-700 rounded-lg flex items-center justify-center text-sm font-bold">10</span>
+                기술 스택
+            </h2>
+
+            <div class="grid md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="font-semibold text-gray-700 mb-3">기존 (유지)</h3>
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                            <span class="font-mono text-sm">React 19</span>
+                        </div>
+                        <div class="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                            <span class="font-mono text-sm">Vite 7</span>
+                        </div>
+                        <div class="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                            <span class="font-mono text-sm">Firebase</span>
+                        </div>
+                        <div class="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                            <span class="font-mono text-sm">FullCalendar</span>
+                        </div>
+                        <div class="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                            <span class="font-mono text-sm">React Query</span>
+                        </div>
+                        <div class="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                            <span class="font-mono text-sm">Zustand</span>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-gray-700 mb-3">추가 (신규)</h3>
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-2 p-2 bg-emerald-50 rounded border border-emerald-200">
+                            <span class="font-mono text-sm text-emerald-700">react-bits</span>
+                            <span class="text-xs text-emerald-600">애니메이션 컴포넌트</span>
+                        </div>
+                        <div class="flex items-center gap-2 p-2 bg-emerald-50 rounded border border-emerald-200">
+                            <span class="font-mono text-sm text-emerald-700">framer-motion</span>
+                            <span class="text-xs text-emerald-600">애니메이션 엔진</span>
+                        </div>
+                        <div class="flex items-center gap-2 p-2 bg-emerald-50 rounded border border-emerald-200">
+                            <span class="font-mono text-sm text-emerald-700">gsap</span>
+                            <span class="text-xs text-emerald-600">고급 애니메이션</span>
+                        </div>
+                        <div class="flex items-center gap-2 p-2 bg-emerald-50 rounded border border-emerald-200">
+                            <span class="font-mono text-sm text-emerald-700">@react-spring/web</span>
+                            <span class="text-xs text-emerald-600">물리 기반 애니메이션</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 승인 섹션 -->
+        <section class="bg-gradient-to-r from-emerald-800 to-emerald-600 text-white rounded-xl shadow-lg p-6">
+            <h2 class="text-xl font-bold mb-4">PRD 승인</h2>
+            <p class="text-emerald-100 mb-4">위 기획 내용을 검토하시고 진행 여부를 결정해주세요.</p>
+
+            <div class="flex flex-wrap gap-3">
+                <button onclick="handleApprove()"
+                        class="px-6 py-3 bg-white text-emerald-800 font-bold rounded-lg hover:bg-emerald-50 transition shadow-lg">
+                    승인 - 구현 시작
+                </button>
+                <button onclick="handleRevision()"
+                        class="px-6 py-3 bg-emerald-700 text-white font-bold rounded-lg hover:bg-emerald-600 transition border border-emerald-500">
+                    수정 요청
+                </button>
+                <button onclick="window.print()"
+                        class="px-6 py-3 bg-emerald-700/50 text-white font-bold rounded-lg hover:bg-emerald-600/50 transition border border-emerald-500/50">
+                    PDF 출력
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center py-6 text-gray-500 text-sm">
+        <p>PRD 생성일: 2025-12-19 | 최종 수정: v1.1 | 초호 펜션 관리 시스템</p>
+    </footer>
+
+    <!-- 맨 위로 버튼 -->
+    <button id="scrollTopBtn" class="scroll-top-btn" onclick="scrollToTop()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 15l-6-6-6 6"/>
+        </svg>
+    </button>
+
+    <script>
+        // 체크박스 상태 저장 및 진행률 계산
+        function updateProgress() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            const checked = document.querySelectorAll('input[type="checkbox"]:checked');
+            const percentage = Math.round((checked.length / checkboxes.length) * 100);
+
+            document.getElementById('progressBar').style.width = percentage + '%';
+            document.getElementById('progressBarHeader').style.width = percentage + '%';
+            document.getElementById('progressText').textContent = percentage + '%';
+            document.getElementById('completedCount').textContent = checked.length;
+            document.getElementById('totalCount').textContent = checkboxes.length;
+        }
+
+        document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            const key = 'prd-' + cb.id;
+            cb.checked = localStorage.getItem(key) === 'true';
+            cb.addEventListener('change', () => {
+                localStorage.setItem(key, cb.checked);
+                updateProgress();
+            });
+        });
+
+        // 초기 진행률 계산
+        updateProgress();
+
+        // 스크롤 시 맨 위로 버튼 표시
+        const scrollTopBtn = document.getElementById('scrollTopBtn');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 300) {
+                scrollTopBtn.classList.add('visible');
+            } else {
+                scrollTopBtn.classList.remove('visible');
+            }
+
+            // 목차 active state 업데이트
+            updateTocActiveState();
+        });
+
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // 목차 active state
+        function updateTocActiveState() {
+            const sections = document.querySelectorAll('section[id]');
+            const tocLinks = document.querySelectorAll('.toc-link');
+
+            let currentSection = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop - 100;
+                if (window.scrollY >= sectionTop) {
+                    currentSection = section.getAttribute('id');
+                }
+            });
+
+            tocLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('data-section') === currentSection) {
+                    link.classList.add('active');
+                }
+            });
+        }
+
+        // 승인/수정 요청 핸들러
+        function handleApprove() {
+            const confirmed = confirm('PRD를 승인하고 구현을 시작하시겠습니까?');
+            if (confirmed) {
+                alert('✅ 승인되었습니다.\n\n구현을 시작합니다. Phase 1부터 순차적으로 진행됩니다.');
+            }
+        }
+
+        function handleRevision() {
+            const revision = prompt('수정이 필요한 부분을 입력해주세요:');
+            if (revision) {
+                alert('📝 수정 요청이 접수되었습니다.\n\n내용: ' + revision);
+            }
+        }
+    </script>
+</body>
+</html>

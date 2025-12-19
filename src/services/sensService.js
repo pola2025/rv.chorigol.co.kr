@@ -180,9 +180,128 @@ class SENSService {
       throw error;
     }
   }
+
+  // SMS 테스트 발송
+  async testSMS(phoneNumber = '01098979834') {
+    console.log('📡 [SENS] SMS 테스트 발송 시작');
+
+    if (!this.initialized) {
+      await this.initialize();
+    }
+
+    const testMessage = `[초호펜션] SMS 테스트 발송입니다.\n발송시간: ${new Date().toLocaleString('ko-KR')}`;
+
+    try {
+      const result = await this.sendSMS(phoneNumber, testMessage);
+      console.log('📡 [SENS] SMS 테스트 성공:', result);
+      return { success: true, ...result };
+    } catch (error) {
+      console.error('📡 [SENS] SMS 테스트 실패:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // 메시지 생성 헬퍼
+  generateMessage(template, data) {
+    if (!template) return '';
+
+    let message = template;
+
+    // 변수 치환
+    const replacements = {
+      '{고객명}': data.customerName || '',
+      '{객실명}': data.roomName || '',
+      '{체크인}': data.checkIn || '',
+      '{체크아웃}': data.checkOut || '',
+      '{인원}': data.guests || '',
+      '{금액}': (data.totalPrice || 0).toLocaleString() + '원',
+      '{전화번호}': data.pensionPhone || '010-7932-0029',
+      '{주소}': data.pensionAddress || '경기도 파주시 법원읍 초리골길 134'
+    };
+
+    for (const [key, value] of Object.entries(replacements)) {
+      message = message.replace(new RegExp(key, 'g'), value);
+    }
+
+    return message;
+  }
+
+  // 템플릿 가져오기
+  async getTemplate(type, roomName) {
+    try {
+      const { getDocs, collection, query, where, limit } = await import('firebase/firestore');
+      const { db } = await import('../config/firebase');
+
+      const templatesQuery = query(
+        collection(db, 'message_templates'),
+        where('type', '==', type),
+        limit(1)
+      );
+
+      const snapshot = await getDocs(templatesQuery);
+
+      if (!snapshot.empty) {
+        return snapshot.docs[0].data().content;
+      }
+
+      // 기본 템플릿 반환
+      return this.getDefaultTemplate(type);
+    } catch (error) {
+      console.error('템플릿 로드 실패:', error);
+      return this.getDefaultTemplate(type);
+    }
+  }
+
+  // 기본 템플릿
+  getDefaultTemplate(type) {
+    const templates = {
+      confirmation: `[초호수뷰펜션]
+{고객명}님, 예약이 확정되었습니다.
+
+📅 일정: {체크인} ~ {체크아웃}
+🏠 객실: {객실명}
+👥 인원: {인원}
+💰 금액: {금액}
+
+입실 당일 안내 문자 드리겠습니다.
+감사합니다 😊`,
+      cancellation: `[초호수뷰펜션]
+{고객명}님, 예약이 취소되었습니다.
+
+📅 일정: {체크인} ~ {체크아웃}
+🏠 객실: {객실명}
+
+다음에 더 좋은 기회로 뵙겠습니다.
+감사합니다.`,
+      checkIn: `[초호수뷰펜션]
+안녕하세요 {고객명}님!
+오늘 오후 3시 입실 예정이십니다.
+
+📍 주소: {주소}
+🚗 주차: 객실 앞 전용주차장
+
+준비된 편안한 휴식 되세요 ☺️
+문의: {전화번호}`,
+      checkOut: `[초호수뷰펜션]
+{고객명}님, 즐거운 시간 보내셨나요?
+
+🕐 퇴실시간: 오전 11시
+🧹 퇴실준비: 사용하신 그릇은 싱크대에
+🗑️ 쓰레기: 분리수거 부탁드립니다
+
+감사합니다. 또 뵙겠습니다 🙏`
+    };
+
+    return templates[type] || '';
+  }
 }
 
 // 싱글톤 인스턴스
 const sensService = new SENSService();
+
+// 전역에서 테스트할 수 있도록 window에 할당
+if (typeof window !== 'undefined') {
+  window.sensService = sensService;
+}
 
 export default sensService;

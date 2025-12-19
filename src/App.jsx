@@ -1,25 +1,40 @@
-// src/App.jsx - Fixed version with React Query + React Router
+// src/App.jsx - React Router 적용 버전
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from './config/firebase';
 import { FirebaseProvider } from './providers/FirebaseProvider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import runDiagnostics from './utils/diagnostics';
+import notificationScheduler from './services/notificationScheduler';
 import './App.css';
 
-// Dashboard를 정적으로 import
-import Dashboard from './components/Dashboard';
+// 레이아웃
+import MainLayout from './layouts/MainLayout';
+
+// 페이지 컴포넌트
+import {
+  CalendarPage,
+  ReservationsPage,
+  RoomsPage,
+  PricingPage,
+  OptionsPage,
+  NotificationsPage,
+  AnalyticsPage,
+  SecurityPage
+} from './pages';
+
+// 로그인 화면
 import LoginScreen from './components/LoginScreen';
 
-// Query Client 생성 (앱 전체에서 하나만 사용)
+// Query Client 생성
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5분
-      gcTime: 10 * 60 * 1000, // 10분 (구 cacheTime)
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
       retry: 1,
       refetchOnWindowFocus: false,
     },
@@ -31,9 +46,11 @@ const queryClient = new QueryClient({
 
 // 로딩 컴포넌트
 const LoadingScreen = () => (
-  <div className="loading-screen">
-    <div className="loading-spinner"></div>
-    <p>인증 상태를 확인하고 있습니다...</p>
+  <div className="loading-overlay">
+    <div className="loading-modal">
+      <div className="loading-spinner-circle"></div>
+      <p>로딩중입니다</p>
+    </div>
   </div>
 );
 
@@ -72,26 +89,44 @@ class ErrorBoundary extends React.Component {
   }
 }
 
+// 인증된 사용자만 접근 가능한 라우트
+function ProtectedRoute({ user, children }) {
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+}
+
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     console.log('Setting up auth listener...');
-    
+
     // 개발 환경에서 진단 도구 활성화
     if (process.env.NODE_ENV === 'development') {
       window.runDiagnostics = runDiagnostics;
       console.log('💡 진단 도구가 활성화되었습니다.');
-      console.log('💡 콘솔에서 runDiagnostics()를 실행하여 시스템을 진단할 수 있습니다.');
     }
-    
+
     const unsubscribe = onAuthStateChanged(
-      auth, 
+      auth,
       (currentUser) => {
         console.log('User:', currentUser?.email || 'No user');
         setUser(currentUser);
         setLoading(false);
+
+        // 사용자가 로그인하면 알림 스케줄러 시작
+        if (currentUser) {
+          console.log('📅 알림 스케줄러 시작...');
+          notificationScheduler.start().catch(err => {
+            console.error('📅 알림 스케줄러 시작 실패:', err);
+          });
+        } else {
+          // 로그아웃 시 스케줄러 중지
+          notificationScheduler.stop();
+        }
       },
       (error) => {
         console.error("Auth error:", error);
@@ -99,7 +134,10 @@ function App() {
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      notificationScheduler.stop();
+    };
   }, []);
 
   const handleLogout = useCallback(async () => {
@@ -110,36 +148,47 @@ function App() {
     }
   }, []);
 
-  // 메모이제이션으로 렌더링 최적화
-  const content = useMemo(() => {
-    if (loading) {
-      return <LoadingScreen />;
-    }
-
-    if (user) {
-      return (
-        <BrowserRouter>
-          <div className="app">
-            <FirebaseProvider>
-              <Dashboard user={user} onLogout={handleLogout} />
-            </FirebaseProvider>
-          </div>
-        </BrowserRouter>
-      );
-    }
-
-    // 로그인 화면
-    return (
-      <div className="app">
-        <LoginScreen />
-      </div>
-    );
-  }, [loading, user, handleLogout]);
+  if (loading) {
+    return <LoadingScreen />;
+  }
 
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        {content}
+        <BrowserRouter>
+          <div className="app">
+            {user ? (
+              <FirebaseProvider>
+                <Routes>
+                  {/* 메인 레이아웃 적용 라우트 */}
+                  <Route element={<MainLayout user={user} onLogout={handleLogout} />}>
+                    <Route path="/calendar" element={<CalendarPage />} />
+                    <Route path="/reservations" element={<ReservationsPage />} />
+                    <Route path="/rooms" element={<RoomsPage />} />
+                    <Route path="/pricing" element={<PricingPage />} />
+                    <Route path="/options" element={<OptionsPage />} />
+                    <Route path="/notifications" element={<NotificationsPage />} />
+                    <Route path="/analytics" element={<AnalyticsPage />} />
+                    <Route path="/security" element={<SecurityPage />} />
+                  </Route>
+
+                  {/* 기본 리다이렉트 */}
+                  <Route path="/" element={<Navigate to="/calendar" replace />} />
+                  <Route path="/login" element={<Navigate to="/calendar" replace />} />
+
+                  {/* 404 처리 */}
+                  <Route path="*" element={<Navigate to="/calendar" replace />} />
+                </Routes>
+              </FirebaseProvider>
+            ) : (
+              <Routes>
+                <Route path="/login" element={<LoginScreen />} />
+                <Route path="*" element={<Navigate to="/login" replace />} />
+              </Routes>
+            )}
+          </div>
+        </BrowserRouter>
+
         {/* 개발 모드에서만 React Query Devtools 표시 */}
         {process.env.NODE_ENV === 'development' && (
           <ReactQueryDevtools initialIsOpen={false} position="bottom-right" />

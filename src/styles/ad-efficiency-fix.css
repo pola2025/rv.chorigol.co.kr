@@ -60,58 +60,6 @@
   margin-top: 6px;
 }
 
-/* 옵션 아이템 크기 축소 */
-.option-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 2px 6px !important;
-  border-radius: 4px;
-  font-size: 0.7rem !important; /* 0.875rem → 0.7rem */
-  font-weight: 500;
-}
-
-/* 옵션 라벨 크기 축소 */
-.option-label {
-  font-size: 0.65rem !important; /* 0.8rem → 0.65rem */
-  font-weight: 600;
-}
-
-/* 옵션 노트 크기 축소 */
-.option-note {
-  font-size: 0.6rem !important; /* 0.7rem → 0.6rem */
-  opacity: 0.8;
-}
-
-/* 요금 포함 옵션 (파란색) */
-.option-item.included,
-.option-included {
-  background: #e3f2fd !important;
-  color: #1565c0 !important;
-  border: 1px solid #90caf9;
-}
-
-/* 현장결제 옵션 (주황색) */
-.option-item.onsite,
-.option-onsite {
-  background: #fff3e0 !important;
-  color: #e65100 !important;
-  border: 1px solid #ffb74d;
-}
-
-/* 모바일에서 더 작게 */
-.date-detail-panel.mobile .option-item {
-  font-size: 0.65rem !important;
-  padding: 2px 4px !important;
-}
-
-.date-detail-panel.mobile .option-label {
-  font-size: 0.6rem !important;
-}
-
-.date-detail-panel.mobile .option-note {
-  font-size: 0.55rem !important;
-}
 
 /* 예약 상세 정보의 옵션 표시 */
 .reservation-details .options-info {

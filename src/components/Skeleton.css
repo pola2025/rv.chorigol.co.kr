@@ -1,0 +1,180 @@
+/* ============================================
+   Skeleton.css - 로딩 스켈레톤 스타일
+   ============================================ */
+
+/* 기본 스켈레톤 */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-base, #e5e7eb) 0%,
+    var(--skeleton-highlight, #f3f4f6) 50%,
+    var(--skeleton-base, #e5e7eb) 100%
+  );
+  background-size: 200% 100%;
+}
+
+/* Pulse 애니메이션 */
+.skeleton--pulse {
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Wave 애니메이션 */
+.skeleton--wave {
+  animation: skeleton-wave 1.5s linear infinite;
+}
+
+@keyframes skeleton-wave {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* 애니메이션 없음 */
+.skeleton--none {
+  animation: none;
+  background: var(--skeleton-base, #e5e7eb);
+}
+
+/* ============================================
+   텍스트 스켈레톤
+   ============================================ */
+.skeleton-text {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================
+   카드 스켈레톤
+   ============================================ */
+.skeleton-card {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.skeleton-card-content {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.skeleton-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+/* ============================================
+   테이블 스켈레톤
+   ============================================ */
+.skeleton-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.skeleton-table-row {
+  display: flex;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: white;
+  border-radius: 4px;
+}
+
+.skeleton-table-row > .skeleton {
+  flex: 1;
+}
+
+/* ============================================
+   통계 카드 스켈레톤
+   ============================================ */
+.skeleton-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.skeleton-stat-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* ============================================
+   예약 카드 스켈레톤
+   ============================================ */
+.skeleton-reservation-card {
+  padding: 1rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.skeleton-reservation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.skeleton-reservation-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.skeleton-reservation-footer {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* ============================================
+   다크모드 지원
+   ============================================ */
+[data-theme="dark"] .skeleton,
+.dark .skeleton {
+  --skeleton-base: #374151;
+  --skeleton-highlight: #4b5563;
+}
+
+[data-theme="dark"] .skeleton-card,
+[data-theme="dark"] .skeleton-table-row,
+[data-theme="dark"] .skeleton-stat-card,
+[data-theme="dark"] .skeleton-reservation-card,
+.dark .skeleton-card,
+.dark .skeleton-table-row,
+.dark .skeleton-stat-card,
+.dark .skeleton-reservation-card {
+  background: #1f2937;
+}
+
+/* ============================================
+   접근성 - 모션 감소 설정 존중
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton--pulse,
+  .skeleton--wave {
+    animation: none;
+  }
+}

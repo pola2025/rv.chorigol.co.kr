@@ -1,27 +1,47 @@
 // Dashboard.jsx - 선언형 마이그레이션 버전
 // useEffect 완전 제거, React Query 기반
-import React, { useState, useMemo, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useLocation, useNavigate } from 'react-router-dom';
+
+// 핵심 컴포넌트 (즉시 로드)
 import ReservationCalendar from './ReservationCalendar';
 import BookingModal from './BookingModal';
 import NewReservationModal from '../common/NewReservationModal';
 import DateDetailPanel from './DateDetailPanel';
 import MobileMenu from './MobileMenu';
-import OptionsSettings from './OptionsSettings';
-import PricingSettings from './PricingSettings';
-import RoomManagement from './RoomManagement';
-import ReservationList from './ReservationList';
-import BlockedIPManager from './BlockedIPManager';
-import NotificationSettingsV2 from './NotificationSettingsV2';
-import MessageTemplates from './MessageTemplates';
-import MonthlyStatsInput from './MonthlyStats/MonthlyStatsInput';
-import IntegratedStatsView from './MonthlyStats/IntegratedStatsView';
-import TestComponent from './MonthlyStats/TestComponent';
-import AirtableDashboard from './AirtableDashboard/AirtableDashboard';
+import MobileBottomNav from './MobileBottomNav';
+
+// 레이지 로딩 컴포넌트 (탭별 분리)
+const OptionsSettings = lazy(() => import('./OptionsSettings'));
+const PricingSettings = lazy(() => import('./PricingSettings'));
+const RoomManagement = lazy(() => import('./RoomManagement'));
+const ReservationList = lazy(() => import('./ReservationList'));
+const BlockedIPManager = lazy(() => import('./BlockedIPManager'));
+const NotificationSettingsV2 = lazy(() => import('./NotificationSettingsV2'));
+const MessageTemplates = lazy(() => import('./MessageTemplates'));
+const MonthlyStatsInput = lazy(() => import('./MonthlyStats/MonthlyStatsInput'));
+const IntegratedStatsView = lazy(() => import('./MonthlyStats/IntegratedStatsView'));
+const TestComponent = lazy(() => import('./MonthlyStats/TestComponent'));
+const AirtableDashboard = lazy(() => import('./AirtableDashboard/AirtableDashboard'));
 import { PerformanceMonitor } from './PerformanceMonitor';
 import { useDerivedState } from '../application/hooks/useReactiveState';
 import notificationService from '../services/notificationService'; // 알림 서비스 추가
+import SpotlightCard from './SpotlightCard'; // React Bits 스포트라이트 효과
+import AnimatedCounter, { CurrencyCounter, PercentCounter } from './AnimatedCounter'; // React Bits 카운트업 효과
+import { TabTransition } from './PageTransition'; // 탭 전환 애니메이션
+import Skeleton, { CardSkeleton } from './Skeleton'; // 로딩 스켈레톤
+
+// 레이지 로딩 fallback
+const LazyFallback = () => (
+  <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+    <Skeleton width="200px" height="2rem" />
+    <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
+      <CardSkeleton hasImage={false} />
+      <CardSkeleton hasImage={false} />
+      <CardSkeleton hasImage={false} />
+    </div>
+  </div>
+);
 import {
   CalendarIcon,
   DashboardIcon,
@@ -32,8 +52,7 @@ import {
   OptionsIcon,
   ChartIcon,
   CustomerIcon,
-  MenuIcon,
-  LogoutIcon
+  MenuIcon
 } from './Icons';
 import { 
   useReservations, 
@@ -70,21 +89,57 @@ const TABS = [
   { id: 'security', label: '보안 관리', Icon: OptionsIcon },
 ];
 
-// 통계 카드 컴포넌트
-const StatCard = ({ title, value, icon, trend }) => (
-  <div className="stat-card">
-    <div className="stat-icon">{icon}</div>
-    <div className="stat-content">
-      <h3>{title}</h3>
-      <p className="stat-value">{value}</p>
-      {trend && (
-        <span className={`stat-trend ${trend > 0 ? 'positive' : 'negative'}`}>
-          {trend > 0 ? '↑' : '↓'} {Math.abs(trend)}%
-        </span>
-      )}
-    </div>
-  </div>
-);
+// 통계 카드 컴포넌트 - React Bits SpotlightCard + AnimatedCounter 적용
+const StatCard = ({ title, value, icon, trend, valueType = 'number' }) => {
+  // 값 렌더링 함수
+  const renderValue = () => {
+    // 숫자인 경우 애니메이션 카운터 적용
+    if (typeof value === 'number') {
+      switch (valueType) {
+        case 'currency':
+          return <CurrencyCounter value={value} duration={1.5} />;
+        case 'percent':
+          return <PercentCounter value={value} duration={1.5} />;
+        default:
+          return <AnimatedCounter value={value} duration={1.5} />;
+      }
+    }
+    // 문자열이지만 숫자 형식인 경우 (예: "1,234")
+    if (typeof value === 'string' && /^[\d,.\s₩%]+$/.test(value)) {
+      const numericValue = parseFloat(value.replace(/[^0-9.-]/g, ''));
+      if (!isNaN(numericValue)) {
+        if (value.includes('₩')) {
+          return <CurrencyCounter value={numericValue} duration={1.5} />;
+        }
+        if (value.includes('%')) {
+          return <PercentCounter value={numericValue} duration={1.5} />;
+        }
+        return <AnimatedCounter value={numericValue} duration={1.5} />;
+      }
+    }
+    // 그 외의 경우 그대로 표시
+    return value;
+  };
+
+  return (
+    <SpotlightCard
+      className="stat-card"
+      spotlightColor="rgba(16, 185, 129, 0.12)"
+      spotlightSize={200}
+    >
+      <div className="stat-icon">{icon}</div>
+      <div className="stat-content">
+        <h3>{title}</h3>
+        <p className="stat-value">{renderValue()}</p>
+        {trend && (
+          <span className={`stat-trend ${trend > 0 ? 'positive' : 'negative'}`}>
+            {trend > 0 ? '↑' : '↓'} <AnimatedCounter value={Math.abs(trend)} duration={1} decimals={1} suffix="%" />
+          </span>
+        )}
+      </div>
+    </SpotlightCard>
+  );
+};
 
 // 메인 대시보드 컴포넌트
 const Dashboard = ({ user, onLogout }) => {
@@ -93,32 +148,7 @@ const Dashboard = ({ user, onLogout }) => {
   migrationDebugger.startPerformance('Dashboard');
   migrationDebugger.log(DEBUG_LEVELS.INFO, 'Dashboard', 'Component initialized', { user: user?.email });
 
-  // React Router 훅
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  // URL 경로에서 탭 ID 추출
-  const getTabFromPath = (pathname) => {
-    const path = pathname.replace('/', '') || 'calendar';
-    const validTabs = TABS.map(t => t.id);
-    return validTabs.includes(path) ? path : 'calendar';
-  };
-
-  const [activeTab, setActiveTab] = useState(() => getTabFromPath(location.pathname));
-
-  // URL 변경 시 탭 동기화
-  useEffect(() => {
-    const newTab = getTabFromPath(location.pathname);
-    if (newTab !== activeTab) {
-      setActiveTab(newTab);
-    }
-  }, [location.pathname]);
-
-  // 탭 변경 핸들러 (URL도 함께 변경)
-  const handleTabChange = (tabId) => {
-    setActiveTab(tabId);
-    navigate(`/${tabId}`);
-  };
+  const [activeTab, setActiveTab] = useState('calendar');
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -529,9 +559,11 @@ const Dashboard = ({ user, onLogout }) => {
   const renderTabContent = useMemo(() => {
     if (isLoading) {
       return (
-        <div className="loading-container">
-          <div className="loading-spinner"></div>
-          <p>데이터를 불러오는 중입니다...</p>
+        <div className="loading-overlay">
+          <div className="loading-modal">
+            <div className="loading-spinner-circle"></div>
+            <p>로딩중입니다</p>
+          </div>
         </div>
       );
     }
@@ -549,35 +581,39 @@ const Dashboard = ({ user, onLogout }) => {
 
       case 'reservations':
         return (
-          <ReservationList
-            reservations={reservations || []}
-            onUpdateReservation={handleUpdateReservation}
-            onCancelReservation={handleCancelReservation}
-            onSelectReservation={setSelectedBooking}
-          />
+          <Suspense fallback={<LazyFallback />}>
+            <ReservationList
+              reservations={reservations || []}
+              onUpdateReservation={handleUpdateReservation}
+              onCancelReservation={handleCancelReservation}
+              onSelectReservation={setSelectedBooking}
+            />
+          </Suspense>
         );
-      
+
       case 'pricing':
-        return <PricingSettings />;
-      
+        return <Suspense fallback={<LazyFallback />}><PricingSettings /></Suspense>;
+
       case 'rooms':
-        return <RoomManagement />;
-      
+        return <Suspense fallback={<LazyFallback />}><RoomManagement /></Suspense>;
+
       case 'options':
-        return <OptionsSettings />;
-      
+        return <Suspense fallback={<LazyFallback />}><OptionsSettings /></Suspense>;
+
       case 'notifications':
         return (
           <div className="notifications-container">
-            <NotificationSettingsV2 />
+            <Suspense fallback={<LazyFallback />}>
+              <NotificationSettingsV2 />
+            </Suspense>
           </div>
         );
-      
+
       case 'airtableStats':
-        return <AirtableDashboard />;
-      
+        return <Suspense fallback={<LazyFallback />}><AirtableDashboard /></Suspense>;
+
       case 'security':
-        return <BlockedIPManager />;
+        return <Suspense fallback={<LazyFallback />}><BlockedIPManager /></Suspense>;
       
       default:
         return (
@@ -593,56 +629,35 @@ const Dashboard = ({ user, onLogout }) => {
 
   return (
     <div className="dashboard">
-      {/* 헤더 */}
+      {/* 헤더 + 네비게이션 통합 */}
       <header className="dashboard-header">
         <div className="header-left">
-          <button 
-            className="mobile-menu-trigger"
-            onClick={() => setIsMobileMenuOpen(true)}
-            aria-label="메뉴 열기"
-          >
-            <MenuIcon size={24} />
-          </button>
           <div className="logo">
-            <div className="logo-icon">
-              <RoomIcon size={20} color="white" />
-            </div>
-            <span className="logo-text">초호 펜션</span>
+            <img
+              src="/images/logo-white.webp"
+              alt="초호 펜션"
+              className="logo-image"
+            />
           </div>
-        </div>
-        <div className="header-right">
-          <div className="header-user">
-            <div className="user-avatar">
-              {user?.email?.charAt(0).toUpperCase()}
-            </div>
-            <span>{user?.email}</span>
-          </div>
-          <button onClick={onLogout} className="btn-logout">
-            <LogoutIcon size={18} />
-            <span>로그아웃</span>
-          </button>
+          <nav className="header-nav">
+            {TABS.map(tab => {
+              const TabIcon = tab.Icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`header-nav-tab ${activeTab === tab.id ? 'active' : ''}`}
+                >
+                  <span className="header-nav-label">{tab.label}</span>
+                  {tab.id === 'notifications' && statistics.pendingPayments > 0 && (
+                    <span className="header-nav-badge">{statistics.pendingPayments}</span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
         </div>
       </header>
-
-      {/* 탭 네비게이션 */}
-      <nav className="dashboard-nav">
-        {TABS.map(tab => {
-          const TabIcon = tab.Icon;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => handleTabChange(tab.id)}
-              className={`nav-tab ${activeTab === tab.id ? 'active' : ''}`}
-            >
-              <TabIcon className="nav-tab-icon" size={18} />
-              <span className="nav-tab-label">{tab.label}</span>
-              {tab.id === 'notifications' && statistics.pendingPayments > 0 && (
-                <span className="nav-tab-badge">{statistics.pendingPayments}</span>
-              )}
-            </button>
-          );
-        })}
-      </nav>
 
       {/* 메인 컨텐츠 */}
       <main className={`dashboard-content ${activeTab === 'airtableStats' ? 'airtable-tab' : ''}`}>
@@ -656,8 +671,27 @@ const Dashboard = ({ user, onLogout }) => {
             </h2>
           </div>
         )}
-        {renderTabContent}
+        {/* 탭 전환 애니메이션 적용 */}
+        <TabTransition tabKey={activeTab} preset="fade" duration={0.15}>
+          {renderTabContent}
+        </TabTransition>
       </main>
+
+      {/* 하단 푸터 - 데스크탑에서만 표시 */}
+      <footer className="dashboard-footer">
+        <div className="dashboard-footer-content">
+          <span className="dashboard-footer-text">© 2025 초호수뷰펜션</span>
+          <span className="dashboard-footer-divider"></span>
+          <span className="dashboard-footer-text">관리자 시스템</span>
+        </div>
+      </footer>
+
+      {/* 모바일 하단 네비게이션 바 */}
+      <MobileBottomNav
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        allTabs={TABS}
+      />
 
       {/* 모달 */}
       <MobileMenu
@@ -665,11 +699,11 @@ const Dashboard = ({ user, onLogout }) => {
         onClose={() => setIsMobileMenuOpen(false)}
         tabs={TABS}
         activeTab={activeTab}
-        onTabChange={handleTabChange}
+        onTabChange={setActiveTab}
       />
 
-      {/* 날짜 상세 패널 */}
-      {isDatePanelOpen && selectedDate && (
+      {/* 날짜 상세 패널 - ReservationCalendar 자체 패널 사용으로 비활성화 */}
+      {/* {isDatePanelOpen && selectedDate && (
         <DateDetailPanel
           selectedDate={selectedDate}
           onClose={() => {
@@ -681,7 +715,7 @@ const Dashboard = ({ user, onLogout }) => {
           onCancelReservation={handleCancelReservation}
           onUpdateReservation={handleUpdateReservation}
         />
-      )}
+      )} */}
 
       {/* BookingModal */}
       {selectedBooking && (

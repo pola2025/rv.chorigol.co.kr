@@ -50,15 +50,15 @@
 }
 
 .option-tabs button.active {
-  color: #2d5016;
-  border-bottom-color: #2d5016;
+  color: #059669;
+  border-bottom-color: #059669;
   font-weight: 600;
 }
 
 /* 버튼 스타일 */
 .btn-add {
   padding: 0.5rem 1rem;
-  background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
   color: white;
   border: none;
   border-radius: var(--radius-md);
@@ -68,13 +68,13 @@
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  box-shadow: 0 2px 4px rgba(74, 144, 226, 0.2);
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
 }
 
 .btn-add:hover {
-  background: linear-gradient(135deg, #357ABD 0%, #2563EB 100%);
+  background: linear-gradient(135deg, #047857 0%, #065f46 100%);
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(74, 144, 226, 0.3);
+  box-shadow: 0 4px 8px rgba(5, 150, 105, 0.3);
 }
 
 .btn-add-text-short {

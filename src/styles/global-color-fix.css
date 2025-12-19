@@ -14,18 +14,61 @@
 
 /* 기본 텍스트 색상 강화 */
 body {
-  color: var(--text-primary) !important;
+  color: var(--text-primary);
 }
 
-/* 모든 입력 필드 */
+/* ===== 어두운 배경 요소 예외 처리 ===== */
+/* 어두운 배경에서는 밝은 텍스트 사용 */
+.dashboard-header,
+.dashboard-header *,
+.panel-header,
+.panel-header *,
+.dark-bg,
+.dark-bg *,
+.bg-dark,
+.bg-dark *,
+[class*="header"][style*="background: #1"],
+[class*="header"][style*="background: #2"],
+[class*="header"][style*="background: #3"] {
+  color: #ffffff !important;
+}
+
+/* 모든 입력 필드 - 흰색 배경에서 검정 텍스트 보장 */
 input, select, textarea {
-  color: var(--text-primary) !important;
+  color: #1a1a1a !important;
   font-weight: 500 !important;
+  background-color: #ffffff;
 }
 
-input::placeholder, 
+input[type="text"],
+input[type="number"],
+input[type="tel"],
+input[type="email"],
+input[type="password"],
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+input[type="search"],
+select,
+textarea {
+  color: #1a1a1a !important;
+  background-color: #ffffff !important;
+}
+
+/* 입력 필드 포커스 상태 */
+input:focus, select:focus, textarea:focus {
+  color: #1a1a1a !important;
+}
+
+/* 입력 필드 비활성화 상태 제외 */
+input:disabled, select:disabled, textarea:disabled {
+  color: #6c757d !important;
+  background-color: #e9ecef !important;
+}
+
+input::placeholder,
 textarea::placeholder {
-  color: var(--text-muted) !important;
+  color: #9ca3af !important;
 }
 
 /* 모든 버튼 */

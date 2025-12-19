@@ -79,43 +79,152 @@ class NotificationService {
     };
   }
 
+  // 예약출처 ID를 한글로 변환
+  getSourceName(source) {
+    const sourceMap = {
+      'naver_place': '네이버 플레이스',
+      'naver_booking': '네이버 펜션예약',
+      'naver_map': '네이버 지도',
+      'transfer': '이체예약',
+      'group': '단체예약',
+      'etc': '기타',
+      '막기': '관리자 막기',
+      // 한글로 저장된 경우도 처리
+      '네이버 플레이스': '네이버 플레이스',
+      '네이버 펜션예약': '네이버 펜션예약',
+      '네이버 지도': '네이버 지도',
+      '이체예약': '이체예약',
+      '단체예약': '단체예약',
+      '기타': '기타'
+    };
+    return sourceMap[source] || source || '기타';
+  }
+
   // 새 예약 알림 발송 (텔레그램만)
   async sendNewReservationNotifications(reservation) {
     console.log('📬 [DEBUG] sendNewReservationNotifications 시작:', reservation);
-    
+
     if (!this.initialized) {
       console.log('📬 [DEBUG] 초기화 필요, initialize 호출');
       await this.initialize();
     }
-    
+
     const roomName = reservation.roomName || reservation.room;
     const settings = this.getSettingsForRoom(roomName);
-    
+
     const results = {
       telegram: null
     };
-    
+
     // 텔레그램 알림 발송 (새 예약)
     if (settings?.global?.telegram?.useReservation) {
       try {
-        const message = `🆕 새 예약\n\n` +
-          `고객명: ${reservation.customerName}\n` +
-          `연락처: ${reservation.phone || reservation.customerPhone}\n` +
-          `객실: ${roomName}\n` +
-          `일정: ${reservation.checkIn} ~ ${reservation.checkOut}\n` +
-          `인원: ${reservation.guests || reservation.guestCount || 2}명\n` +
-          `금액: ${(reservation.totalPrice || 0).toLocaleString()}원\n` +
-          `예약출처: ${reservation.source || '기타'}\n` +
-          `상태: ${reservation.status || '입금대기'}`;
-        
+        // 예약출처 한글 변환
+        const sourceName = this.getSourceName(reservation.source);
+
+        // 옵션 정보 파싱
+        let includedOptions = [];
+        let onsiteOptions = [];
+        let includedOptionPrice = 0;
+        let onsiteOptionPrice = 0;
+
+        if (reservation.options && reservation.options.length > 0) {
+          reservation.options.forEach(option => {
+            let optName = '';
+            let optPrice = 0;
+
+            if (typeof option === 'object') {
+              optName = option.name || '';
+              optPrice = option.price || 0;
+            } else if (typeof option === 'string') {
+              // 문자열 옵션 처리
+              if (option === 'camping_burner') {
+                optName = '캠핑버너&그릴';
+                optPrice = 20000;
+              } else if (option === 'charcoal_bbq') {
+                optName = '숯불바베큐';
+                optPrice = 30000;
+              } else if (option === 'late_checkout') {
+                optName = '레이트 체크아웃';
+                optPrice = 0;
+              } else {
+                optName = option;
+              }
+            }
+
+            if (optName) {
+              // 숯불바베큐는 현장결제
+              if (optName === '숯불바베큐') {
+                onsiteOptions.push({ name: optName, price: optPrice });
+                onsiteOptionPrice += optPrice;
+              } else {
+                includedOptions.push({ name: optName, price: optPrice });
+                if (optName !== '레이트 체크아웃') {
+                  includedOptionPrice += optPrice;
+                }
+              }
+            }
+          });
+        }
+
+        // 메시지 구성
+        let message = `🆕 새 예약\n\n`;
+        message += `고객명: ${reservation.customerName}\n`;
+        message += `연락처: ${reservation.phone || reservation.customerPhone}\n`;
+        message += `객실: ${roomName}\n`;
+        message += `일정: ${reservation.checkIn} ~ ${reservation.checkOut}\n`;
+        message += `인원: ${reservation.guests || reservation.guestCount || 2}명\n`;
+        message += `금액: ${(reservation.totalPrice || 0).toLocaleString()}원\n`;
+        message += `예약출처: ${sourceName}\n`;
+        message += `상태: ${reservation.status || '입금대기'}`;
+
+        // 옵션 정보 추가
+        if (includedOptions.length > 0) {
+          message += `\n\n📦 옵션:\n`;
+          includedOptions.forEach(opt => {
+            if (opt.price > 0) {
+              message += `• ${opt.name}: ${opt.price.toLocaleString()}원\n`;
+            } else {
+              message += `• ${opt.name}\n`;
+            }
+          });
+        }
+
+        // 현장결제 정보 추가
+        if (onsiteOptions.length > 0 || onsiteOptionPrice > 0) {
+          message += `\n💳 현장결제:\n`;
+          onsiteOptions.forEach(opt => {
+            message += `• ${opt.name}: ${opt.price.toLocaleString()}원\n`;
+          });
+          message += `현장결제 합계: ${onsiteOptionPrice.toLocaleString()}원`;
+        }
+
+        // 특이사항(메모) 추가
+        if (reservation.memo && reservation.memo.trim()) {
+          message += `\n\n📝 특이사항:\n${reservation.memo}`;
+        }
+
         results.telegram = await telegramService.sendMessage(message);
         console.log('📬 [DEBUG] 텔레그램 알림 발송 완료');
+
+        // 호수뷰객실인 경우 전용 채널로 추가 발송
+        if (roomName && roomName.includes('호수뷰')) {
+          try {
+            const LAKE_VIEW_CHAT_ID = '-1002863320782';
+            console.log('🏞️ [DEBUG] 호수뷰객실 예약 - 전용 채널로 발송');
+            await telegramService.sendMessage(message, 'HTML', LAKE_VIEW_CHAT_ID);
+            console.log('🏞️ [DEBUG] 호수뷰객실 전용 채널 발송 완료');
+          } catch (lakeViewError) {
+            console.error('🏞️ [ERROR] 호수뷰객실 전용 채널 발송 실패:', lakeViewError);
+            // 전용 채널 발송 실패는 전체 프로세스를 중단하지 않음
+          }
+        }
       } catch (error) {
         console.error('📬 [ERROR] 텔레그램 알림 발송 실패:', error);
         results.telegram = { error: error.message };
       }
     }
-    
+
     return results;
   }
 

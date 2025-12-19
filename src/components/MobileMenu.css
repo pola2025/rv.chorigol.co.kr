@@ -91,7 +91,8 @@
   background: none;
   border: none;
   font-size: 0.95rem;
-  color: #52525B;
+  color: #1a1a1a;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: left;

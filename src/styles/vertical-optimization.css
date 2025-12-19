@@ -139,8 +139,8 @@
   font-size: 0.875rem !important;
 }
 
-/* 옵션 태그 */
-.option-tag {
+/* 옵션 태그 - detail-panel 제외 */
+.reservation-list .option-tag {
   padding: 0.2rem 0.5rem !important;
   font-size: 0.7rem !important;
   line-height: 1 !important;

@@ -1,511 +1,524 @@
 // src/components/ReservationCalendar.jsx
-import React, { useState, useEffect } from 'react';
+// 2025 리뉴얼 - 관공서 스타일, 직관적이고 가독성 중심
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { collection, query, getDocs } from 'firebase/firestore';
+import html2canvas from 'html2canvas';
 import { db } from '../config/firebase';
 import CustomCalendar from './CustomCalendar';
-import ReservationModal from './ReservationModal';
 import NewReservationModal from '../common/NewReservationModal';
 import './ReservationCalendar.css';
 
-const ReservationCalendar = ({ onConfirmReservation, onCancelReservation, onUpdateReservation, onAddReservation }) => {
+const ReservationCalendar = ({
+  onConfirmReservation,
+  onCancelReservation,
+  onUpdateReservation,
+  onAddReservation
+}) => {
   const [reservations, setReservations] = useState([]);
-  const [selectedReservation, setSelectedReservation] = useState(null);
   const [loading, setLoading] = useState(false);
   const [rooms, setRooms] = useState([]);
-  const [options, setOptions] = useState([]); // 옵션 데이터 추가
+  const [options, setOptions] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
-  const [selectedDateReservations, setSelectedDateReservations] = useState([]);
   const [isNewReservationOpen, setIsNewReservationOpen] = useState(false);
+  const [editingReservation, setEditingReservation] = useState(null);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const panelRef = useRef(null);
 
-  // 객실 데이터 로드
+  // 데이터 로드
   useEffect(() => {
     loadRooms();
-    loadOptions(); // 옵션 데이터도 로드
+    loadOptions();
     loadReservations();
   }, []);
 
   const loadRooms = async () => {
     try {
-      const roomsSnapshot = await getDocs(collection(db, 'rooms'));
-      const roomsData = roomsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setRooms(roomsData);
+      const snapshot = await getDocs(collection(db, 'rooms'));
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setRooms(data);
     } catch (error) {
-      console.error('객실 데이터 로드 실패:', error);
+      console.error('객실 로드 실패:', error);
     }
   };
 
   const loadOptions = async () => {
     try {
-      const optionsSnapshot = await getDocs(collection(db, 'options'));
-      const optionsData = optionsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setOptions(optionsData);
+      const snapshot = await getDocs(collection(db, 'options'));
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setOptions(data);
     } catch (error) {
-      console.error('옵션 데이터 로드 실패:', error);
+      console.error('옵션 로드 실패:', error);
     }
   };
 
   const loadReservations = async () => {
     setLoading(true);
     try {
-      const q = query(collection(db, 'reservations'));
-      const snapshot = await getDocs(q);
-      const data = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const snapshot = await getDocs(query(collection(db, 'reservations')));
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setReservations(data);
     } catch (error) {
-      console.error('예약 데이터 로드 실패:', error);
+      console.error('예약 로드 실패:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  // 날짜 클릭 핸들러
-  const handleDateClick = (dateStr) => {
-    console.log('부모 컴포넌트 - 날짜 클릭:', dateStr, '현재 선택:', selectedDate);
-    
-    // 같은 날짜를 클릭하면 선택 해제
-    if (selectedDate === dateStr) {
-      console.log('같은 날짜 클릭 - 선택 해제');
-      setSelectedDate(null);
-      setSelectedDateReservations([]);
-      return;
-    }
-    
-    console.log('새로운 날짜 선택:', dateStr);
-    setSelectedDate(dateStr);
-    
-    // 해당 날짜의 예약 필터링
-    const dateReservations = reservations.filter(res => {
-      const checkIn = new Date(res.checkIn);
-      const checkOut = new Date(res.checkOut);
-      const clickedDate = new Date(dateStr);
-      
-      return clickedDate >= checkIn && clickedDate < checkOut && res.status !== '예약취소';
+  // 선택된 날짜의 예약 필터링
+  const selectedDateReservations = useMemo(() => {
+    if (!selectedDate) return [];
+
+    return reservations
+      .filter(res => {
+        if (res.status === '예약취소') return false;
+        const checkIn = new Date(res.checkIn);
+        const checkOut = new Date(res.checkOut);
+        const target = new Date(selectedDate);
+        return target >= checkIn && target < checkOut;
+      })
+      .sort((a, b) => {
+        // 객실명 순서로 정렬
+        const roomOrder = ['Forest', 'Forest mini', 'Forest 패밀리', 'Forest mini 패밀리', '호수뷰객실', '단체예약'];
+        const aIdx = roomOrder.indexOf(a.roomName);
+        const bIdx = roomOrder.indexOf(b.roomName);
+        if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
+        if (aIdx === -1) return 1;
+        if (bIdx === -1) return -1;
+        return a.roomName.localeCompare(b.roomName);
+      });
+  }, [selectedDate, reservations]);
+
+  // 고객별 예약 횟수 계산 (연락처 기준)
+  const getCustomerReservationCount = useMemo(() => {
+    const countMap = {};
+    reservations.forEach(res => {
+      if (res.status === '예약취소') return;
+      if (res.source === '막기') return; // 막기는 제외
+      const phone = res.customerPhone || res.phone;
+      if (phone) {
+        countMap[phone] = (countMap[phone] || 0) + 1;
+      }
     });
-    
-    setSelectedDateReservations(dateReservations);
+    return (phone) => countMap[phone] || 0;
+  }, [reservations]);
+
+  // 고객별 예약 이력 조회 (연락처 기준)
+  const getCustomerHistory = useMemo(() => {
+    const historyMap = {};
+    reservations.forEach(res => {
+      if (res.status === '예약취소') return;
+      if (res.source === '막기') return;
+      const phone = res.customerPhone || res.phone;
+      if (phone) {
+        if (!historyMap[phone]) historyMap[phone] = [];
+        historyMap[phone].push({
+          checkIn: res.checkIn,
+          roomName: res.roomName
+        });
+      }
+    });
+    // 날짜순 정렬
+    Object.keys(historyMap).forEach(phone => {
+      historyMap[phone].sort((a, b) => new Date(b.checkIn) - new Date(a.checkIn));
+    });
+    return (phone) => historyMap[phone] || [];
+  }, [reservations]);
+
+  // 날짜 클릭
+  const handleDateClick = (dateStr) => {
+    if (selectedDate === dateStr) {
+      setSelectedDate(null);
+    } else {
+      setSelectedDate(dateStr);
+    }
   };
 
-  // 예약 클릭 핸들러
-  const handleReservationClick = (reservation) => {
-    setSelectedReservation(reservation);
+  // 패널 닫기
+  const handleClosePanel = () => {
+    setSelectedDate(null);
   };
 
-  // 재고 확인 함수 추가
-  const getAvailableStock = (dateStr, roomName) => {
-    if (!dateStr || !roomName) return 0;
-    
-    // 해당 날짜의 객실 예약 현황 확인
-    const room = rooms.find(r => r.객실명 === roomName || r.name === roomName);
-    if (!room) return 0;
-    
-    const maxStock = room.재고 || room.stock || 1;
-    
-    // 해당 날짜의 예약 수 계산
-    const bookedCount = reservations.filter(res => {
-      if (res.status === '예약취소') return false;
-      if (res.roomName !== roomName) return false;
-      
-      const checkIn = new Date(res.checkIn);
-      const checkOut = new Date(res.checkOut);
-      const targetDate = new Date(dateStr);
-      
-      return targetDate >= checkIn && targetDate < checkOut;
-    }).length;
-    
-    return Math.max(0, maxStock - bookedCount);
-  };
-
-  // 새 예약 추가
+  // 예약 추가
   const handleAddReservation = () => {
+    setEditingReservation(null);
     setIsNewReservationOpen(true);
   };
 
-  // 예약 추가 완료
-  const handleNewReservationSubmit = async (reservationData) => {
-    console.log('🆕 [ReservationCalendar] 예약 추가 시작:', reservationData);
-    
+  // 예약 수정
+  const handleEditReservation = (reservation) => {
+    setEditingReservation(reservation);
+    setIsNewReservationOpen(true);
+  };
+
+  // 예약 저장
+  const handleSaveReservation = async (data) => {
     try {
-      // Dashboard의 handleAddNewReservation 호출
-      if (onAddReservation) {
-        console.log('🆕 [ReservationCalendar] onAddReservation 호출');
-        await onAddReservation(reservationData);
+      if (editingReservation) {
+        await onUpdateReservation(editingReservation.id, data);
       } else {
-        console.error('❌ [ReservationCalendar] onAddReservation prop이 없습니다!');
-        alert('예약 추가 기능이 연결되지 않았습니다.');
-        return;
+        await onAddReservation(data);
       }
-      
-      // 예약 목록 새로고침
       await loadReservations();
       setIsNewReservationOpen(false);
-      console.log('✅ [ReservationCalendar] 예약 추가 완료');
+      setEditingReservation(null);
     } catch (error) {
-      console.error('❌ [ReservationCalendar] 예약 추가 실패:', error);
-      alert('예약 추가 중 오류가 발생했습니다.');
+      console.error('예약 저장 실패:', error);
+      alert('예약 저장 중 오류가 발생했습니다.');
     }
   };
 
-
-  // 예약 업데이트 - Dashboard의 onUpdateReservation 호출
-  const handleReservationUpdate = async (updatedReservation) => {
-    console.log('📝 [ReservationCalendar] 예약 업데이트 시작:', updatedReservation);
-    
+  // 예약 취소
+  const handleCancelReservation = async (reservation) => {
+    if (!confirm(`${reservation.customerName}님의 예약을 취소하시겠습니까?`)) return;
     try {
-      // Dashboard의 handleUpdateReservation 호출
-      if (onUpdateReservation) {
-        console.log('📝 [ReservationCalendar] onUpdateReservation 호출');
-        // id와 업데이트할 데이터를 분리해서 전달
-        const { id, ...updateData } = updatedReservation;
-        await onUpdateReservation(id, updateData);
-      } else {
-        console.error('❌ [ReservationCalendar] onUpdateReservation prop이 없습니다!');
-        alert('예약 수정 기능이 연결되지 않았습니다.');
-        return;
-      }
-      
-      // 예약 목록 새로고침
+      await onCancelReservation(reservation);
       await loadReservations();
-      console.log('✅ [ReservationCalendar] 예약 업데이트 완료');
     } catch (error) {
-      console.error('❌ [ReservationCalendar] 예약 업데이트 실패:', error);
-      alert('예약 수정 중 오류가 발생했습니다.');
+      console.error('예약 취소 실패:', error);
     }
   };
 
-  // 예약 삭제
-  const handleReservationDelete = (deletedId) => {
-    setReservations(prev => prev.filter(r => r.id !== deletedId));
-    loadReservations();
-  };
+  // 화면 캡쳐 (스타일 임시 변경 방식 - 전체 스크롤 캡쳐)
+  const handleCapture = async () => {
+    if (!panelRef.current || isCapturing) return;
 
-  // 옵션 가격 계산
-  const calculateOptionPrice = (options, type) => {
-    if (!options || !Array.isArray(options)) return 0;
-    
-    return options.reduce((sum, opt) => {
-      if (typeof opt === 'object' && opt.price) {
-        if (type === 'included' && !opt.onsite) {
-          return sum + opt.price;
-        } else if (type === 'onsite' && opt.onsite) {
-          return sum + opt.price;
+    setIsCapturing(true);
+
+    const panel = panelRef.current;
+    const panelContent = panel.querySelector('.panel-content');
+    const isMobile = window.innerWidth <= 768;
+
+    // 원본 스타일 저장
+    const originalStyles = {
+      panel: {
+        position: panel.style.position,
+        bottom: panel.style.bottom,
+        left: panel.style.left,
+        right: panel.style.right,
+        maxHeight: panel.style.maxHeight,
+        height: panel.style.height,
+        borderRadius: panel.style.borderRadius,
+        transform: panel.style.transform
+      },
+      panelContent: panelContent ? {
+        maxHeight: panelContent.style.maxHeight,
+        overflow: panelContent.style.overflow
+      } : null,
+      scrollTop: panelContent?.scrollTop || 0,
+      windowScrollX: window.scrollX,
+      windowScrollY: window.scrollY
+    };
+
+    try {
+      // 1. 스크롤 초기화
+      window.scrollTo(0, 0);
+      if (panelContent) {
+        panelContent.scrollTop = 0;
+      }
+
+      // 2. 모바일에서 스타일 임시 변경 (전체 콘텐츠 표시)
+      if (isMobile) {
+        panel.style.position = 'absolute';
+        panel.style.bottom = 'auto';
+        panel.style.left = '0';
+        panel.style.right = '0';
+        panel.style.maxHeight = 'none';
+        panel.style.height = 'auto';
+        panel.style.borderRadius = '0';
+        panel.style.transform = 'none';
+
+        if (panelContent) {
+          panelContent.style.maxHeight = 'none';
+          panelContent.style.overflow = 'visible';
         }
       }
-      return sum;
-    }, 0);
+
+      // 3. 렌더링 안정화 대기
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      // 4. 캡쳐 실행
+      const canvas = await html2canvas(panel, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: panel.scrollWidth,
+        windowHeight: panel.scrollHeight
+      });
+
+      // 5. 이미지 다운로드
+      const link = document.createElement('a');
+      const dateStr = formatDate(selectedDate).replace(/\s/g, '').replace(/[()]/g, '');
+      link.download = `예약현황_${dateStr}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+
+    } catch (error) {
+      console.error('캡쳐 실패:', error);
+      alert('화면 캡쳐에 실패했습니다.');
+    } finally {
+      // 6. 스타일 복원
+      if (isMobile) {
+        panel.style.position = originalStyles.panel.position;
+        panel.style.bottom = originalStyles.panel.bottom;
+        panel.style.left = originalStyles.panel.left;
+        panel.style.right = originalStyles.panel.right;
+        panel.style.maxHeight = originalStyles.panel.maxHeight;
+        panel.style.height = originalStyles.panel.height;
+        panel.style.borderRadius = originalStyles.panel.borderRadius;
+        panel.style.transform = originalStyles.panel.transform;
+
+        if (panelContent && originalStyles.panelContent) {
+          panelContent.style.maxHeight = originalStyles.panelContent.maxHeight;
+          panelContent.style.overflow = originalStyles.panelContent.overflow;
+        }
+      }
+
+      // 7. 스크롤 위치 복원
+      window.scrollTo(originalStyles.windowScrollX, originalStyles.windowScrollY);
+      if (panelContent) {
+        panelContent.scrollTop = originalStyles.scrollTop;
+      }
+
+      setIsCapturing(false);
+    }
   };
 
-  // SMS 상태 아이콘 표시
-  const getSMSStatusIcon = (reservation) => {
-    const smsStatus = reservation.smsStatus || {};
-    const icons = [];
-    
-    if (smsStatus.confirmationSent) {
-      icons.push(<span key="conf" className="sms-icon success" title="확정문자 발송완료">✉️</span>);
-    }
-    
-    const today = new Date().toISOString().split('T')[0];
-    
-    if (reservation.checkIn === today) {
-      if (smsStatus.checkInSent) {
-        icons.push(<span key="in" className="sms-icon success" title="입실안내 발송완료">📥</span>);
-      } else {
-        icons.push(<span key="in-pending" className="sms-icon pending" title="입실안내 대기중">⏳</span>);
-      }
-    }
-    
-    if (reservation.checkOut === today) {
-      if (smsStatus.checkOutSent) {
-        icons.push(<span key="out" className="sms-icon success" title="퇴실안내 발송완료">📤</span>);
-      } else {
-        icons.push(<span key="out-pending" className="sms-icon pending" title="퇴실안내 대기중">⏳</span>);
-      }
-    }
-    
-    return icons.length > 0 ? <div className="sms-status-icons">{icons}</div> : null;
+  // 재고 확인
+  const getAvailableStock = (dateStr, roomName) => {
+    if (!dateStr || !roomName) return 0;
+    const room = rooms.find(r => r.객실명 === roomName);
+    if (!room) return 0;
+
+    const maxStock = room.재고 || 1;
+    const booked = reservations.filter(res => {
+      if (res.status === '예약취소') return false;
+      if (res.roomName !== roomName) return false;
+      const checkIn = new Date(res.checkIn);
+      const checkOut = new Date(res.checkOut);
+      const target = new Date(dateStr);
+      return target >= checkIn && target < checkOut;
+    }).length;
+
+    return Math.max(0, maxStock - booked);
+  };
+
+  // 날짜 포맷
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const days = ['일', '월', '화', '수', '목', '금', '토'];
+    return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 (${days[date.getDay()]})`;
+  };
+
+  // 박 수 계산
+  const getNights = (checkIn, checkOut) => {
+    const start = new Date(checkIn);
+    const end = new Date(checkOut);
+    return Math.ceil((end - start) / (1000 * 60 * 60 * 24));
   };
 
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="loading-spinner"></div>
-        <p>데이터를 불러오는 중...</p>
+      <div className="loading-overlay">
+        <div className="loading-modal">
+          <div className="loading-spinner-circle"></div>
+          <p>로딩중입니다</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="reservation-calendar-container">
-      <div className="calendar-layout">
-        {/* 메인 캘린더 영역 */}
-        <div className="calendar-main">
-          <div className="calendar-header">
-            <h2>📅 예약 캘린더</h2>
-          </div>
-
-          <div className="calendar-content">
-            <CustomCalendar
-              rooms={rooms}
-              bookings={reservations}
-              onDateClick={handleDateClick}
-              onBookingClick={handleReservationClick}
-              selectedDate={selectedDate}
-            />
-          </div>
-        </div>
-
-        {/* 예약현황 패널 - PC: 사이드바, 모바일: 하단 */}
-        {selectedDate && (
-          <div className="reservation-panel">
-            <div className="panel-header">
-              <h3>예약 현황</h3>
-              <span className="selected-date">{selectedDate}</span>
-              <button 
-                className="close-panel"
-                onClick={() => {
-                  setSelectedDate(null);
-                  setSelectedDateReservations([]);
-                }}
-              >
-                ✕
-              </button>
-            </div>
-            
-            {/* 예약 추가 버튼 */}
-            <div className="panel-actions">
-              <button 
-                className="btn-add-reservation"
-                onClick={handleAddReservation}
-              >
-                + 예약 추가
-              </button>
-            </div>
-            
-            <div className="reservation-list">
-              {selectedDateReservations.length === 0 ? (
-                <div className="no-reservations">
-                  <p>예약이 없습니다</p>
-                </div>
-              ) : (
-                // 객실명으로 정렬
-                selectedDateReservations
-                  .sort((a, b) => {
-                    // 객실명 정렬 순서 정의
-                    const roomOrder = [
-                      'Forest',
-                      'Forest mini',
-                      'Forest 패밀리',
-                      'Forest mini 패밀리',
-                      '호수뷰객실',
-                      '단체예약'
-                    ];
-                    const aIndex = roomOrder.indexOf(a.roomName);
-                    const bIndex = roomOrder.indexOf(b.roomName);
-                    
-                    // 정의된 순서대로 정렬
-                    if (aIndex !== -1 && bIndex !== -1) {
-                      return aIndex - bIndex;
-                    }
-                    // 정의되지 않은 객실은 뒤로
-                    if (aIndex === -1) return 1;
-                    if (bIndex === -1) return -1;
-                    // 둘 다 정의되지 않은 경우 알파벳 순
-                    return a.roomName.localeCompare(b.roomName);
-                  })
-                  .map(reservation => {
-                  // 예약 데이터의 가격 구조 확인
-                  console.log('💰 예약 가격 데이터:', {
-                    customerName: reservation.customerName,
-                    roomPrice: reservation.roomPrice,
-                    basePrice: reservation.basePrice,
-                    extraGuestPrice: reservation.extraGuestPrice,
-                    optionPrice: reservation.optionPrice,
-                    totalPrice: reservation.totalPrice
-                  });
-                  
-                  // basePrice가 있으면 새 데이터 구조, 없으면 기존 데이터 구조
-                  const hasDetailedPricing = reservation.basePrice !== undefined;
-                  
-                  let displayRoomPrice, displayExtraGuestPrice, displayIncludedOptionsPrice, totalIncludedPrice;
-                  
-                  if (hasDetailedPricing) {
-                    // 새로운 데이터 구조 (NewReservationModal에서 저장한 경우)
-                    // roomPrice = basePrice + extraGuestPrice + optionPrice로 저장됨
-                    displayRoomPrice = reservation.basePrice || 0;  // 순수 객실 요금
-                    displayExtraGuestPrice = reservation.extraGuestPrice || 0;
-                    displayIncludedOptionsPrice = reservation.optionPrice || 0;
-                    totalIncludedPrice = reservation.roomPrice || reservation.totalPrice || 0;  // 이미 합계가 계산된 값
-                  } else {
-                    // 기존 데이터 구조 (수동으로 입력한 경우)
-                    displayRoomPrice = reservation.roomPrice || reservation.totalPrice || 0;
-                    displayExtraGuestPrice = 0;  // 기존 데이터는 분리되어 있지 않음
-                    displayIncludedOptionsPrice = 0;
-                    totalIncludedPrice = displayRoomPrice;  // roomPrice를 그대로 사용
-                  }
-                  
-                  const onsiteOptionsPrice = calculateOptionPrice(reservation.options, 'onsite');
-                  
-                  console.log('📊 계산 결과:', {
-                    customerName: reservation.customerName,
-                    displayRoomPrice,
-                    displayExtraGuestPrice,
-                    displayIncludedOptionsPrice,
-                    totalIncludedPrice,
-                    onsiteOptionsPrice
-                  });
-                  
-                  return (
-                    <div 
-                      key={reservation.id} 
-                      className="reservation-card"
-                      data-room={reservation.roomName}
-                      onClick={() => handleReservationClick(reservation)}
-                    >
-                      {/* 객실명을 제일 위에 크게 표시 */}
-                      <div className="room-section">
-                        <span className="room-name-large">{reservation.roomName}</span>
-                        {getSMSStatusIcon(reservation)}
-                      </div>
-
-                      {/* 고객 정보 - 한 줄로 */}
-                      <div className="customer-section">
-                        <span className="customer-name">{reservation.customerName}</span>
-                        <span className="divider">•</span>
-                        <span className="customer-phone">{reservation.customerPhone || reservation.phone}</span>
-                      </div>
-
-                      {/* 예약 상세 정보 */}
-                      <div className="booking-info">
-                        <div className="booking-main-line">
-                          <span className="guest-count-text">{reservation.guests || reservation.guestCount || 2}명</span>
-                          <span className="date-text">
-                            {reservation.checkIn.slice(2).replace(/-/g, '.')}~{reservation.checkOut.slice(2).replace(/-/g, '.')}
-                          </span>
-                        </div>
-                        {reservation.memo && (
-                          <div className="memo-line">
-                            메모: {reservation.memo}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* 옵션 */}
-                      {reservation.options && reservation.options.length > 0 && (
-                        <div className="options-section">
-                          <span className="label">옵션:</span>
-                          <div className="options-list">
-                            {reservation.options.map((opt, idx) => {
-                              const isObject = typeof opt === 'object';
-                              const optName = isObject ? opt.name : opt;
-                              const optPrice = isObject ? opt.price : 0;
-                              const isOnsite = isObject ? opt.onsite : false;
-                              
-                              return (
-                                <span 
-                                  key={idx} 
-                                  className={`option-tag ${isOnsite ? 'onsite' : 'included'}`}
-                                >
-                                  {optName}
-                                  {optPrice > 0 && ` +${optPrice.toLocaleString()}원`}
-                                </span>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* 요금 정보 */}
-                      <div className="price-section">
-                        {/* 요금 상세 내역 */}
-                        <div className="price-breakdown">
-                          <div className="price-item">
-                            <span className="label">객실요금:</span>
-                            <span className="value">{displayRoomPrice.toLocaleString()}원</span>
-                          </div>
-                          {displayExtraGuestPrice > 0 && (
-                            <div className="price-item">
-                              <span className="label">인원추가:</span>
-                              <span className="value">+{displayExtraGuestPrice.toLocaleString()}원</span>
-                            </div>
-                          )}
-                          {displayIncludedOptionsPrice > 0 && (
-                            <div className="price-item">
-                              <span className="label">옵션:</span>
-                              <span className="value">+{displayIncludedOptionsPrice.toLocaleString()}원</span>
-                            </div>
-                          )}
-                        </div>
-                        
-                        {/* 총합계 */}
-                        <div className="price-row total">
-                          <span className="label">요금합계:</span>
-                          <span className="value">{totalIncludedPrice.toLocaleString()}원</span>
-                        </div>
-                        
-                        {onsiteOptionsPrice > 0 && (
-                          <div className="price-row onsite">
-                            <span className="label">현장결제:</span>
-                            <span className="value">{onsiteOptionsPrice.toLocaleString()}원</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* 상태 표시만 (버튼 제거) */}
-                      <div className="action-section">
-                        <span className={`status-badge ${reservation.status}`}>
-                          {reservation.status}
-                        </span>
-                        <div className="action-buttons">
-                          {reservation.status !== '예약취소' && (
-                            <button 
-                              className="btn-cancel"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onCancelReservation && onCancelReservation(reservation);
-                              }}
-                            >
-                              예약취소
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        )}
+    <div className="reservation-calendar-wrapper">
+      {/* 캘린더 */}
+      <div className="calendar-section">
+        <CustomCalendar
+          rooms={rooms}
+          bookings={reservations}
+          onDateClick={handleDateClick}
+          selectedDate={selectedDate}
+        />
       </div>
 
-      {/* 예약 상세 모달 */}
-      {selectedReservation && (
-        <ReservationModal
-          reservation={selectedReservation}
-          onClose={() => setSelectedReservation(null)}
-          onUpdate={handleReservationUpdate}
-          onDelete={handleReservationDelete}
-        />
+      {/* 예약 상세 패널 */}
+      {selectedDate && (
+        <div className="detail-panel" ref={panelRef}>
+          <div className="panel-header">
+            <h3>{formatDate(selectedDate)}</h3>
+            <div className="panel-header-right">
+              <span className="reservation-count">예약 {selectedDateReservations.length}건</span>
+              <button
+                className="capture-btn"
+                onClick={handleCapture}
+                disabled={isCapturing}
+                title="화면 캡쳐"
+              >
+                {isCapturing ? '⏳' : '📷'}
+              </button>
+              <button className="close-btn" onClick={handleClosePanel} aria-label="닫기">✕</button>
+            </div>
+          </div>
+
+          <div className="panel-actions">
+            <button className="add-btn" onClick={handleAddReservation}>
+              + 새 예약 등록
+            </button>
+          </div>
+
+          <div className="panel-content">
+            {selectedDateReservations.length === 0 ? (
+              <div className="empty-message">
+                <p>해당 날짜에 예약이 없습니다.</p>
+              </div>
+            ) : (
+              <div className="detail-reservation-list">
+                {selectedDateReservations.map(res => {
+                  // 객실명에서 클래스명 생성
+                  const roomClass = res.roomName?.replace(/\s+/g, '-').toLowerCase() || '';
+                  return (
+                  <div key={res.id} className={`detail-reservation-card status-${res.status?.replace(/\s/g, '')} room-${roomClass}`}>
+                    {/* 헤더: 객실명 + 상태 */}
+                    <div className="detail-card-header">
+                      <span className="room-name">{res.roomName}</span>
+                      <span className={`status-badge ${res.status === '입금대기' ? 'waiting' : 'confirmed'}`}>
+                        {res.status}
+                      </span>
+                    </div>
+
+                    {/* 테이블 형태 정보 */}
+                    <table className="info-table">
+                      <tbody>
+                        <tr>
+                          <th>예약자</th>
+                          <td>
+                            {res.customerName}
+                            {res.source !== '막기' && (() => {
+                              const count = getCustomerReservationCount(res.customerPhone || res.phone);
+                              if (count > 0) {
+                                const level = count >= 5 ? 'vip' : count >= 3 ? 'regular' : 'new';
+                                return <span className={`visit-badge ${level}`}>{count}</span>;
+                              }
+                              return null;
+                            })()}
+                          </td>
+                          <th>연락처</th>
+                          <td>{res.customerPhone || res.phone || '-'}</td>
+                        </tr>
+                        <tr>
+                          <th>일정</th>
+                          <td colSpan="3">
+                            {res.checkIn?.slice(5).replace('-', '/')} ~ {res.checkOut?.slice(5).replace('-', '/')}
+                            <span className="nights">{getNights(res.checkIn, res.checkOut)}박</span>
+                          </td>
+                        </tr>
+                        <tr>
+                          <th>인원</th>
+                          <td colSpan="3">{res.guests || res.guestCount || 2}명</td>
+                        </tr>
+                        <tr>
+                          <th>결제금액</th>
+                          <td colSpan="3" className="price-cell">
+                            <div className="price-row">
+                              <span className="price-label">선결제</span>
+                              <span className="price">{(res.totalPrice || res.roomPrice || 0).toLocaleString()}원</span>
+                            </div>
+                            {(() => {
+                              // 현장결제 옵션 금액 계산 (type === 'onsite')
+                              const onSiteTotal = (res.options || []).reduce((sum, opt) => {
+                                const optName = typeof opt === 'object' ? opt.name : opt;
+                                const optionData = options.find(o => o.name === optName);
+                                if (optionData?.type === 'onsite') {
+                                  return sum + (optionData.price || 0);
+                                }
+                                return sum;
+                              }, 0);
+
+                              if (onSiteTotal > 0) {
+                                return (
+                                  <div className="price-row onsite">
+                                    <span className="price-label">현장결제</span>
+                                    <span className="price-onsite">{onSiteTotal.toLocaleString()}원</span>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })()}
+                          </td>
+                        </tr>
+                        {res.options && res.options.length > 0 && (
+                          <tr>
+                            <th>옵션</th>
+                            <td colSpan="3">
+                              {res.options.map((opt, i) => {
+                                const name = typeof opt === 'object' ? opt.name : opt;
+                                return (
+                                  <span key={i} className="option-tag">{name}</span>
+                                );
+                              })}
+                            </td>
+                          </tr>
+                        )}
+                        {res.memo && (
+                          <tr>
+                            <th>메모</th>
+                            <td colSpan="3" className="memo">{res.memo}</td>
+                          </tr>
+                        )}
+                        {res.source !== '막기' && (() => {
+                          const history = getCustomerHistory(res.customerPhone || res.phone);
+                          if (history.length > 1) {
+                            return (
+                              <tr>
+                                <th>이력</th>
+                                <td colSpan="3" className="reservation-history">
+                                  {history.slice(0, 5).map((h, i) => (
+                                    <span key={i} className="history-item">
+                                      {h.checkIn?.slice(2, 10).replace(/-/g, '.')}
+                                    </span>
+                                  ))}
+                                  {history.length > 5 && <span>외 {history.length - 5}건</span>}
+                                </td>
+                              </tr>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </tbody>
+                    </table>
+
+                    {/* 버튼 */}
+                    <div className="detail-card-actions">
+                      <button className="btn-edit" onClick={() => handleEditReservation(res)}>수정</button>
+                      {res.status !== '예약취소' && (
+                        <button className="btn-cancel" onClick={() => handleCancelReservation(res)}>취소</button>
+                      )}
+                    </div>
+                  </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
-      {/* 새 예약 추가 모달 */}
+      {/* 새 예약 / 수정 모달 */}
       {isNewReservationOpen && (
         <NewReservationModal
           isOpen={isNewReservationOpen}
-          onClose={() => setIsNewReservationOpen(false)}
+          onClose={() => {
+            setIsNewReservationOpen(false);
+            setEditingReservation(null);
+          }}
           dateStr={selectedDate}
           rooms={rooms}
-          options={options}  // 옵션 데이터 추가
-          getAvailableStock={getAvailableStock}  // 재고 확인 함수 추가
-          onSubmit={handleNewReservationSubmit}
+          options={options}
+          getAvailableStock={getAvailableStock}
+          onSubmit={handleSaveReservation}
+          initialData={editingReservation}
         />
       )}
     </div>

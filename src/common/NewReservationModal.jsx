@@ -75,17 +75,20 @@ const NewReservationModal = ({
     }
   ];
 
+  // initialData가 null인 경우 빈 객체로 처리 (기본값은 undefined일 때만 적용됨)
+  const safeInitialData = initialData || {};
+
   // 초기 날짜 설정 - initialData가 있으면 사용, 없으면 dateStr 사용
   console.log('[NewReservationModal] Initializing dates...');
   console.log('[NewReservationModal] dateStr:', dateStr);
-  console.log('[NewReservationModal] initialData:', initialData);
-  
-  const initialCheckIn = initialData.checkIn || dateStr || '';
+  console.log('[NewReservationModal] initialData:', safeInitialData);
+
+  const initialCheckIn = safeInitialData.checkIn || dateStr || '';
   let initialCheckOut = '';
-  
+
   try {
-    if (initialData.checkOut) {
-      initialCheckOut = initialData.checkOut;
+    if (safeInitialData.checkOut) {
+      initialCheckOut = safeInitialData.checkOut;
     } else if (dateStr) {
       console.log('[NewReservationModal] Calling getNextDateStr with:', dateStr);
       initialCheckOut = getNextDateStr(dateStr);
@@ -131,34 +134,34 @@ const NewReservationModal = ({
   };
   
   const [formData, setFormData] = useState({
-    customerName: initialData.customerName || '',
-    phone: initialData.phone || '',
-    roomName: initialData.roomName || '',
+    customerName: safeInitialData.customerName || '',
+    phone: safeInitialData.phone || '',
+    roomName: safeInitialData.roomName || '',
     checkIn: initialCheckIn,
     checkOut: initialCheckOut,
-    guests: initialData.guests || (initialData.roomName ? getDefaultGuests(initialData.roomName) : 2),
-    selectedOptions: initialData.selectedOptions || [],
+    guests: safeInitialData.guests || (safeInitialData.roomName ? getDefaultGuests(safeInitialData.roomName) : 2),
+    selectedOptions: safeInitialData.selectedOptions || [],
     totalPrice: 0,
     roomPrice: 0,
     optionPrice: 0,
     onsitePrice: 0,
-    memo: initialData.memo || '',
-    source: initialData.source || '',
-    depositorName: initialData.depositorName || ''
+    memo: safeInitialData.memo || '',
+    source: safeInitialData.source || '',
+    depositorName: safeInitialData.depositorName || ''
   });
-  
+
   // initialData가 변경될 때 formData 업데이트
   React.useEffect(() => {
-    if (isOpen && initialData.roomName) {
+    if (isOpen && safeInitialData.roomName) {
       setFormData(prev => ({
         ...prev,
-        roomName: initialData.roomName,
-        checkIn: initialData.checkIn || prev.checkIn,
-        checkOut: initialData.checkOut || prev.checkOut,
-        source: initialData.source || prev.source
+        roomName: safeInitialData.roomName,
+        checkIn: safeInitialData.checkIn || prev.checkIn,
+        checkOut: safeInitialData.checkOut || prev.checkOut,
+        source: safeInitialData.source || prev.source
       }));
     }
-  }, [isOpen, initialData]);
+  }, [isOpen, safeInitialData]);
 
   // 현재 선택된 예약출처 정보
   const selectedSource = useMemo(() => {
