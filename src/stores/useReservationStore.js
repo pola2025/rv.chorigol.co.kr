@@ -187,17 +187,36 @@ const useReservationStore = create((set, get) => ({
             }
             
             set({ operationLoading: false });
+
+            // 알림 발송 (막기 예약이 아닌 경우만)
+            if (reservationData.source !== '막기') {
+                try {
+                    const notificationService = (await import('../services/notificationService')).default;
+                    await notificationService.initialize();
+
+                    // 새 예약 알림 발송 (텔레그램)
+                    const notificationResult = await notificationService.sendNewReservationNotifications({
+                        ...reservationData,
+                        id: docRef.id
+                    });
+                    console.log('📬 [Store] 새 예약 알림 발송 완료:', notificationResult);
+                } catch (notificationError) {
+                    console.error('📬 [Store] 알림 발송 실패 (예약은 성공):', notificationError);
+                    // 알림 실패해도 예약은 성공으로 처리
+                }
+            }
+
             return { success: true, id: docRef.id };
         } catch (error) {
             console.error('예약 추가 오류:', error);
-            set({ 
-                operationLoading: false, 
-                operationError: error.message 
+            set({
+                operationLoading: false,
+                operationError: error.message
             });
             return { success: false, error: error.message };
         }
     },
-    
+
     // 예약 수정
     updateReservation: async (reservationId, updates) => {
         set({ operationLoading: true, operationError: null });
@@ -314,18 +333,69 @@ const useReservationStore = create((set, get) => ({
             } catch (customerError) {
                 console.error('고객 정보 업데이트 오류:', customerError);
             }
+
+            // 예약 취소 알림 발송
+            try {
+                if (reservation && reservation.source !== '막기') {
+                    const notificationService = (await import('../services/notificationService')).default;
+                    await notificationService.initialize();
+
+                    // 예약 취소 알림 발송 (텔레그램)
+                    const notificationResult = await notificationService.sendCancellationNotifications({
+                        ...reservation,
+                        id: reservationId,
+                        status: '예약취소',
+                        cancelReason: cancelData.cancelReason,
+                        refundAmount: cancelData.refundAmount,
+                        refundRate: cancelData.refundRate,
+                        cancellationFee: cancelData.cancellationFee
+                    });
+                    console.log('📬 [Store] 예약 취소 알림 발송 완료:', notificationResult);
+                }
+            } catch (notificationError) {
+                console.error('📬 [Store] 취소 알림 발송 실패 (예약 취소는 성공):', notificationError);
+                // 알림 실패해도 예약 취소는 성공으로 처리
+            }
         }
-        
+
         return result;
     },
     
     // 예약 확정
     confirmReservation: async (reservationId, depositorName) => {
-        return get().updateReservation(reservationId, { 
+        const result = await get().updateReservation(reservationId, {
             status: '예약확정',
             depositorName,
             confirmedAt: getServerTimestamp()
         });
+
+        // 예약 확정 알림 발송
+        if (result.success) {
+            try {
+                // 예약 정보 가져오기
+                const reservations = useFirebaseStore.getState().reservations;
+                const reservation = reservations.find(r => r.id === reservationId);
+
+                if (reservation && reservation.source !== '막기') {
+                    const notificationService = (await import('../services/notificationService')).default;
+                    await notificationService.initialize();
+
+                    // 예약 확정 알림 발송 (SMS + 텔레그램)
+                    const notificationResult = await notificationService.sendConfirmationNotifications({
+                        ...reservation,
+                        id: reservationId,
+                        depositorName,
+                        status: '예약확정'
+                    });
+                    console.log('📬 [Store] 예약 확정 알림 발송 완료:', notificationResult);
+                }
+            } catch (notificationError) {
+                console.error('📬 [Store] 확정 알림 발송 실패 (예약 확정은 성공):', notificationError);
+                // 알림 실패해도 예약 확정은 성공으로 처리
+            }
+        }
+
+        return result;
     },
     
     // 재고 수동 조정
@@ -490,8 +560,27 @@ const useReservationStore = create((set, get) => ({
                     // 고객 정보 업데이트 실패해도 예약은 성공으로 처리
                 }
             }
-            
+
             set({ operationLoading: false });
+
+            // 알림 발송 (막기 예약이 아닌 경우만)
+            if (reservationData.source !== '막기') {
+                try {
+                    const notificationService = (await import('../services/notificationService')).default;
+                    await notificationService.initialize();
+
+                    // 새 예약 알림 발송 (텔레그램)
+                    const notificationResult = await notificationService.sendNewReservationNotifications({
+                        ...reservationData,
+                        id: result
+                    });
+                    console.log('📬 [Store] 새 예약 알림 발송 완료 (트랜잭션):', notificationResult);
+                } catch (notificationError) {
+                    console.error('📬 [Store] 알림 발송 실패 (예약은 성공):', notificationError);
+                    // 알림 실패해도 예약은 성공으로 처리
+                }
+            }
+
             return { success: true, id: result };
             
         } catch (error) {

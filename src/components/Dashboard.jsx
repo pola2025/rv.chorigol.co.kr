@@ -224,17 +224,10 @@ const Dashboard = ({ user, onLogout }) => {
         migrationDebugger.log(DEBUG_LEVELS.INFO, 'Dashboard', 'Reservation added successfully', result);
         setIsNewModalOpen(false);
         setNewReservationInitialData({});
-        
+
         // 예약 추가 성공 메시지
         alert('예약이 추가되었습니다.');
-        
-        // 알림 발송 - ID를 포함한 완전한 예약 데이터 전달
-        const completeReservationData = {
-          ...reservationData,
-          id: result.id
-        };
-        console.log('🆕 [DEBUG] 알림 발송 데이터:', completeReservationData);
-        await handleNotifications(completeReservationData, 'create');
+        // 알림 발송은 useReservationStore에서 자동 처리됨
       } else {
         migrationDebugger.log(DEBUG_LEVELS.ERROR, 'Dashboard', 'Reservation failed', result.error);
         alert(result.error || '예약 추가에 실패했습니다.');
@@ -383,32 +376,7 @@ const Dashboard = ({ user, onLogout }) => {
     
     if (result.success) {
       setSelectedBooking(null);
-      
-      // 막기 예약이 아닌 경우만 알림
-      console.log('🔴 [CANCEL] 예약 소스 확인:', reservation.source);
-      if (reservation.source !== '막기') {
-        console.log('🔴 [CANCEL] 알림 발송 시작');
-        // cancelData를 reservation에 합쳐서 전달
-        const reservationWithCancelData = {
-          ...reservation,
-          ...cancelData
-        };
-        console.log('🔴 [CANCEL] 알림 발송 데이터:', JSON.stringify(reservationWithCancelData, null, 2));
-        
-        try {
-          console.log('🔴 [CANCEL] handleNotifications 호출 직전');
-          const notificationResult = await handleNotifications(reservationWithCancelData, 'cancel');
-          console.log('🔴 [CANCEL] handleNotifications 결과:', notificationResult);
-          console.log('🔴 [CANCEL] 알림 발송 완료');
-        } catch (error) {
-          console.error('🔴 [CANCEL] 알림 발송 중 오류:', error);
-          console.error('🔴 [CANCEL] 오류 스택:', error.stack);
-          console.error('🔴 [CANCEL] 오류 메시지:', error.message);
-        }
-      } else {
-        console.log('🔴 [CANCEL] 막기 예약이므로 알림 스킵');
-      }
-      
+      // 알림 발송은 useReservationStore에서 자동 처리됨
       migrationDebugger.log(DEBUG_LEVELS.INFO, 'Dashboard', 'Reservation canceled');
     } else {
       console.error('🔴 [CANCEL] 취소 실패:', result.error);
@@ -426,18 +394,7 @@ const Dashboard = ({ user, onLogout }) => {
       
       if (result.success) {
         setSelectedBooking(null);
-        
-        // 확정된 예약 데이터 가져오기
-        const confirmedReservation = reservations?.find(r => r.id === id);
-        
-        if (confirmedReservation) {
-          // 예약 확정 알림 발송
-          await handleNotifications(confirmedReservation, 'confirm');
-        }
-        
-        // alert 제거 - 팝업 중복 방지
-        // 성공 메시지는 UI에서 다른 방식으로 표시 가능
-        
+        // 알림 발송은 useReservationStore에서 자동 처리됨
         migrationDebugger.log(DEBUG_LEVELS.INFO, 'Dashboard', 'Reservation confirmed');
       } else {
         alert(result.error || '예약 확정에 실패했습니다.');
