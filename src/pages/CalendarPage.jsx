@@ -16,7 +16,7 @@ function CalendarPage() {
 
   const handleConfirmReservation = async (id, depositorName) => {
     try {
-      await confirmReservation({ id, depositorName });
+      await confirmReservation(id, depositorName);
     } catch (error) {
       console.error('예약 확정 실패:', error);
       alert('예약 확정에 실패했습니다.');
@@ -25,7 +25,7 @@ function CalendarPage() {
 
   const handleCancelReservation = async (reservation, cancelData) => {
     try {
-      await cancelReservation({ ...reservation, ...cancelData });
+      await cancelReservation(reservation.id, cancelData);
     } catch (error) {
       console.error('예약 취소 실패:', error);
       alert('예약 취소에 실패했습니다.');
