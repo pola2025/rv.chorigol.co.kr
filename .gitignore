@@ -1,6 +1,7 @@
 
 # Secrets
 functions/serviceAccountKey.json
+functions/src/googleAnalytics.js
 .env
 .env.local
 .env.production
