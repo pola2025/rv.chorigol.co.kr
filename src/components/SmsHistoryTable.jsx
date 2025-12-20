@@ -132,9 +132,9 @@ const SmsHistoryTable = ({ businessType = 'choho' }) => {
         {formatDate(reservation.checkIn)} ~ {formatDate(reservation.checkOut)}
       </td>
       <td className="name-cell">{reservation.customerName || '-'}</td>
-      <td className="guests-cell">{reservation.guests || reservation.guestCount || '-'}명</td>
-      <td className="phone-cell">{reservation.phone || '-'}</td>
-      <td className="option-cell">
+      <td className="guests-cell hide-mobile">{reservation.guests || reservation.guestCount || '-'}명</td>
+      <td className="phone-cell hide-mobile">{reservation.phone || '-'}</td>
+      <td className="option-cell hide-mobile">
         {reservation.options || reservation.addons ? '✓' : '-'}
       </td>
       <td className="status-cell">
@@ -175,12 +175,12 @@ const SmsHistoryTable = ({ businessType = 'choho' }) => {
               <th>객실</th>
               <th>이용일</th>
               <th>예약자</th>
-              <th>인원</th>
-              <th>연락처</th>
-              <th>옵션</th>
-              <th>예약확정</th>
-              <th>입실안내</th>
-              <th>퇴실안내</th>
+              <th className="hide-mobile">인원</th>
+              <th className="hide-mobile">연락처</th>
+              <th className="hide-mobile">옵션</th>
+              <th className="status-header">확정</th>
+              <th className="status-header">입실</th>
+              <th className="status-header">퇴실</th>
             </tr>
           </thead>
           <tbody>
@@ -359,6 +359,84 @@ const SmsHistoryTable = ({ businessType = 'choho' }) => {
           text-align: center;
           color: #6B7280;
           margin-bottom: 1.5rem;
+        }
+
+        /* 모바일 반응형 */
+        @media (max-width: 768px) {
+          .sms-history-section {
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+          }
+
+          .sms-history-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+          }
+
+          .sms-history-header h3 {
+            font-size: 0.9rem;
+          }
+
+          .legend {
+            gap: 0.75rem;
+            font-size: 0.7rem;
+          }
+
+          .sms-history-table {
+            font-size: 0.75rem;
+          }
+
+          .sms-history-table th,
+          .sms-history-table td {
+            padding: 0.4rem 0.35rem;
+          }
+
+          /* 모바일에서 숨김 */
+          .hide-mobile {
+            display: none !important;
+          }
+
+          .room-cell {
+            max-width: 60px;
+            font-size: 0.7rem;
+          }
+
+          .date-cell {
+            font-size: 0.65rem;
+            white-space: nowrap;
+          }
+
+          .name-cell {
+            max-width: 45px;
+            font-size: 0.7rem;
+          }
+
+          .status-cell {
+            width: 24px;
+            padding: 0.25rem 0.15rem !important;
+          }
+
+          .status-header {
+            font-size: 0.6rem !important;
+            padding: 0.3rem 0.15rem !important;
+          }
+
+          .status-light {
+            width: 11px !important;
+            height: 11px !important;
+          }
+
+          .completed-toggle-row td {
+            font-size: 0.75rem;
+            padding: 0.5rem;
+          }
+
+          .empty-row {
+            padding: 1.5rem !important;
+            font-size: 0.8rem;
+          }
         }
       `}</style>
     </div>

@@ -5,7 +5,7 @@ import {
   CalendarIcon,
   BookingIcon,
   RoomIcon,
-  ChartIcon,
+  AlertIcon,
   MenuIcon
 } from './Icons';
 import './MobileBottomNav.css';
@@ -15,7 +15,7 @@ const BOTTOM_NAV_TABS = [
   { id: 'calendar', label: '캘린더', Icon: CalendarIcon },
   { id: 'reservations', label: '예약목록', Icon: BookingIcon },
   { id: 'rooms', label: '객실관리', Icon: RoomIcon },
-  { id: 'airtableStats', label: '통계', Icon: ChartIcon },
+  { id: 'notifications', label: '알림', Icon: AlertIcon },
 ];
 
 const MobileBottomNav = ({
