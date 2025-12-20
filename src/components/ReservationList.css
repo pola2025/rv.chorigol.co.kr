@@ -401,6 +401,190 @@
   text-align: center;
 }
 
+/* ==================== 접기/펼치기 컨트롤 ==================== */
+.reservation-list .collapse-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.reservation-list .collapse-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.reservation-list .collapse-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.reservation-list .collapse-icon {
+  font-size: 0.625rem;
+}
+
+.reservation-list .total-count {
+  margin-left: auto;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+/* ==================== 월별 그룹 ==================== */
+.reservation-list .month-group {
+  margin-bottom: 1.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  background: white;
+}
+
+.reservation-list .month-group:last-child {
+  margin-bottom: 0;
+}
+
+.reservation-list .month-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-bottom: 1px solid #e5e7eb;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.reservation-list .month-header:hover {
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+}
+
+.reservation-list .month-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.reservation-list .collapse-arrow {
+  font-size: 0.75rem;
+  color: #64748b;
+  transition: transform 0.2s;
+}
+
+.reservation-list .collapse-arrow.collapsed {
+  transform: rotate(-90deg);
+}
+
+.reservation-list .month-label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.reservation-list .month-count {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #64748b;
+  padding: 0.25rem 0.625rem;
+  background: white;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+}
+
+.reservation-list .past-badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #94a3b8;
+  padding: 0.25rem 0.625rem;
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+/* 과거 월 그룹 스타일 */
+.reservation-list .month-group.past-month .month-header {
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+}
+
+.reservation-list .month-group.past-month .month-label {
+  color: #6b7280;
+}
+
+/* ==================== 과거 예약 비활성화 스타일 ==================== */
+.reservation-list tr.past-reservation {
+  opacity: 0.6;
+  background: #fafafa !important;
+}
+
+.reservation-list tr.past-reservation:hover {
+  opacity: 0.75;
+  background: #f5f5f5 !important;
+}
+
+.reservation-list tr.past-reservation td {
+  color: #9ca3af;
+}
+
+.reservation-list tr.past-reservation .total-price {
+  color: #9ca3af;
+}
+
+.reservation-list tr.past-reservation .status-badge {
+  opacity: 0.7;
+}
+
+/* 모바일 카드 과거 예약 스타일 */
+.reservation-list .reservation-card.past-reservation {
+  opacity: 0.6;
+  background: #fafafa;
+  border-color: #e5e7eb;
+}
+
+.reservation-list .reservation-card.past-reservation:hover {
+  opacity: 0.75;
+}
+
+.reservation-list .reservation-card.past-reservation .card-header {
+  background: #f3f4f6;
+}
+
+.reservation-list .reservation-card.past-reservation .card-room {
+  color: #6b7280;
+}
+
+.reservation-list .reservation-card.past-reservation .customer-name {
+  color: #6b7280;
+}
+
+.reservation-list .reservation-card.past-reservation .price-value {
+  color: #6b7280;
+}
+
+.reservation-list .reservation-card.past-reservation .card-price {
+  background: #f3f4f6;
+}
+
+/* 월별 예약 목록 컨테이너 */
+.reservation-list .month-reservations {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+}
+
 /* ==================== 빈 상태 ==================== */
 .reservation-list .empty-reservations {
   display: flex;
@@ -449,6 +633,55 @@
     padding: 1rem;
     border-radius: 0;
     box-shadow: none;
+  }
+
+  /* 모바일 접기/펼치기 컨트롤 */
+  .reservation-list .collapse-controls {
+    padding: 0.625rem 0.75rem;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .reservation-list .collapse-btn {
+    padding: 0.375rem 0.625rem;
+    font-size: 0.75rem;
+  }
+
+  .reservation-list .total-count {
+    font-size: 0.8125rem;
+  }
+
+  /* 모바일 월별 그룹 */
+  .reservation-list .month-group {
+    margin-bottom: 1rem;
+    border-radius: 8px;
+  }
+
+  .reservation-list .month-header {
+    padding: 0.75rem 1rem;
+  }
+
+  .reservation-list .month-header-left {
+    gap: 0.5rem;
+  }
+
+  .reservation-list .month-label {
+    font-size: 0.9375rem;
+  }
+
+  .reservation-list .month-count {
+    font-size: 0.75rem;
+    padding: 0.1875rem 0.5rem;
+  }
+
+  .reservation-list .past-badge {
+    font-size: 0.6875rem;
+    padding: 0.1875rem 0.5rem;
+  }
+
+  .reservation-list .month-reservations {
+    padding: 0.5rem;
+    gap: 0.5rem;
   }
 
   .reservation-list .list-controls {

@@ -19,11 +19,9 @@ import {
   CalendarPage,
   ReservationsPage,
   RoomsPage,
-  PricingPage,
   OptionsPage,
   NotificationsPage,
-  AnalyticsPage,
-  SecurityPage
+  AnalyticsPage
 } from './pages';
 
 // 로그인 화면
@@ -165,11 +163,9 @@ function App() {
                     <Route path="/calendar" element={<CalendarPage />} />
                     <Route path="/reservations" element={<ReservationsPage />} />
                     <Route path="/rooms" element={<RoomsPage />} />
-                    <Route path="/pricing" element={<PricingPage />} />
                     <Route path="/options" element={<OptionsPage />} />
                     <Route path="/notifications" element={<NotificationsPage />} />
                     <Route path="/analytics" element={<AnalyticsPage />} />
-                    <Route path="/security" element={<SecurityPage />} />
                   </Route>
 
                   {/* 기본 리다이렉트 */}

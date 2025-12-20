@@ -6,8 +6,7 @@ import { getHoliday } from '../utils/koreanHolidays';
 import useReservationStore from '../stores/useReservationStore';
 import './CustomCalendar.css';
 
-// 캘린더에서 제외할 객실명
-const EXCLUDED_ROOMS = ['단체-야유회', '단체-워크샵'];
+// 캘린더에서 비활성화된 객실 제외 (isActive 필드 사용)
 
 const CustomCalendar = ({
   rooms = [],
@@ -68,9 +67,9 @@ const CustomCalendar = ({
     }
   }, []);
 
-  // 캘린더에 표시할 객실만 필터링
+  // 캘린더에 표시할 객실만 필터링 (isActive가 false인 객실 제외)
   const displayRooms = useMemo(() => {
-    return rooms.filter(room => !EXCLUDED_ROOMS.includes(room.객실명));
+    return rooms.filter(room => room.isActive !== false);
   }, [rooms]);
 
   const year = currentDate.getFullYear();
@@ -106,14 +105,19 @@ const CustomCalendar = ({
     }, 100);
   }, [year, month, firstDayOfMonth]);
 
-  // 날짜별 예약 데이터 집계 (단체 객실 제외, 객실별 예약 수 포함)
+  // 비활성화된 객실 이름 목록
+  const inactiveRoomNames = useMemo(() => {
+    return rooms.filter(room => room.isActive === false).map(room => room.객실명);
+  }, [rooms]);
+
+  // 날짜별 예약 데이터 집계 (비활성화된 객실 제외, 객실별 예약 수 포함)
   const dateBookingMap = useMemo(() => {
     const map = {};
 
     bookings.forEach(res => {
       if (res.status === '예약취소' || !res.checkIn || !res.checkOut) return;
-      // 단체 객실 제외
-      if (EXCLUDED_ROOMS.includes(res.roomName)) return;
+      // 비활성화된 객실 제외
+      if (inactiveRoomNames.includes(res.roomName)) return;
 
       let currentDate = new Date(res.checkIn);
       const endDate = new Date(res.checkOut);
@@ -144,7 +148,7 @@ const CustomCalendar = ({
     });
 
     return map;
-  }, [bookings]);
+  }, [bookings, inactiveRoomNames]);
 
   // 총 재고 계산 (표시 객실 기준)
   const totalStock = useMemo(() => {

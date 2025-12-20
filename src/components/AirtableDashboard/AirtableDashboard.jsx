@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import airtableService from '../../services/airtableService';
 import { ChartIcon } from '../Icons';
+import DataInputPanel from './DataInputPanel';
 import './AirtableDashboard.css';
 
 // 숫자 포맷
@@ -51,7 +52,7 @@ const LoadingGauge = ({ progress = 0, message = '데이터를 불러오는 중�
 const AirtableDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
-  const [viewMode, setViewMode] = useState('yearly'); // 'yearly' | 'pension' | 'platform' | 'integrated'
+  const [viewMode, setViewMode] = useState('yearly'); // 'yearly' | 'pension' | 'platform' | 'integrated' | 'dataInput'
   const [selectedPension, setSelectedPension] = useState('choho');
   const [selectedPlatform, setSelectedPlatform] = useState('naverAds');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -66,12 +67,28 @@ const AirtableDashboard = () => {
 
   // 연간 데이터 로드
   useEffect(() => {
+    if (viewMode === 'dataInput') {
+      // 데이터 입력 모드에서는 로드하지 않음
+      return;
+    }
     if (viewMode === 'yearly') {
       loadYearlyData();
     } else {
       loadMonthlyData();
     }
   }, [selectedYear, selectedMonth, viewMode]);
+
+  // 데이터 저장 후 새로고침
+  const handleDataSaved = () => {
+    airtableService.clearCache();
+    if (viewMode !== 'dataInput') {
+      if (viewMode === 'yearly') {
+        loadYearlyData();
+      } else {
+        loadMonthlyData();
+      }
+    }
+  };
 
   // 연간 데이터 로드 함수
   const loadYearlyData = async () => {
@@ -298,29 +315,35 @@ const AirtableDashboard = () => {
         
         <div className="header-controls">
           <div className="view-mode-toggle">
-            <button 
+            <button
               className={`mode-btn ${viewMode === 'yearly' ? 'active' : ''}`}
               onClick={() => setViewMode('yearly')}
             >
               📅 연간통계
             </button>
-            <button 
+            <button
               className={`mode-btn ${viewMode === 'pension' ? 'active' : ''}`}
               onClick={() => setViewMode('pension')}
             >
               🏢 펜션별
             </button>
-            <button 
+            <button
               className={`mode-btn ${viewMode === 'platform' ? 'active' : ''}`}
               onClick={() => setViewMode('platform')}
             >
               📱 플랫폼별
             </button>
-            <button 
+            <button
               className={`mode-btn ${viewMode === 'integrated' ? 'active' : ''}`}
               onClick={() => setViewMode('integrated')}
             >
               📊 통합
+            </button>
+            <button
+              className={`mode-btn data-input-btn ${viewMode === 'dataInput' ? 'active' : ''}`}
+              onClick={() => setViewMode('dataInput')}
+            >
+              📝 데이터입력
             </button>
           </div>
           
@@ -335,8 +358,8 @@ const AirtableDashboard = () => {
             </select>
             
             {viewMode !== 'yearly' && (
-              <select 
-                value={selectedMonth} 
+              <select
+                value={selectedMonth}
                 onChange={(e) => setSelectedMonth(Number(e.target.value))}
                 className="month-select"
               >
@@ -400,10 +423,17 @@ const AirtableDashboard = () => {
 
       {/* 메인 컨텐츠 */}
       <div className="airtable-content">
-        {loading ? (
-          <LoadingGauge 
-            progress={loadingProgress} 
-            message={viewMode === 'yearly' ? '연간 데이터를 불러오는 중입니다...' : '데이터를 불러오는 중입니다...'} 
+        {/* 데이터 입력 뷰는 로딩과 관계없이 표시 */}
+        {viewMode === 'dataInput' ? (
+          <DataInputPanel
+            selectedYear={selectedYear}
+            selectedMonth={selectedMonth}
+            onDataSaved={handleDataSaved}
+          />
+        ) : loading ? (
+          <LoadingGauge
+            progress={loadingProgress}
+            message={viewMode === 'yearly' ? '연간 데이터를 불러오는 중입니다...' : '데이터를 불러오는 중입니다...'}
           />
         ) : (
           <>

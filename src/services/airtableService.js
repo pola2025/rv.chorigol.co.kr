@@ -619,6 +619,243 @@ export const clearCache = () => {
   console.log('Cache cleared');
 };
 
+// =====================================================
+// 데이터 쓰기 기능 (Airtable에 데이터 저장)
+// =====================================================
+
+// 특정 테이블의 레코드 업데이트
+export const updateTableRecord = async (tableName, recordId, fields) => {
+  try {
+    if (!base) throw new Error('Airtable not initialized');
+
+    const tableId = TABLES[tableName];
+    if (!tableId) {
+      throw new Error(`테이블을 찾을 수 없습니다: ${tableName}`);
+    }
+
+    const updatedRecord = await base(tableId).update(recordId, fields);
+
+    // 캐시 무효화
+    clearCache();
+
+    return {
+      success: true,
+      record: updatedRecord
+    };
+  } catch (error) {
+    console.error(`${tableName} 레코드 업데이트 실패:`, error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
+// 특정 테이블에 새 레코드 추가
+export const createTableRecord = async (tableName, fields) => {
+  try {
+    if (!base) throw new Error('Airtable not initialized');
+
+    const tableId = TABLES[tableName];
+    if (!tableId) {
+      throw new Error(`테이블을 찾을 수 없습니다: ${tableName}`);
+    }
+
+    const newRecord = await base(tableId).create(fields);
+
+    // 캐시 무효화
+    clearCache();
+
+    return {
+      success: true,
+      record: newRecord
+    };
+  } catch (error) {
+    console.error(`${tableName} 레코드 생성 실패:`, error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
+// 월별 데이터 업데이트 (기존 레코드가 있으면 업데이트, 없으면 생성)
+export const upsertMonthlyData = async (tableName, category, year, month, value) => {
+  try {
+    if (!base) throw new Error('Airtable not initialized');
+
+    const tableId = TABLES[tableName];
+    if (!tableId) {
+      throw new Error(`테이블을 찾을 수 없습니다: ${tableName}`);
+    }
+
+    const monthColumn = getMonthColumn(year, month);
+
+    // 해당 분류의 레코드 찾기
+    const records = await base(tableId).select({
+      filterByFormula: `{분류} = '${category}'`,
+      maxRecords: 1
+    }).firstPage();
+
+    if (records.length > 0) {
+      // 기존 레코드 업데이트
+      const updatedRecord = await base(tableId).update(records[0].id, {
+        [monthColumn]: value
+      });
+
+      // 캐시 무효화
+      const cacheKey = getCacheKey(tableName, year, month);
+      cache.delete(cacheKey);
+
+      return {
+        success: true,
+        action: 'updated',
+        record: updatedRecord
+      };
+    } else {
+      // 새 레코드 생성
+      const newRecord = await base(tableId).create({
+        '분류': category,
+        [monthColumn]: value
+      });
+
+      // 캐시 무효화
+      const cacheKey = getCacheKey(tableName, year, month);
+      cache.delete(cacheKey);
+
+      return {
+        success: true,
+        action: 'created',
+        record: newRecord
+      };
+    }
+  } catch (error) {
+    console.error(`${tableName} 월별 데이터 저장 실패:`, error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
+// 여러 월별 데이터 일괄 저장
+export const batchUpsertMonthlyData = async (tableName, dataArray) => {
+  // dataArray: [{ category, year, month, value }, ...]
+  const results = [];
+
+  for (const data of dataArray) {
+    const result = await upsertMonthlyData(
+      tableName,
+      data.category,
+      data.year,
+      data.month,
+      data.value
+    );
+    results.push({
+      ...data,
+      result
+    });
+  }
+
+  return results;
+};
+
+// 네이버 광고 CSV 파싱 함수
+export const parseNaverAdsCsv = (csvText) => {
+  try {
+    const lines = csvText.split('\n').filter(line => line.trim());
+    if (lines.length < 2) {
+      throw new Error('CSV 파일에 데이터가 없습니다.');
+    }
+
+    // 헤더 분석
+    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+
+    // 데이터 행 파싱
+    const data = [];
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+      const row = {};
+      headers.forEach((header, index) => {
+        row[header] = values[index] || '';
+      });
+      data.push(row);
+    }
+
+    // 합계 계산
+    let totalImpressions = 0;
+    let totalClicks = 0;
+    let totalCost = 0;
+
+    data.forEach(row => {
+      // 네이버 광고 CSV의 일반적인 컬럼명들
+      const impressions = parseNumber(row['노출수'] || row['Impressions'] || row['노출'] || 0);
+      const clicks = parseNumber(row['클릭수'] || row['Clicks'] || row['클릭'] || 0);
+      const cost = parseNumber(row['총비용'] || row['Cost'] || row['비용'] || row['광고비'] || 0);
+
+      totalImpressions += impressions;
+      totalClicks += clicks;
+      totalCost += cost;
+    });
+
+    return {
+      success: true,
+      summary: {
+        impressions: totalImpressions,
+        clicks: totalClicks,
+        cost: totalCost,
+        ctr: totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(2) : 0,
+        cpc: totalClicks > 0 ? Math.round(totalCost / totalClicks) : 0
+      },
+      rowCount: data.length,
+      headers,
+      rawData: data
+    };
+  } catch (error) {
+    console.error('CSV 파싱 실패:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
+// 네이버 광고 CSV 데이터를 Airtable에 저장
+export const saveNaverAdsFromCsv = async (tableName, year, month, csvSummary) => {
+  try {
+    const results = [];
+
+    // 노출수 저장
+    results.push(await upsertMonthlyData(tableName, '노출수', year, month, csvSummary.impressions));
+
+    // 클릭수 저장
+    results.push(await upsertMonthlyData(tableName, '클릭수', year, month, csvSummary.clicks));
+
+    // 광고비 저장
+    results.push(await upsertMonthlyData(tableName, '광고비', year, month, csvSummary.cost));
+
+    // CTR 저장 (선택적)
+    results.push(await upsertMonthlyData(tableName, 'CTR', year, month, csvSummary.ctr));
+
+    // CPC 저장 (선택적)
+    results.push(await upsertMonthlyData(tableName, 'CPC', year, month, csvSummary.cpc));
+
+    const allSuccess = results.every(r => r.success);
+
+    return {
+      success: allSuccess,
+      results,
+      message: allSuccess ? '네이버 광고 데이터가 저장되었습니다.' : '일부 데이터 저장에 실패했습니다.'
+    };
+  } catch (error) {
+    console.error('네이버 광고 CSV 저장 실패:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
 export default {
   fetchTableMonthlyData,
   fetchAllPlatformStats,
@@ -626,6 +863,12 @@ export default {
   fetchStatsSummary,
   testConnection,
   clearCache,
+  updateTableRecord,
+  createTableRecord,
+  upsertMonthlyData,
+  batchUpsertMonthlyData,
+  parseNaverAdsCsv,
+  saveNaverAdsFromCsv,
   TABLES,
   PLATFORM_GROUPS
 };

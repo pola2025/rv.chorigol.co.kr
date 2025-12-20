@@ -444,13 +444,15 @@ const ReservationModal = ({ reservation, onClose, onUpdate, onDelete }) => {
                       });
                     }}
                   >
-                    <option value="Forest">Forest</option>
-                    <option value="Forest mini">Forest mini</option>
-                    <option value="Forest mini 패밀리">Forest mini 패밀리</option>
-                    <option value="Forest 패밀리">Forest 패밀리</option>
-                    <option value="호수뷰객실">호수뷰객실</option>
-                    <option value="1박2일워크샵">1박2일워크샵</option>
-                    <option value="야유회">야유회</option>
+                    {rooms
+                      .filter(room => room.isActive !== false)
+                      .sort((a, b) => (a.order || 0) - (b.order || 0))
+                      .map(room => (
+                        <option key={room.id} value={room.객실명}>
+                          {room.객실명}
+                        </option>
+                      ))
+                    }
                   </select>
                 </div>
                 <div className="form-group">

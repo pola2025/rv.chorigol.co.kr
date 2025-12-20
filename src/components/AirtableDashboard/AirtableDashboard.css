@@ -1695,3 +1695,339 @@
 .animate-bounce {
   animation: bounce 1s infinite;
 }
+
+/* =====================================================
+   데이터 입력 패널 스타일
+   ===================================================== */
+
+.data-input-panel {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.data-input-panel .section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 20px;
+}
+
+.data-input-panel .title-icon {
+  font-size: 1.5rem;
+}
+
+.data-input-panel .date-label {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: #6b7280;
+  margin-left: 8px;
+}
+
+/* 메시지 박스 */
+.message-box {
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+}
+
+.message-box.success {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+}
+
+.message-box.error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+.message-box.warning {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.message-box.info {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #93c5fd;
+}
+
+/* 입력 탭 */
+.input-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  background: #f3f4f6;
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.input-tab {
+  flex: 1;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.input-tab:hover {
+  color: #374151;
+}
+
+.input-tab.active {
+  background: white;
+  color: #667eea;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* CSV 업로드 섹션 */
+.csv-upload-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pension-selector,
+.platform-selector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pension-selector label,
+.platform-selector label {
+  font-weight: 500;
+  color: #374151;
+}
+
+.pension-selector select,
+.platform-selector select {
+  padding: 8px 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: white;
+  min-width: 200px;
+}
+
+.pension-selector select:focus,
+.platform-selector select:focus {
+  border-color: #667eea;
+  outline: none;
+}
+
+/* 파일 업로드 */
+.file-upload-area {
+  position: relative;
+}
+
+.file-input {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.file-upload-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 40px;
+  border: 2px dashed #d1d5db;
+  border-radius: 12px;
+  background: #f9fafb;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.file-upload-label:hover {
+  border-color: #667eea;
+  background: #f5f7ff;
+}
+
+.file-upload-label .upload-icon {
+  font-size: 2rem;
+}
+
+.file-upload-label span {
+  font-weight: 500;
+  color: #374151;
+}
+
+.file-upload-label small {
+  color: #9ca3af;
+  font-size: 0.8rem;
+}
+
+/* CSV 미리보기 */
+.csv-preview {
+  background: #f9fafb;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+}
+
+.csv-preview h4 {
+  margin: 0 0 16px;
+  font-size: 1rem;
+  color: #374151;
+}
+
+.preview-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.preview-stat {
+  background: white;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  text-align: center;
+}
+
+.preview-stat .stat-label {
+  display: block;
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.preview-stat .stat-value {
+  display: block;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+/* 저장 버튼 */
+.save-btn {
+  display: block;
+  width: 100%;
+  padding: 12px 24px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.save-btn:hover:not(:disabled) {
+  background: #5a67d8;
+}
+
+.save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 수동 입력 섹션 */
+.manual-input-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.input-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.input-group label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.input-group input {
+  padding: 10px 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease;
+}
+
+.input-group input:focus {
+  border-color: #667eea;
+  outline: none;
+}
+
+.input-group input::placeholder {
+  color: #9ca3af;
+}
+
+/* 데이터 입력 버튼 강조 */
+.mode-btn.data-input-btn {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+}
+
+.mode-btn.data-input-btn:hover {
+  background: linear-gradient(135deg, #d97706, #b45309);
+}
+
+.mode-btn.data-input-btn.active {
+  background: linear-gradient(135deg, #b45309, #92400e);
+}
+
+/* 모바일 반응형 */
+@media (max-width: 768px) {
+  .data-input-panel {
+    padding: 16px;
+  }
+
+  .input-tabs {
+    flex-direction: column;
+  }
+
+  .input-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .preview-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .pension-selector,
+  .platform-selector {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pension-selector select,
+  .platform-selector select {
+    min-width: 100%;
+  }
+
+  .file-upload-label {
+    padding: 24px;
+  }
+}

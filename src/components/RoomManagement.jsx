@@ -2,11 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import { useRooms } from '../hooks/useRooms';
 import { useReservations } from '../hooks/useReservations';
-import { 
-  doc, 
-  updateDoc, 
-  addDoc, 
-  collection, 
+import useFirebaseStore from '../stores/useFirebaseStore';
+import {
+  doc,
+  updateDoc,
+  addDoc,
+  collection,
   deleteDoc,
   query,
   where,
@@ -20,12 +21,21 @@ import './RoomManagement.css';
 const RoomManagement = () => {
   const { data: rooms, isLoading } = useRooms();
   const { data: reservations } = useReservations();
+  const { pricingRules } = useFirebaseStore();
   const [editingRoom, setEditingRoom] = useState(null);
   const [isAddingRoom, setIsAddingRoom] = useState(false);
   const [formData, setFormData] = useState({});
   const [isSaving, setIsSaving] = useState(false);
   const [isDeletingRoom, setIsDeletingRoom] = useState(null);
   const [originalRoomName, setOriginalRoomName] = useState('');
+
+  // 인라인 편집 상태: { roomId, field, value }
+  const [inlineEdit, setInlineEdit] = useState(null);
+
+  // 시즌 가격 규칙 상태
+  const [showSeasonRules, setShowSeasonRules] = useState(false);
+  const [isAddingRule, setIsAddingRule] = useState(false);
+  const [editingRule, setEditingRule] = useState(null);
 
   // 새 객실 추가를 위한 초기 폼 데이터
   const getInitialFormData = () => ({
@@ -295,6 +305,98 @@ const RoomManagement = () => {
     setOriginalRoomName('');
   };
 
+  // 인라인 편집 시작
+  const startInlineEdit = (roomId, field, currentValue) => {
+    setInlineEdit({ roomId, field, value: currentValue });
+  };
+
+  // 인라인 편집 취소
+  const cancelInlineEdit = () => {
+    setInlineEdit(null);
+  };
+
+  // 인라인 편집 저장
+  const saveInlineEdit = async () => {
+    if (!inlineEdit) return;
+
+    const { roomId, field, value } = inlineEdit;
+
+    setIsSaving(true);
+    try {
+      const roomRef = doc(db, 'rooms', roomId);
+      const updateData = {
+        [field]: value,
+        updatedAt: new Date().toISOString()
+      };
+
+      // 기본재고 변경 시 재고 필드도 같이 업데이트
+      if (field === '기본재고') {
+        updateData.재고 = value;
+      }
+
+      await updateDoc(roomRef, updateData);
+      setInlineEdit(null);
+    } catch (error) {
+      console.error('인라인 편집 저장 오류:', error);
+      alert('저장 중 오류가 발생했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // 인라인 편집 input 키 이벤트 처리
+  const handleInlineKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      saveInlineEdit();
+    } else if (e.key === 'Escape') {
+      cancelInlineEdit();
+    }
+  };
+
+  // 객실 활성화/비활성화 토글
+  const toggleRoomActive = async (roomId, currentStatus) => {
+    try {
+      const roomRef = doc(db, 'rooms', roomId);
+      await updateDoc(roomRef, {
+        isActive: !currentStatus,
+        updatedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('객실 상태 변경 오류:', error);
+      alert('상태 변경 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 시즌 가격 규칙 추가
+  const addPricingRule = async (ruleData) => {
+    try {
+      await addDoc(collection(db, 'pricing_rules'), {
+        ...ruleData,
+        created: new Date(),
+        updated: new Date(),
+        isActive: true
+      });
+      setIsAddingRule(false);
+      alert('시즌 가격 규칙이 추가되었습니다.');
+    } catch (error) {
+      console.error('규칙 추가 오류:', error);
+      alert('추가 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 시즌 가격 규칙 삭제
+  const deletePricingRule = async (ruleId) => {
+    if (window.confirm('정말 삭제하시겠습니까?')) {
+      try {
+        await deleteDoc(doc(db, 'pricing_rules', ruleId));
+        alert('시즌 가격 규칙이 삭제되었습니다.');
+      } catch (error) {
+        console.error('규칙 삭제 오류:', error);
+        alert('삭제 중 오류가 발생했습니다.');
+      }
+    }
+  };
+
   if (isLoading) {
     return <div className="loading">로딩 중...</div>;
   }
@@ -316,6 +418,12 @@ const RoomManagement = () => {
         <button onClick={handleAddRoom} className="btn btn-primary add-room-btn">
           + 새 객실 추가
         </button>
+      </div>
+
+      {/* 인라인 편집 안내 */}
+      <div className="inline-edit-hint">
+        <span className="hint-icon">💡</span>
+        <span>각 값을 클릭하면 바로 수정할 수 있습니다</span>
       </div>
 
       <div className="rooms-grid">
@@ -586,33 +694,149 @@ const RoomManagement = () => {
               </div>
             ) : (
               // 보기 모드
-              <div className="view-mode">
-                <h3>{room.객실명}</h3>
-                
+              <div className={`view-mode ${room.isActive === false ? 'inactive' : ''}`}>
+                <div className="room-header">
+                  <h3>{room.객실명}</h3>
+                  <label className="toggle-switch" title={room.isActive === false ? '비활성화됨 (예약 캘린더에서 숨김)' : '활성화됨'}>
+                    <input
+                      type="checkbox"
+                      checked={room.isActive !== false}
+                      onChange={() => toggleRoomActive(room.id, room.isActive !== false)}
+                    />
+                    <span className="toggle-slider"></span>
+                  </label>
+                </div>
+                {room.isActive === false && (
+                  <div className="inactive-badge">🚫 비활성화 - 예약 캘린더에서 숨김</div>
+                )}
+
                 <div className="info-grid">
+                  {/* 기본요금 */}
                   <div className="info-item">
                     <span className="label">기본요금</span>
-                    <span className="value">{(room.기본요금 || 0).toLocaleString()}원</span>
+                    {inlineEdit?.roomId === room.id && inlineEdit?.field === '기본요금' ? (
+                      <div className="inline-edit-wrapper">
+                        <input
+                          type="number"
+                          value={inlineEdit.value}
+                          onChange={(e) => setInlineEdit({...inlineEdit, value: parseInt(e.target.value) || 0})}
+                          onKeyDown={handleInlineKeyDown}
+                          autoFocus
+                          className="inline-edit-input"
+                        />
+                        <button onClick={saveInlineEdit} className="inline-btn save" disabled={isSaving}>✓</button>
+                        <button onClick={cancelInlineEdit} className="inline-btn cancel">✕</button>
+                      </div>
+                    ) : (
+                      <span className="value editable" onClick={() => startInlineEdit(room.id, '기본요금', room.기본요금 || 0)}>
+                        {(room.기본요금 || 0).toLocaleString()}원
+                        <span className="edit-icon">✏️</span>
+                      </span>
+                    )}
                   </div>
+
+                  {/* 주중요금 */}
                   <div className="info-item">
                     <span className="label">주중요금</span>
-                    <span className="value">{(room.주중요금 || room.기본요금 || 0).toLocaleString()}원</span>
+                    {inlineEdit?.roomId === room.id && inlineEdit?.field === '주중요금' ? (
+                      <div className="inline-edit-wrapper">
+                        <input
+                          type="number"
+                          value={inlineEdit.value}
+                          onChange={(e) => setInlineEdit({...inlineEdit, value: parseInt(e.target.value) || 0})}
+                          onKeyDown={handleInlineKeyDown}
+                          autoFocus
+                          className="inline-edit-input"
+                        />
+                        <button onClick={saveInlineEdit} className="inline-btn save" disabled={isSaving}>✓</button>
+                        <button onClick={cancelInlineEdit} className="inline-btn cancel">✕</button>
+                      </div>
+                    ) : (
+                      <span className="value editable" onClick={() => startInlineEdit(room.id, '주중요금', room.주중요금 || room.기본요금 || 0)}>
+                        {(room.주중요금 || room.기본요금 || 0).toLocaleString()}원
+                        <span className="edit-icon">✏️</span>
+                      </span>
+                    )}
                   </div>
+
+                  {/* 주말요금 */}
                   <div className="info-item">
                     <span className="label">주말요금</span>
-                    <span className="value">{(room.주말요금 || room.기본요금 || 0).toLocaleString()}원</span>
+                    {inlineEdit?.roomId === room.id && inlineEdit?.field === '주말요금' ? (
+                      <div className="inline-edit-wrapper">
+                        <input
+                          type="number"
+                          value={inlineEdit.value}
+                          onChange={(e) => setInlineEdit({...inlineEdit, value: parseInt(e.target.value) || 0})}
+                          onKeyDown={handleInlineKeyDown}
+                          autoFocus
+                          className="inline-edit-input"
+                        />
+                        <button onClick={saveInlineEdit} className="inline-btn save" disabled={isSaving}>✓</button>
+                        <button onClick={cancelInlineEdit} className="inline-btn cancel">✕</button>
+                      </div>
+                    ) : (
+                      <span className="value editable" onClick={() => startInlineEdit(room.id, '주말요금', room.주말요금 || room.기본요금 || 0)}>
+                        {(room.주말요금 || room.기본요금 || 0).toLocaleString()}원
+                        <span className="edit-icon">✏️</span>
+                      </span>
+                    )}
                   </div>
+
+                  {/* 기준/최대인원 - 기존 수정 버튼으로만 변경 */}
                   <div className="info-item">
                     <span className="label">기준/최대인원</span>
                     <span className="value">{room.기준인원 || 2}명 / {room.최대인원 || 4}명</span>
                   </div>
+
+                  {/* 추가인원요금 */}
                   <div className="info-item">
                     <span className="label">추가인원요금</span>
-                    <span className="value">{(room.추가인원요금 || 0).toLocaleString()}원</span>
+                    {inlineEdit?.roomId === room.id && inlineEdit?.field === '추가인원요금' ? (
+                      <div className="inline-edit-wrapper">
+                        <input
+                          type="number"
+                          value={inlineEdit.value}
+                          onChange={(e) => setInlineEdit({...inlineEdit, value: parseInt(e.target.value) || 0})}
+                          onKeyDown={handleInlineKeyDown}
+                          autoFocus
+                          className="inline-edit-input"
+                        />
+                        <button onClick={saveInlineEdit} className="inline-btn save" disabled={isSaving}>✓</button>
+                        <button onClick={cancelInlineEdit} className="inline-btn cancel">✕</button>
+                      </div>
+                    ) : (
+                      <span className="value editable" onClick={() => startInlineEdit(room.id, '추가인원요금', room.추가인원요금 || 0)}>
+                        {(room.추가인원요금 || 0).toLocaleString()}원
+                        <span className="edit-icon">✏️</span>
+                      </span>
+                    )}
                   </div>
+
+                  {/* 기본재고 */}
                   <div className="info-item">
                     <span className="label">기본재고</span>
-                    <span className="value">{room.기본재고 || room.재고 || 1}개</span>
+                    {inlineEdit?.roomId === room.id && inlineEdit?.field === '기본재고' ? (
+                      <div className="inline-edit-wrapper">
+                        <input
+                          type="number"
+                          value={inlineEdit.value}
+                          onChange={(e) => setInlineEdit({...inlineEdit, value: parseInt(e.target.value) || 1})}
+                          onKeyDown={handleInlineKeyDown}
+                          autoFocus
+                          min="1"
+                          max="10"
+                          className="inline-edit-input"
+                        />
+                        <button onClick={saveInlineEdit} className="inline-btn save" disabled={isSaving}>✓</button>
+                        <button onClick={cancelInlineEdit} className="inline-btn cancel">✕</button>
+                      </div>
+                    ) : (
+                      <span className="value editable" onClick={() => startInlineEdit(room.id, '기본재고', room.기본재고 || room.재고 || 1)}>
+                        {room.기본재고 || room.재고 || 1}개
+                        <span className="edit-icon">✏️</span>
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -624,10 +848,10 @@ const RoomManagement = () => {
 
                 <div className="card-actions">
                   <button onClick={() => handleEdit(room)} className="btn btn-edit">
-                    수정
+                    전체 수정
                   </button>
-                  <button 
-                    onClick={() => handleDeleteRoom(room.id, room.객실명)} 
+                  <button
+                    onClick={() => handleDeleteRoom(room.id, room.객실명)}
                     className="btn btn-delete"
                     disabled={isDeletingRoom === room.id}
                   >
@@ -639,6 +863,179 @@ const RoomManagement = () => {
           </div>
         ))}
       </div>
+
+      {/* 시즌 가격 규칙 섹션 */}
+      <div className="season-rules-section">
+        <div className="section-header-toggle" onClick={() => setShowSeasonRules(!showSeasonRules)}>
+          <h3>📅 시즌 가격 규칙</h3>
+          <span className="toggle-arrow">{showSeasonRules ? '▲' : '▼'}</span>
+        </div>
+
+        {showSeasonRules && (
+          <div className="season-rules-content">
+            <div className="section-actions">
+              <button onClick={() => setIsAddingRule(true)} className="btn btn-primary">
+                + 시즌 규칙 추가
+              </button>
+            </div>
+
+            <div className="rules-list">
+              {pricingRules && pricingRules.filter(rule => rule.type === 'season').length > 0 ? (
+                pricingRules
+                  .filter(rule => rule.type === 'season')
+                  .map(rule => (
+                    <div key={rule.id} className="rule-card">
+                      <div className="rule-header">
+                        <div className="rule-info">
+                          <h4>{rule.name}</h4>
+                          <span className="rule-period">
+                            {rule.startDate} ~ {rule.endDate}
+                          </span>
+                        </div>
+                        <div className="rule-actions">
+                          <button onClick={() => setEditingRule(rule)} className="btn btn-edit">
+                            수정
+                          </button>
+                          <button onClick={() => deletePricingRule(rule.id)} className="btn btn-delete">
+                            삭제
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="rule-details">
+                        <div className="season-prices-grid">
+                          {rooms.map(room => (
+                            <div key={room.id} className="room-season-price">
+                              <span className="room-name">{room.객실명}</span>
+                              <div className="price-row">
+                                <span className="price-label">주중:</span>
+                                <span className="price-value">
+                                  {(rule.weekdayPrices?.[room.id] || room.주중요금 || 0).toLocaleString()}원
+                                </span>
+                              </div>
+                              <div className="price-row">
+                                <span className="price-label">주말:</span>
+                                <span className="price-value">
+                                  {(rule.weekendPrices?.[room.id] || room.주말요금 || 0).toLocaleString()}원
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+              ) : (
+                <div className="empty-rules">
+                  <p>설정된 시즌 가격 규칙이 없습니다.</p>
+                  <p className="empty-description">
+                    성수기, 비수기 등 특별한 기간의 가격을 설정할 수 있습니다.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 시즌 규칙 추가/수정 모달 */}
+      {(isAddingRule || editingRule) && (
+        <div className="modal-overlay">
+          <div className="modal-content season-modal">
+            <h3>{editingRule ? '시즌 가격 규칙 수정' : '새 시즌 가격 규칙 추가'}</h3>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const formData = new FormData(e.target);
+
+              const ruleData = {
+                name: formData.get('name'),
+                type: 'season',
+                startDate: formData.get('startDate'),
+                endDate: formData.get('endDate'),
+                weekdayPrices: {},
+                weekendPrices: {}
+              };
+
+              rooms.forEach(room => {
+                const weekdayPrice = formData.get(`weekday_${room.id}`);
+                const weekendPrice = formData.get(`weekend_${room.id}`);
+                if (weekdayPrice) ruleData.weekdayPrices[room.id] = parseInt(weekdayPrice);
+                if (weekendPrice) ruleData.weekendPrices[room.id] = parseInt(weekendPrice);
+              });
+
+              if (editingRule) {
+                updateDoc(doc(db, 'pricing_rules', editingRule.id), {
+                  ...ruleData,
+                  updated: new Date()
+                }).then(() => {
+                  setEditingRule(null);
+                  alert('시즌 규칙이 수정되었습니다.');
+                });
+              } else {
+                addPricingRule(ruleData);
+              }
+            }}>
+              <div className="form-group">
+                <label>시즌명</label>
+                <input
+                  type="text"
+                  name="name"
+                  defaultValue={editingRule?.name || ''}
+                  placeholder="예: 여름 성수기, 겨울 비수기"
+                  required
+                />
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>시작일</label>
+                  <input type="date" name="startDate" defaultValue={editingRule?.startDate || ''} required />
+                </div>
+                <div className="form-group">
+                  <label>종료일</label>
+                  <input type="date" name="endDate" defaultValue={editingRule?.endDate || ''} required />
+                </div>
+              </div>
+
+              <div className="season-price-inputs">
+                <h4>객실별 시즌 가격</h4>
+                {rooms.filter(r => r.isActive !== false).map(room => (
+                  <div key={room.id} className="room-season-input">
+                    <span className="room-name">{room.객실명}</span>
+                    <div className="price-inputs-row">
+                      <div className="price-input-group">
+                        <label>주중</label>
+                        <input
+                          type="number"
+                          name={`weekday_${room.id}`}
+                          defaultValue={editingRule?.weekdayPrices?.[room.id] || room.주중요금 || 0}
+                        />
+                      </div>
+                      <div className="price-input-group">
+                        <label>주말</label>
+                        <input
+                          type="number"
+                          name={`weekend_${room.id}`}
+                          defaultValue={editingRule?.weekendPrices?.[room.id] || room.주말요금 || 0}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="card-actions">
+                <button type="submit" className="btn btn-save">
+                  {editingRule ? '수정' : '추가'}
+                </button>
+                <button type="button" onClick={() => { setIsAddingRule(false); setEditingRule(null); }} className="btn btn-cancel">
+                  취소
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -12,22 +12,26 @@ const ReservationList = ({ reservations, onUpdateReservation, onCancelReservatio
     hasOnCancelReservation: !!onCancelReservation,
     onCancelReservationType: typeof onCancelReservation
   });
-  
+
   // 디버그 시작
   migrationDebugger.startPerformance('ReservationList');
-  migrationDebugger.log(DEBUG_LEVELS.DEBUG, 'ReservationList', 'Component rendered', { 
-    reservationCount: reservations?.length || 0 
+  migrationDebugger.log(DEBUG_LEVELS.DEBUG, 'ReservationList', 'Component rendered', {
+    reservationCount: reservations?.length || 0
   });
 
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterSource, setFilterSource] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [cancelTarget, setCancelTarget] = useState(null);
-  
+
   // 기간 필터
   const [dateFilter, setDateFilter] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+
+  // 월별 접기/펼치기 상태 (기본: 접힘)
+  const [collapsedMonths, setCollapsedMonths] = useState(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // 🔄 MIGRATION: useEffect 제거, React Query로 교체
   // Before: useEffect로 window resize 감지
@@ -125,6 +129,110 @@ const ReservationList = ({ reservations, onUpdateReservation, onCancelReservatio
 
     return filtered;
   }, [reservations, filterStatus, filterSource, searchTerm, dateFilter, startDate, endDate]);
+
+  // 날짜를 Date 객체로 변환하는 헬퍼 함수
+  const toDateObject = (date) => {
+    if (!date) return null;
+    if (date && typeof date === 'object' && date.seconds) {
+      return new Date(date.seconds * 1000);
+    }
+    if (typeof date === 'string') {
+      return new Date(date);
+    }
+    if (date instanceof Date) {
+      return date;
+    }
+    return null;
+  };
+
+  // 과거 예약인지 체크 (체크아웃 날짜가 오늘 이전)
+  const isPastReservation = (reservation) => {
+    const checkOut = toDateObject(reservation.checkOut);
+    if (!checkOut) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return checkOut < today;
+  };
+
+  // 월별로 그룹화된 예약
+  const groupedReservations = useMemo(() => {
+    const groups = {};
+
+    filteredReservations.forEach(res => {
+      const checkIn = toDateObject(res.checkIn);
+      if (!checkIn) return;
+
+      const year = checkIn.getFullYear();
+      const month = checkIn.getMonth() + 1;
+      const key = `${year}-${String(month).padStart(2, '0')}`;
+      const label = `${year}년 ${month}월`;
+
+      if (!groups[key]) {
+        groups[key] = {
+          key,
+          label,
+          year,
+          month,
+          reservations: [],
+          isPast: false
+        };
+      }
+      groups[key].reservations.push(res);
+    });
+
+    // 현재 월 체크
+    const now = new Date();
+    const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    // 과거 월인지 표시
+    Object.keys(groups).forEach(key => {
+      groups[key].isPast = key < currentKey;
+    });
+
+    // 키를 기준으로 정렬 (최신순)
+    const sortedKeys = Object.keys(groups).sort((a, b) => b.localeCompare(a));
+
+    return sortedKeys.map(key => groups[key]);
+  }, [filteredReservations]);
+
+  // 초기 로드 시 모든 월을 접힌 상태로 설정
+  React.useEffect(() => {
+    if (!isInitialized && groupedReservations.length > 0) {
+      const allCollapsed = {};
+      groupedReservations.forEach(group => {
+        allCollapsed[group.key] = true;
+      });
+      setCollapsedMonths(allCollapsed);
+      setIsInitialized(true);
+    }
+  }, [groupedReservations, isInitialized]);
+
+  // 월별 접기/펼치기 토글
+  const toggleMonth = (monthKey) => {
+    setCollapsedMonths(prev => ({
+      ...(prev || {}),
+      [monthKey]: !(prev?.[monthKey] ?? true)
+    }));
+  };
+
+  // 접힌 상태 체크 (기본값: 접힘)
+  const isCollapsed = (monthKey) => {
+    if (!collapsedMonths) return true;
+    return collapsedMonths[monthKey] ?? true;
+  };
+
+  // 전체 접기/펼치기
+  const collapseAll = () => {
+    const allCollapsed = {};
+    groupedReservations.forEach(group => {
+      allCollapsed[group.key] = true;
+    });
+    setCollapsedMonths(allCollapsed);
+  };
+
+  const expandAll = () => {
+    setCollapsedMonths({});
+  };
 
   const handleCancelClick = (e, reservation) => {
     e.stopPropagation();
@@ -348,108 +456,143 @@ const ReservationList = ({ reservations, onUpdateReservation, onCancelReservatio
         )}
       </div>
 
+      {/* 접기/펼치기 버튼 */}
+      {groupedReservations.length > 0 && (
+        <div className="collapse-controls">
+          <button onClick={expandAll} className="collapse-btn">
+            <span className="collapse-icon">▼</span> 모두 펼치기
+          </button>
+          <button onClick={collapseAll} className="collapse-btn">
+            <span className="collapse-icon">▲</span> 모두 접기
+          </button>
+          <span className="total-count">총 {filteredReservations.length}건</span>
+        </div>
+      )}
+
       {isMobile ? (
-        // 모바일 카드 뷰
+        // 모바일 카드 뷰 (월별 그룹화)
         <div className="reservation-cards">
-          {filteredReservations.map(res => (
-            <div 
-              key={res.id} 
-              className="reservation-card" 
-              onClick={() => onSelectReservation(res)}
-            >
-              {/* 카드 헤더 */}
-              <div className="card-header">
-                <div className="card-date-room">
-                  <span className="card-room">{res.roomName}</span>
-                  <span className="card-check-date">
-                    {formatDate(res.checkIn)} ~ {formatDate(res.checkOut)}
-                  </span>
+          {groupedReservations.map(group => (
+            <div key={group.key} className={`month-group ${group.isPast ? 'past-month' : ''}`}>
+              {/* 월별 헤더 */}
+              <div
+                className="month-header"
+                onClick={() => toggleMonth(group.key)}
+              >
+                <div className="month-header-left">
+                  <span className={`collapse-arrow ${isCollapsed(group.key) ? 'collapsed' : ''}`}>▼</span>
+                  <span className="month-label">{group.label}</span>
+                  <span className="month-count">{group.reservations.length}건</span>
                 </div>
-                <span className={`status-badge status-${res.status}`}>
-                  {res.status}
-                </span>
+                {group.isPast && <span className="past-badge">지난 예약</span>}
               </div>
 
-              {/* 카드 바디 */}
-              <div className="card-body">
-                <div className="card-customer">
-                  <div className="customer-info">
-                    <span className="customer-name">{res.customerName}</span>
-                    <span className="customer-phone">{res.phone}</span>
-                  </div>
-                  {res.source && BOOKING_SOURCES[res.source] && (
-                    <span 
-                      className="source-badge-mobile" 
-                      style={{color: BOOKING_SOURCES[res.source].color}}
+              {/* 월별 예약 목록 */}
+              {!isCollapsed(group.key) && (
+                <div className="month-reservations">
+                  {group.reservations.map(res => (
+                    <div
+                      key={res.id}
+                      className={`reservation-card ${isPastReservation(res) ? 'past-reservation' : ''}`}
+                      onClick={() => onSelectReservation(res)}
                     >
-                      {BOOKING_SOURCES[res.source].icon}
-                    </span>
-                  )}
-                </div>
+                      {/* 카드 헤더 */}
+                      <div className="card-header">
+                        <div className="card-date-room">
+                          <span className="card-room">{res.roomName}</span>
+                          <span className="card-check-date">
+                            {formatDate(res.checkIn)} ~ {formatDate(res.checkOut)}
+                          </span>
+                        </div>
+                        <span className={`status-badge status-${res.status}`}>
+                          {res.status}
+                        </span>
+                      </div>
 
-                <div className="card-details">
-                  <div className="detail-item">
-                    <span className="detail-label">인원</span>
-                    <span className="detail-value">{res.guests || '-'}명</span>
-                  </div>
-                  {res.options && res.options.length > 0 && (
-                    <div className="detail-item options-item">
-                      <span className="detail-label">옵션</span>
-                      <span className="detail-value">
-                        {res.options.map(opt => {
-                          if (typeof opt === 'string') {
-                            return opt;
-                          } else if (typeof opt === 'object' && opt.name) {
-                            return opt.name;
-                          }
-                          return '';
-                        }).filter(Boolean).join(', ')}
-                      </span>
+                      {/* 카드 바디 */}
+                      <div className="card-body">
+                        <div className="card-customer">
+                          <div className="customer-info">
+                            <span className="customer-name">{res.customerName}</span>
+                            <span className="customer-phone">{res.phone}</span>
+                          </div>
+                          {res.source && BOOKING_SOURCES[res.source] && (
+                            <span
+                              className="source-badge-mobile"
+                              style={{color: BOOKING_SOURCES[res.source].color}}
+                            >
+                              {BOOKING_SOURCES[res.source].icon}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="card-details">
+                          <div className="detail-item">
+                            <span className="detail-label">인원</span>
+                            <span className="detail-value">{res.guests || '-'}명</span>
+                          </div>
+                          {res.options && res.options.length > 0 && (
+                            <div className="detail-item options-item">
+                              <span className="detail-label">옵션</span>
+                              <span className="detail-value">
+                                {res.options.map(opt => {
+                                  if (typeof opt === 'string') {
+                                    return opt;
+                                  } else if (typeof opt === 'object' && opt.name) {
+                                    return opt.name;
+                                  }
+                                  return '';
+                                }).filter(Boolean).join(', ')}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="card-price">
+                          <span className="price-label">총 금액</span>
+                          <span className="price-value">₩{res.totalPrice?.toLocaleString()}</span>
+                        </div>
+
+                        {getRefundStatus(res)}
+                        {res.cancellationFee > 0 && (
+                          <div className="cancellation-fee-mobile">
+                            취소수수료: ₩{res.cancellationFee.toLocaleString()}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 카드 푸터 (액션 버튼) */}
+                      <div className="card-footer">
+                        <div className="card-meta">
+                          <span className="meta-label">예약일</span>
+                          <span className="meta-value">{formatDate(res.createdAt)}</span>
+                        </div>
+                        <div className="card-actions">
+                          {res.status === '입금대기' && (
+                            <button
+                              onClick={(e) => handleStatusChange(e, res.id)}
+                              className="btn-confirm"
+                            >
+                              확정
+                            </button>
+                          )}
+                          {res.status !== '예약취소' && (
+                            <button
+                              onClick={(e) => handleCancelClick(e, res)}
+                              className="btn-cancel"
+                            >
+                              취소
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  )}
+                  ))}
                 </div>
-
-                <div className="card-price">
-                  <span className="price-label">총 금액</span>
-                  <span className="price-value">₩{res.totalPrice?.toLocaleString()}</span>
-                </div>
-
-                {getRefundStatus(res)}
-                {res.cancellationFee > 0 && (
-                  <div className="cancellation-fee-mobile">
-                    취소수수료: ₩{res.cancellationFee.toLocaleString()}
-                  </div>
-                )}
-              </div>
-
-              {/* 카드 푸터 (액션 버튼) */}
-              <div className="card-footer">
-                <div className="card-meta">
-                  <span className="meta-label">예약일</span>
-                  <span className="meta-value">{formatDate(res.createdAt)}</span>
-                </div>
-                <div className="card-actions">
-                  {res.status === '입금대기' && (
-                    <button 
-                      onClick={(e) => handleStatusChange(e, res.id)}
-                      className="btn-confirm"
-                    >
-                      확정
-                    </button>
-                  )}
-                  {res.status !== '예약취소' && (
-                    <button 
-                      onClick={(e) => handleCancelClick(e, res)}
-                      className="btn-cancel"
-                    >
-                      취소
-                    </button>
-                  )}
-                </div>
-              </div>
+              )}
             </div>
           ))}
-          {filteredReservations.length === 0 && (
+          {groupedReservations.length === 0 && (
             <div className="empty-reservations">
               <span className="empty-icon">📄</span>
               <p className="empty-text">예약 내역이 없습니다.</p>
@@ -457,118 +600,143 @@ const ReservationList = ({ reservations, onUpdateReservation, onCancelReservatio
           )}
         </div>
       ) : (
-        // 데스크톱 테이블 뷰
+        // 데스크톱 테이블 뷰 (월별 그룹화)
         <div className="reservation-table-wrapper">
-          <div className="reservation-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>예약일</th>
-                  <th>고객명</th>
-                  <th>연락처</th>
-                  <th>출처</th>
-                  <th>객실</th>
-                  <th>인원</th>
-                  <th>체크인</th>
-                  <th>체크아웃</th>
-                  <th>옵션</th>
-                  <th>상태</th>
-                  <th>금액</th>
-                  <th>작업</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredReservations.map(res => (
-                  <tr key={res.id} onClick={() => onSelectReservation(res)} style={{ cursor: 'pointer' }}>
-                    <td>{formatDate(res.createdAt)}</td>
-                    <td>{res.customerName}</td>
-                    <td>{res.phone}</td>
-                    <td>
-                      {res.source && BOOKING_SOURCES[res.source] ? (
-                        <span 
-                          className="source-badge" 
-                          style={{color: BOOKING_SOURCES[res.source].color}}
-                          title={BOOKING_SOURCES[res.source].name}
-                        >
-                          {BOOKING_SOURCES[res.source].icon}
-                        </span>
-                      ) : '-'}
-                    </td>
-                    <td>{res.roomName}</td>
-                    <td>
-                      <div className="guests-info">
-                        <span>{res.guests || '-'}명</span>
-                      </div>
-                    </td>
-                    <td>{formatDate(res.checkIn)}</td>
-                    <td>{formatDate(res.checkOut)}</td>
-                    <td>
-                      <div className="options-info">
-                        {res.options && res.options.length > 0 ? (
-                          <span className="options-list">
-                            {res.options.map(opt => {
-                              if (typeof opt === 'string') {
-                                return opt;
-                              } else if (typeof opt === 'object' && opt.name) {
-                                return opt.name;
-                              }
-                              return '';
-                            }).filter(Boolean).join(', ')}
-                          </span>
-                        ) : (
-                          <span>-</span>
-                        )}
-                      </div>
-                    </td>
-                    <td>
-                      <div className="status-cell">
-                        <span className={`status-badge status-${res.status}`}>
-                          {res.status}
-                        </span>
-                        {getRefundStatus(res)}
-                      </div>
-                    </td>
-                    <td>
-                      <div className="price-cell">
-                        <span className="total-price">₩{res.totalPrice?.toLocaleString()}</span>
-                        {res.cancellationFee > 0 && (
-                          <span className="cancellation-fee">
-                            (취소수수료: ₩{res.cancellationFee.toLocaleString()})
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td>
-                      <div className="action-buttons">
-                        {res.status === '입금대기' && (
-                          <button 
-                            onClick={(e) => handleStatusChange(e, res.id)}
-                            className="btn-confirm"
-                          >
-                            확정
-                          </button>
-                        )}
-                        {res.status !== '예약취소' && (
-                          <button 
-                            onClick={(e) => handleCancelClick(e, res)}
-                            className="btn-cancel"
-                          >
-                            취소
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {filteredReservations.length === 0 && (
-              <div className="empty-reservations">
-                <span className="empty-icon">📄</span>
-                <p className="empty-text">예약 내역이 없습니다.</p>
+          {groupedReservations.map(group => (
+            <div key={group.key} className={`month-group ${group.isPast ? 'past-month' : ''}`}>
+              {/* 월별 헤더 */}
+              <div
+                className="month-header"
+                onClick={() => toggleMonth(group.key)}
+              >
+                <div className="month-header-left">
+                  <span className={`collapse-arrow ${isCollapsed(group.key) ? 'collapsed' : ''}`}>▼</span>
+                  <span className="month-label">{group.label}</span>
+                  <span className="month-count">{group.reservations.length}건</span>
+                </div>
+                {group.isPast && <span className="past-badge">지난 예약</span>}
               </div>
-            )}
-          </div>
+
+              {/* 월별 예약 테이블 */}
+              {!isCollapsed(group.key) && (
+                <div className="reservation-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>예약일</th>
+                        <th>고객명</th>
+                        <th>연락처</th>
+                        <th>출처</th>
+                        <th>객실</th>
+                        <th>인원</th>
+                        <th>체크인</th>
+                        <th>체크아웃</th>
+                        <th>옵션</th>
+                        <th>상태</th>
+                        <th>금액</th>
+                        <th>작업</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {group.reservations.map(res => (
+                        <tr
+                          key={res.id}
+                          onClick={() => onSelectReservation(res)}
+                          className={isPastReservation(res) ? 'past-reservation' : ''}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <td>{formatDate(res.createdAt)}</td>
+                          <td>{res.customerName}</td>
+                          <td>{res.phone}</td>
+                          <td>
+                            {res.source && BOOKING_SOURCES[res.source] ? (
+                              <span
+                                className="source-badge"
+                                style={{color: BOOKING_SOURCES[res.source].color}}
+                                title={BOOKING_SOURCES[res.source].name}
+                              >
+                                {BOOKING_SOURCES[res.source].icon}
+                              </span>
+                            ) : '-'}
+                          </td>
+                          <td>{res.roomName}</td>
+                          <td>
+                            <div className="guests-info">
+                              <span>{res.guests || '-'}명</span>
+                            </div>
+                          </td>
+                          <td>{formatDate(res.checkIn)}</td>
+                          <td>{formatDate(res.checkOut)}</td>
+                          <td>
+                            <div className="options-info">
+                              {res.options && res.options.length > 0 ? (
+                                <span className="options-list">
+                                  {res.options.map(opt => {
+                                    if (typeof opt === 'string') {
+                                      return opt;
+                                    } else if (typeof opt === 'object' && opt.name) {
+                                      return opt.name;
+                                    }
+                                    return '';
+                                  }).filter(Boolean).join(', ')}
+                                </span>
+                              ) : (
+                                <span>-</span>
+                              )}
+                            </div>
+                          </td>
+                          <td>
+                            <div className="status-cell">
+                              <span className={`status-badge status-${res.status}`}>
+                                {res.status}
+                              </span>
+                              {getRefundStatus(res)}
+                            </div>
+                          </td>
+                          <td>
+                            <div className="price-cell">
+                              <span className="total-price">₩{res.totalPrice?.toLocaleString()}</span>
+                              {res.cancellationFee > 0 && (
+                                <span className="cancellation-fee">
+                                  (취소수수료: ₩{res.cancellationFee.toLocaleString()})
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td>
+                            <div className="action-buttons">
+                              {res.status === '입금대기' && (
+                                <button
+                                  onClick={(e) => handleStatusChange(e, res.id)}
+                                  className="btn-confirm"
+                                >
+                                  확정
+                                </button>
+                              )}
+                              {res.status !== '예약취소' && (
+                                <button
+                                  onClick={(e) => handleCancelClick(e, res)}
+                                  className="btn-cancel"
+                                >
+                                  취소
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          ))}
+          {groupedReservations.length === 0 && (
+            <div className="empty-reservations">
+              <span className="empty-icon">📄</span>
+              <p className="empty-text">예약 내역이 없습니다.</p>
+            </div>
+          )}
         </div>
       )}
 

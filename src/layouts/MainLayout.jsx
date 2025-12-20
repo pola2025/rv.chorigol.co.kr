@@ -10,7 +10,6 @@ import {
   CalendarIcon,
   BookingIcon,
   RoomIcon,
-  PriceIcon,
   OptionsIcon,
   ChartIcon,
   CustomerIcon
@@ -22,11 +21,9 @@ const TABS = [
   { id: 'calendar', path: '/calendar', label: '예약 캘린더', Icon: CalendarIcon },
   { id: 'reservations', path: '/reservations', label: '예약 목록', Icon: BookingIcon },
   { id: 'rooms', path: '/rooms', label: '객실 관리', Icon: RoomIcon },
-  { id: 'pricing', path: '/pricing', label: '가격 설정', Icon: PriceIcon },
   { id: 'options', path: '/options', label: '옵션 설정', Icon: OptionsIcon },
   { id: 'notifications', path: '/notifications', label: '알림 설정', Icon: CustomerIcon },
   { id: 'airtableStats', path: '/analytics', label: '광고 효율 분석', Icon: ChartIcon },
-  { id: 'security', path: '/security', label: '보안 관리', Icon: OptionsIcon },
 ];
 
 function MainLayout({ user, onLogout }) {
@@ -60,10 +57,6 @@ function MainLayout({ user, onLogout }) {
     return TABS.find(tab => location.pathname === tab.path || location.pathname.startsWith(tab.path + '/'));
   }, [location.pathname]);
 
-  // 모바일 메뉴에서 탭 변경 시 처리
-  const handleMobileTabChange = (tabId) => {
-    setIsMobileMenuOpen(false);
-  };
 
   // 하단 네비게이션 탭 변경 시 처리
   const handleBottomNavTabChange = (tabId) => {
@@ -138,8 +131,6 @@ function MainLayout({ user, onLogout }) {
         onClose={() => setIsMobileMenuOpen(false)}
         tabs={TABS}
         activeTab={currentTab?.id}
-        onTabChange={handleMobileTabChange}
-        useLinks={true}
       />
 
       {/* 모바일 하단 네비게이션 */}

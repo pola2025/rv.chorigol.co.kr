@@ -23,7 +23,18 @@ const NotificationSettingsV2 = () => {
   const [loading, setLoading] = useState(false);
   const [testing, setTesting] = useState(false);
   const [activeTab, setActiveTab] = useState('choho');
-  
+
+  // 접이식 섹션 상태
+  const [expandedSections, setExpandedSections] = useState({
+    sens: false,
+    telegram: false,
+    rooms: true
+  });
+
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
+
   // 전역 설정 (SENS, 텔레그램)
   const [globalSettings, setGlobalSettings] = useState({
     choho: {
@@ -369,114 +380,120 @@ const NotificationSettingsV2 = () => {
 
   return (
     <div className="notification-settings">
-      <h2>📱 알림 설정</h2>
-      
-      {/* 탭 네비게이션 */}
-      <div className="notification-tabs">
-        <button
-          className={`tab-button ${activeTab === 'choho' ? 'active' : ''}`}
-          onClick={() => setActiveTab('choho')}
-        >
-          🏠 초호펜션
-        </button>
-        <button
-          className={`tab-button ${activeTab === 'shelter' ? 'active' : ''}`}
-          onClick={() => setActiveTab('shelter')}
-        >
-          🏡 초호쉼터
-        </button>
-      </div>
-      
-      {/* 현재 탭 정보 */}
-      <div className="tab-info">
-        <h3>{ROOM_GROUPS[activeTab].name} 알림 설정</h3>
-        <div className="room-list">
-          <strong>대상 객실:</strong> {ROOM_GROUPS[activeTab].rooms.join(', ')}
+      {/* 헤더 + 탭 */}
+      <div className="notification-header">
+        <h2>📱 알림 설정</h2>
+        <div className="notification-tabs">
+          <button
+            className={`tab-btn ${activeTab === 'choho' ? 'active' : ''}`}
+            onClick={() => setActiveTab('choho')}
+          >
+            🏠 초호펜션
+          </button>
+          <button
+            className={`tab-btn ${activeTab === 'shelter' ? 'active' : ''}`}
+            onClick={() => setActiveTab('shelter')}
+          >
+            🏡 초호쉼터
+          </button>
         </div>
       </div>
-      
-      {/* 전역 설정 섹션 */}
-      <div className="global-settings-section">
-        <h3>🌐 전역 설정</h3>
-        
-        {/* SENS 설정 */}
-        <div className="settings-section">
-          <h4>📨 네이버 SENS 설정</h4>
-          <div className="settings-card">
-            <div className="form-group">
-              <label>서비스 ID</label>
-              <input
-                type="text"
-                value={currentGlobalSettings.sens.serviceId}
-                onChange={(e) => setGlobalSettings(prev => ({
-                  ...prev,
-                  [activeTab]: {
-                    ...prev[activeTab],
-                    sens: { ...prev[activeTab].sens, serviceId: e.target.value }
-                  }
-                }))}
-                placeholder="ncp:sms:kr:000000000000:service-name"
-              />
+
+      {/* 대상 객실 표시 */}
+      <div className="target-rooms">
+        <span className="label">대상 객실:</span>
+        {ROOM_GROUPS[activeTab].rooms.map(room => (
+          <span key={room} className="room-chip">{room}</span>
+        ))}
+      </div>
+
+      {/* SENS 설정 - 접이식 */}
+      <div className="collapsible-section">
+        <div className="section-toggle" onClick={() => toggleSection('sens')}>
+          <div className="section-title">
+            <span className="section-icon">📨</span>
+            <span>네이버 SENS 설정</span>
+            {currentGlobalSettings.sens.serviceId && (
+              <span className="status-badge connected">연결됨</span>
+            )}
+          </div>
+          <span className="toggle-icon">{expandedSections.sens ? '▲' : '▼'}</span>
+        </div>
+
+        {expandedSections.sens && (
+          <div className="section-content">
+            <div className="form-grid">
+              <div className="form-group">
+                <label>서비스 ID</label>
+                <input
+                  type="text"
+                  value={currentGlobalSettings.sens.serviceId}
+                  onChange={(e) => setGlobalSettings(prev => ({
+                    ...prev,
+                    [activeTab]: {
+                      ...prev[activeTab],
+                      sens: { ...prev[activeTab].sens, serviceId: e.target.value }
+                    }
+                  }))}
+                  placeholder="ncp:sms:kr:..."
+                />
+              </div>
+              <div className="form-group">
+                <label>발신번호</label>
+                <input
+                  type="tel"
+                  value={currentGlobalSettings.sens.from}
+                  onChange={(e) => setGlobalSettings(prev => ({
+                    ...prev,
+                    [activeTab]: {
+                      ...prev[activeTab],
+                      sens: { ...prev[activeTab].sens, from: e.target.value }
+                    }
+                  }))}
+                  placeholder="010-0000-0000"
+                />
+              </div>
+              <div className="form-group">
+                <label>액세스 키</label>
+                <input
+                  type="text"
+                  value={currentGlobalSettings.sens.accessKey}
+                  onChange={(e) => setGlobalSettings(prev => ({
+                    ...prev,
+                    [activeTab]: {
+                      ...prev[activeTab],
+                      sens: { ...prev[activeTab].sens, accessKey: e.target.value }
+                    }
+                  }))}
+                  placeholder="액세스 키"
+                />
+              </div>
+              <div className="form-group">
+                <label>시크릿 키</label>
+                <input
+                  type="password"
+                  value={currentGlobalSettings.sens.secretKey}
+                  onChange={(e) => setGlobalSettings(prev => ({
+                    ...prev,
+                    [activeTab]: {
+                      ...prev[activeTab],
+                      sens: { ...prev[activeTab].sens, secretKey: e.target.value }
+                    }
+                  }))}
+                  placeholder="시크릿 키"
+                />
+              </div>
             </div>
-            
-            <div className="form-group">
-              <label>액세스 키</label>
-              <input
-                type="text"
-                value={currentGlobalSettings.sens.accessKey}
-                onChange={(e) => setGlobalSettings(prev => ({
-                  ...prev,
-                  [activeTab]: {
-                    ...prev[activeTab],
-                    sens: { ...prev[activeTab].sens, accessKey: e.target.value }
-                  }
-                }))}
-                placeholder="네이버 클라우드 플랫폼 액세스 키"
-              />
-            </div>
-            
-            <div className="form-group">
-              <label>시크릿 키</label>
-              <input
-                type="password"
-                value={currentGlobalSettings.sens.secretKey}
-                onChange={(e) => setGlobalSettings(prev => ({
-                  ...prev,
-                  [activeTab]: {
-                    ...prev[activeTab],
-                    sens: { ...prev[activeTab].sens, secretKey: e.target.value }
-                  }
-                }))}
-                placeholder="네이버 클라우드 플랫폼 시크릿 키"
-              />
-            </div>
-            
-            <div className="form-group">
-              <label>발신번호</label>
-              <input
-                type="tel"
-                value={currentGlobalSettings.sens.from}
-                onChange={(e) => setGlobalSettings(prev => ({
-                  ...prev,
-                  [activeTab]: {
-                    ...prev[activeTab],
-                    sens: { ...prev[activeTab].sens, from: e.target.value }
-                  }
-                }))}
-                placeholder="010-0000-0000 (사전 등록 필요)"
-              />
-            </div>
-            
-            <div className="button-group">
-              <button 
-                onClick={() => testSensConnection(activeTab)} 
-                className="btn btn-secondary"
+            <div className="section-actions">
+              <button
+                onClick={() => testSensConnection(activeTab)}
+                className="btn btn-outline"
                 disabled={testing || !currentGlobalSettings.sens.serviceId}
               >
                 {testing ? '테스트 중...' : '연결 테스트'}
               </button>
-              <button 
-                onClick={() => saveSensConfig(activeTab)} 
+              <button
+                onClick={() => saveSensConfig(activeTab)}
                 className="btn btn-primary"
                 disabled={loading}
               >
@@ -484,46 +501,59 @@ const NotificationSettingsV2 = () => {
               </button>
             </div>
           </div>
+        )}
+      </div>
+
+      {/* 텔레그램 설정 - 접이식 */}
+      <div className="collapsible-section">
+        <div className="section-toggle" onClick={() => toggleSection('telegram')}>
+          <div className="section-title">
+            <span className="section-icon">💬</span>
+            <span>텔레그램 설정</span>
+            {currentGlobalSettings.telegram.botToken && (
+              <span className="status-badge connected">연결됨</span>
+            )}
+          </div>
+          <span className="toggle-icon">{expandedSections.telegram ? '▲' : '▼'}</span>
         </div>
-        
-        {/* 텔레그램 설정 */}
-        <div className="settings-section">
-          <h4>💬 텔레그램 설정</h4>
-          <div className="settings-card">
-            <div className="form-group">
-              <label>봇 토큰</label>
-              <input
-                type="password"
-                value={currentGlobalSettings.telegram.botToken}
-                onChange={(e) => setGlobalSettings(prev => ({
-                  ...prev,
-                  [activeTab]: {
-                    ...prev[activeTab],
-                    telegram: { ...prev[activeTab].telegram, botToken: e.target.value }
-                  }
-                }))}
-                placeholder="0000000000:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-              />
+
+        {expandedSections.telegram && (
+          <div className="section-content">
+            <div className="form-grid">
+              <div className="form-group">
+                <label>봇 토큰</label>
+                <input
+                  type="password"
+                  value={currentGlobalSettings.telegram.botToken}
+                  onChange={(e) => setGlobalSettings(prev => ({
+                    ...prev,
+                    [activeTab]: {
+                      ...prev[activeTab],
+                      telegram: { ...prev[activeTab].telegram, botToken: e.target.value }
+                    }
+                  }))}
+                  placeholder="봇 토큰"
+                />
+              </div>
+              <div className="form-group">
+                <label>채팅 ID</label>
+                <input
+                  type="text"
+                  value={currentGlobalSettings.telegram.chatId}
+                  onChange={(e) => setGlobalSettings(prev => ({
+                    ...prev,
+                    [activeTab]: {
+                      ...prev[activeTab],
+                      telegram: { ...prev[activeTab].telegram, chatId: e.target.value }
+                    }
+                  }))}
+                  placeholder="-1000000000000"
+                />
+              </div>
             </div>
-            
-            <div className="form-group">
-              <label>채팅 ID</label>
-              <input
-                type="text"
-                value={currentGlobalSettings.telegram.chatId}
-                onChange={(e) => setGlobalSettings(prev => ({
-                  ...prev,
-                  [activeTab]: {
-                    ...prev[activeTab],
-                    telegram: { ...prev[activeTab].telegram, chatId: e.target.value }
-                  }
-                }))}
-                placeholder="-1000000000000"
-              />
-            </div>
-            
-            <div className="checkbox-group">
-              <label>
+
+            <div className="toggle-options">
+              <label className="toggle-option">
                 <input
                   type="checkbox"
                   checked={currentGlobalSettings.telegram.useReservation}
@@ -535,10 +565,9 @@ const NotificationSettingsV2 = () => {
                     }
                   }))}
                 />
-                예약 알림 사용
+                <span>예약 알림</span>
               </label>
-              
-              <label>
+              <label className="toggle-option">
                 <input
                   type="checkbox"
                   checked={currentGlobalSettings.telegram.useCancellation}
@@ -550,10 +579,9 @@ const NotificationSettingsV2 = () => {
                     }
                   }))}
                 />
-                취소 알림 사용
+                <span>취소 알림</span>
               </label>
-              
-              <label style={{display: 'block', marginTop: '10px', background: '#fffbeb', padding: '8px', borderRadius: '4px', border: '1px solid #fcd34d'}}>
+              <label className="toggle-option highlight">
                 <input
                   type="checkbox"
                   checked={currentGlobalSettings.telegram.autoSendDaily}
@@ -565,23 +593,20 @@ const NotificationSettingsV2 = () => {
                     }
                   }))}
                 />
-                <strong>📆 일일 현황 자동 발송</strong>
-                <small style={{display: 'block', marginLeft: '22px', color: '#92400e'}}>
-                  매일 오전 9시에 입실/퇴실/현재투숙 현황을 자동으로 발송합니다
-                </small>
+                <span>📆 일일 현황 자동 발송 (오전 9시)</span>
               </label>
             </div>
-            
-            <div className="button-group">
-              <button 
-                onClick={() => testTelegramConnection(activeTab)} 
-                className="btn btn-secondary"
+
+            <div className="section-actions">
+              <button
+                onClick={() => testTelegramConnection(activeTab)}
+                className="btn btn-outline"
                 disabled={testing || !currentGlobalSettings.telegram.botToken}
               >
                 {testing ? '테스트 중...' : '연결 테스트'}
               </button>
-              <button 
-                onClick={() => saveTelegramConfig(activeTab)} 
+              <button
+                onClick={() => saveTelegramConfig(activeTab)}
                 className="btn btn-primary"
                 disabled={loading}
               >
@@ -589,50 +614,50 @@ const NotificationSettingsV2 = () => {
               </button>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* 객실별 설정 섹션 */}
-      <div className="room-settings-section">
-        <div className="section-header">
-          <h3>🏠 객실별 알림 설정</h3>
-          <button
-            className="btn btn-primary"
-            onClick={saveAllRoomSettings}
-            disabled={loading}
-          >
-            모든 객실 설정 저장
-          </button>
+      {/* 객실별 설정 - 접이식 */}
+      <div className="collapsible-section">
+        <div className="section-toggle" onClick={() => toggleSection('rooms')}>
+          <div className="section-title">
+            <span className="section-icon">🏠</span>
+            <span>객실별 알림 설정</span>
+            <span className="room-count">{ROOM_GROUPS[activeTab].rooms.length}개</span>
+          </div>
+          <span className="toggle-icon">{expandedSections.rooms ? '▲' : '▼'}</span>
         </div>
-        
-        <div className="room-cards-container">
-          {ROOM_GROUPS[activeTab].rooms.map(room => (
-            <RoomNotificationCardSafe
-              key={room}
-              roomName={room}
-              settings={currentRoomSettings ? currentRoomSettings[room] : null}
-              onSave={updateAndSaveRoomSettings}
-              loading={loading}
-            />
-          ))}
-        </div>
+
+        {expandedSections.rooms && (
+          <div className="section-content">
+            <div className="rooms-header">
+              <button
+                className="btn btn-primary"
+                onClick={saveAllRoomSettings}
+                disabled={loading}
+              >
+                모든 객실 설정 저장
+              </button>
+            </div>
+
+            <div className="room-cards-container">
+              {ROOM_GROUPS[activeTab].rooms.map(room => (
+                <RoomNotificationCardSafe
+                  key={room}
+                  roomName={room}
+                  settings={currentRoomSettings ? currentRoomSettings[room] : null}
+                  onSave={updateAndSaveRoomSettings}
+                  loading={loading}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
-      
-      {/* 안내 사항 */}
-      <div className="settings-info">
-        <h4>📌 주의사항</h4>
-        <ul>
-          <li>네이버 SENS 사용을 위해서는 네이버 클라우드 플랫폼 가입이 필요합니다.</li>
-          <li>발신번호는 사전에 등록된 번호만 사용 가능합니다.</li>
-          <li>텔레그램 봇은 미리 생성하고 채널에 추가해야 합니다.</li>
-          <li>자동 발송은 10분 간격으로 체크됩니다.</li>
-          <li style={{fontWeight: 'bold', color: '#059669'}}>
-            🎯 각 객실별로 다른 메시지 템플릿과 발송 시간을 설정할 수 있습니다.
-          </li>
-          <li style={{fontWeight: 'bold', color: '#dc2626'}}>
-            ⚡ 객실별 설정은 펼쳐서 상세 설정을 확인하고 수정할 수 있습니다.
-          </li>
-        </ul>
+
+      {/* 간단한 안내 */}
+      <div className="settings-hint">
+        💡 각 섹션을 클릭하여 펼치거나 접을 수 있습니다.
       </div>
     </div>
   );

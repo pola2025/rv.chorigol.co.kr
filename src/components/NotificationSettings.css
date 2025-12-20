@@ -308,3 +308,331 @@
   flex-direction: column;
   gap: 16px;
 }
+
+/* =====================================================
+   알림설정 V2 - 접이식 섹션 스타일
+   ===================================================== */
+
+/* 헤더 + 탭 */
+.notification-header {
+  margin-bottom: 1.5rem;
+}
+
+.notification-header h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.notification-tabs {
+  display: flex;
+  gap: 0.5rem;
+  background: #f3f4f6;
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+  color: #374151;
+}
+
+.tab-btn.active {
+  background: white;
+  color: #2d5016;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* 대상 객실 표시 */
+.target-rooms {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  padding: 0.75rem 1rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.target-rooms .label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.room-chip {
+  display: inline-block;
+  padding: 0.25rem 0.625rem;
+  background: #e0e7ff;
+  color: #4338ca;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border-radius: 9999px;
+}
+
+/* 접이식 섹션 */
+.collapsible-section {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.section-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  background: #fafafa;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease;
+}
+
+.section-toggle:hover {
+  background: #f3f4f6;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.section-icon {
+  font-size: 1.25rem;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 9999px;
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.status-badge.connected {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.room-count {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 9999px;
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.toggle-icon {
+  font-size: 0.875rem;
+  color: #9ca3af;
+  transition: transform 0.2s ease;
+}
+
+.section-content {
+  padding: 1.25rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* 폼 그리드 */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* 토글 옵션 (체크박스) */
+.toggle-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.toggle-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: #f9fafb;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: #374151;
+  transition: all 0.15s ease;
+}
+
+.toggle-option:hover {
+  background: #f3f4f6;
+}
+
+.toggle-option input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #2d5016;
+}
+
+.toggle-option.highlight {
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+}
+
+.toggle-option.highlight:hover {
+  background: #fde68a;
+}
+
+/* 섹션 액션 버튼 */
+.section-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  padding-top: 1rem;
+  border-top: 1px solid #f3f4f6;
+}
+
+/* 객실 섹션 헤더 */
+.rooms-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1rem;
+}
+
+/* 버튼 스타일 보완 */
+.btn-outline {
+  background: transparent;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+/* 안내 문구 */
+.settings-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  margin-top: 1rem;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  color: #0369a1;
+}
+
+/* 모바일 반응형 - 접이식 섹션 */
+@media (max-width: 768px) {
+  .notification-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .notification-tabs {
+    flex-direction: column;
+  }
+
+  .tab-btn {
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  .target-rooms {
+    flex-wrap: wrap;
+    padding: 0.625rem;
+  }
+
+  .room-chip {
+    font-size: 0.75rem;
+    padding: 0.1875rem 0.5rem;
+  }
+
+  .collapsible-section {
+    border-radius: 8px;
+  }
+
+  .section-toggle {
+    padding: 0.875rem 1rem;
+  }
+
+  .section-title {
+    font-size: 0.9375rem;
+    gap: 0.5rem;
+  }
+
+  .section-icon {
+    font-size: 1.125rem;
+  }
+
+  .section-content {
+    padding: 1rem;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .toggle-options {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .toggle-option {
+    width: 100%;
+  }
+
+  .section-actions {
+    flex-direction: column;
+  }
+
+  .section-actions .btn {
+    width: 100%;
+  }
+
+  .rooms-header {
+    justify-content: stretch;
+  }
+
+  .rooms-header .btn {
+    width: 100%;
+  }
+
+  .settings-hint {
+    font-size: 0.75rem;
+    padding: 0.625rem;
+  }
+}
