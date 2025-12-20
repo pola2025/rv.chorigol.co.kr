@@ -5,6 +5,7 @@ import { db } from '../config/firebase';
 import sensService from '../services/sensService';
 import telegramService from '../services/telegramService';
 import RoomNotificationCardSafe from './RoomNotificationCardSafe';
+import SmsHistoryTable from './SmsHistoryTable';
 import './NotificationSettings.css';
 
 // 객실 그룹 정의
@@ -398,6 +399,9 @@ const NotificationSettingsV2 = () => {
           </button>
         </div>
       </div>
+
+      {/* SMS 발송 이력 */}
+      <SmsHistoryTable businessType={activeTab} />
 
       {/* 대상 객실 표시 */}
       <div className="target-rooms">
