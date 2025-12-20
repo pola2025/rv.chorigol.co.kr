@@ -7,6 +7,62 @@ import fetch from 'node-fetch';
 
 const db = getFirestore();
 
+// 텔레그램 채팅 ID (객실별)
+const TELEGRAM_CHAT_IDS = {
+  choho: '-1002484830636',    // Forest 객실들 (초호펜션)
+  shelter: '-1002863320782'   // 호수뷰객실 (초호쉼터)
+};
+
+// 텔레그램 메시지 발송 함수
+async function sendTelegramNotification(message, businessType = null) {
+  try {
+    const settingsDoc = await db.collection('settings').doc('notifications').get();
+
+    if (!settingsDoc.exists) {
+      console.log('텔레그램 설정 없음');
+      return;
+    }
+
+    const settings = settingsDoc.data();
+    const { botToken } = settings.telegram || {};
+
+    if (!botToken) {
+      console.log('텔레그램 봇 토큰 없음');
+      return;
+    }
+
+    // businessType에 따라 채팅 ID 선택
+    const chatId = businessType ? TELEGRAM_CHAT_IDS[businessType] : settings.telegram?.chatId;
+
+    if (!chatId) {
+      console.log('텔레그램 채팅 ID 없음');
+      return;
+    }
+
+    const response = await fetch(
+      `https://api.telegram.org/bot${botToken}/sendMessage`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: message,
+          parse_mode: 'HTML'
+        })
+      }
+    );
+
+    const result = await response.json();
+    if (!result.ok) {
+      console.error('텔레그램 발송 실패:', result.description);
+    }
+
+    return result;
+  } catch (error) {
+    console.error('텔레그램 발송 오류:', error);
+  }
+}
+
 // 이모지 제거 함수 (줄바꿈 유지)
 const removeEmojis = (text) => {
   if (!text) return text;
@@ -269,11 +325,6 @@ export const autoSendSMSScheduler = onSchedule({
   memory: '256MiB',
   retryCount: 3
 }, async (context) => {
-  // ⚠️ 자동 발송 비활성화 - 템플릿 확정 후 이 블록을 제거하세요
-  console.log('⏸️ 자동 SMS 발송이 비활성화되어 있습니다. 템플릿 확정 후 활성화하세요.');
-  return;
-  // ⚠️ 비활성화 끝
-
   console.log('🔔 자동 SMS 발송 스케줄러 시작');
 
   // 한국 시간으로 변환 (UTC+9)
@@ -313,8 +364,8 @@ export const autoSendSMSScheduler = onSchedule({
       return;
     }
     
-    const sendPromises = [];
-    
+    const sendResults = []; // 발송 결과 수집
+
     for (const doc of reservationsSnapshot.docs) {
       const reservation = { id: doc.id, ...doc.data() };
 
@@ -327,6 +378,12 @@ export const autoSendSMSScheduler = onSchedule({
       // 전화번호가 없는 경우 스킵
       if (!reservation.phone) {
         console.log(`❌ 전화번호 없음: ${reservation.customerName}`);
+        sendResults.push({
+          roomName: reservation.roomName,
+          customerName: reservation.customerName,
+          success: false,
+          error: '전화번호 없음'
+        });
         continue;
       }
 
@@ -343,6 +400,12 @@ export const autoSendSMSScheduler = onSchedule({
 
       if (!sensConfig) {
         console.error(`❌ SENS 설정 없음: ${businessType}`);
+        sendResults.push({
+          roomName: reservation.roomName,
+          customerName: reservation.customerName,
+          success: false,
+          error: 'SENS 설정 없음'
+        });
         continue;
       }
 
@@ -350,51 +413,126 @@ export const autoSendSMSScheduler = onSchedule({
       const template = await getTemplate(reservation, smsType);
       if (!template) {
         console.error(`❌ 템플릿 없음: ${businessType} - ${smsType}`);
+        sendResults.push({
+          roomName: reservation.roomName,
+          customerName: reservation.customerName,
+          success: false,
+          error: '템플릿 없음'
+        });
         continue;
       }
-      
+
       // 템플릿 변수 치환
       const message = replaceTemplateVariables(template, reservation);
-      
+
       // SMS 발송
       const sensAPI = new NaverSensAPI(sensConfig);
-      
-      sendPromises.push(
-        sensAPI.sendSMS(reservation.phone, message)
-          .then(async (result) => {
-            if (result.success) {
-              // 발송 성공 상태 업데이트
-              await doc.ref.update({
-                [`smsStatus.${smsType}Sent`]: true,
-                [`smsStatus.${smsType}SentAt`]: FieldValue.serverTimestamp(),
-                [`smsStatus.${smsType}RequestId`]: result.requestId
-              });
-              
-              console.log(`✅ 발송 성공: ${reservation.customerName} (${reservation.roomName})`);
-            } else {
-              // 발송 실패 상태 업데이트
-              await doc.ref.update({
-                [`smsStatus.${smsType}Error`]: result.error || 'Unknown error',
-                [`smsStatus.${smsType}Sent`]: false
-              });
-              
-              console.error(`❌ 발송 실패: ${reservation.customerName} - ${result.error}`);
-            }
-          })
-          .catch(async (error) => {
-            console.error(`❌ 발송 중 오류: ${reservation.customerName}`, error);
-            await doc.ref.update({
-              [`smsStatus.${smsType}Error`]: error.message,
-              [`smsStatus.${smsType}Sent`]: false
-            });
-          })
-      );
+
+      try {
+        const result = await sensAPI.sendSMS(reservation.phone, message);
+
+        if (result.success) {
+          // 발송 성공 상태 업데이트
+          await doc.ref.update({
+            [`smsStatus.${smsType}Sent`]: true,
+            [`smsStatus.${smsType}SentAt`]: FieldValue.serverTimestamp(),
+            [`smsStatus.${smsType}RequestId`]: result.requestId
+          });
+
+          console.log(`✅ 발송 성공: ${reservation.customerName} (${reservation.roomName})`);
+          sendResults.push({
+            roomName: reservation.roomName,
+            customerName: reservation.customerName,
+            success: true
+          });
+        } else {
+          // 발송 실패 상태 업데이트
+          await doc.ref.update({
+            [`smsStatus.${smsType}Error`]: result.error || 'Unknown error',
+            [`smsStatus.${smsType}Sent`]: false
+          });
+
+          console.error(`❌ 발송 실패: ${reservation.customerName} - ${result.error}`);
+          sendResults.push({
+            roomName: reservation.roomName,
+            customerName: reservation.customerName,
+            success: false,
+            error: result.error || 'Unknown error'
+          });
+        }
+      } catch (error) {
+        console.error(`❌ 발송 중 오류: ${reservation.customerName}`, error);
+        await doc.ref.update({
+          [`smsStatus.${smsType}Error`]: error.message,
+          [`smsStatus.${smsType}Sent`]: false
+        });
+        sendResults.push({
+          roomName: reservation.roomName,
+          customerName: reservation.customerName,
+          success: false,
+          error: error.message
+        });
+      }
     }
-    
-    // 모든 발송 완료 대기
-    await Promise.allSettled(sendPromises);
-    
+
     console.log(`✅ ${smsType} SMS 발송 작업 완료`);
+
+    // 텔레그램 알림 발송 (업체별 분리)
+    if (sendResults.length > 0) {
+      const smsTypeName = smsType === 'checkIn' ? '입실안내' : '퇴실안내';
+
+      // 업체별로 결과 분리
+      const chohoResults = sendResults.filter(r => getBusinessType(r.roomName) === 'choho');
+      const shelterResults = sendResults.filter(r => getBusinessType(r.roomName) === 'shelter');
+
+      // 초호펜션 결과 발송
+      if (chohoResults.length > 0) {
+        const successCount = chohoResults.filter(r => r.success).length;
+        const failCount = chohoResults.filter(r => !r.success).length;
+
+        let telegramMessage = `📱 <b>초호펜션 알림문자 발송 결과</b>\n`;
+        telegramMessage += `━━━━━━━━━━━━━━━━━━\n`;
+        telegramMessage += `⏰ 발송시간: ${koreaTime.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}\n`;
+        telegramMessage += `📋 SMS 종류: ${smsTypeName}\n`;
+        telegramMessage += `✅ 성공: ${successCount}건 / ❌ 실패: ${failCount}건\n`;
+        telegramMessage += `━━━━━━━━━━━━━━━━━━\n\n`;
+
+        for (const result of chohoResults) {
+          const statusIcon = result.success ? '✅' : '❌';
+          telegramMessage += `${statusIcon} ${result.roomName} - ${result.customerName}`;
+          if (!result.success && result.error) {
+            telegramMessage += ` (${result.error})`;
+          }
+          telegramMessage += `\n`;
+        }
+
+        await sendTelegramNotification(telegramMessage, 'choho');
+      }
+
+      // 초호쉼터 결과 발송
+      if (shelterResults.length > 0) {
+        const successCount = shelterResults.filter(r => r.success).length;
+        const failCount = shelterResults.filter(r => !r.success).length;
+
+        let telegramMessage = `📱 <b>초호쉼터 알림문자 발송 결과</b>\n`;
+        telegramMessage += `━━━━━━━━━━━━━━━━━━\n`;
+        telegramMessage += `⏰ 발송시간: ${koreaTime.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}\n`;
+        telegramMessage += `📋 SMS 종류: ${smsTypeName}\n`;
+        telegramMessage += `✅ 성공: ${successCount}건 / ❌ 실패: ${failCount}건\n`;
+        telegramMessage += `━━━━━━━━━━━━━━━━━━\n\n`;
+
+        for (const result of shelterResults) {
+          const statusIcon = result.success ? '✅' : '❌';
+          telegramMessage += `${statusIcon} ${result.roomName} - ${result.customerName}`;
+          if (!result.success && result.error) {
+            telegramMessage += ` (${result.error})`;
+          }
+          telegramMessage += `\n`;
+        }
+
+        await sendTelegramNotification(telegramMessage, 'shelter');
+      }
+    }
     
   } catch (error) {
     console.error('스케줄러 오류:', error);
