@@ -5,6 +5,7 @@ import { db } from '../config/firebase';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../config/firebase';
 import sensService from '../services/sensService';
+import { getKSTToday, getKSTDateString } from '../utils';
 import './BulkSMSSender.css';
 
 const BulkSMSSender = () => {
@@ -29,8 +30,9 @@ const BulkSMSSender = () => {
     setLoading(true);
     try {
       let q;
-      const today = new Date().toISOString().split('T')[0];
-      const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+      const today = getKSTToday();
+      const tomorrowDate = new Date(Date.now() + 86400000);
+      const tomorrow = getKSTDateString(tomorrowDate);
       
       // 기본 쿼리
       if (recipientType === 'today_checkin') {
@@ -52,8 +54,9 @@ const BulkSMSSender = () => {
           where('status', '==', '예약확정')
         );
       } else if (recipientType === 'this_month') {
-        const monthStart = new Date(today.slice(0, 7) + '-01').toISOString().split('T')[0];
-        const monthEnd = new Date(today.slice(0, 4), parseInt(today.slice(5, 7)), 0).toISOString().split('T')[0];
+        const monthStart = today.slice(0, 7) + '-01';
+        const monthEndDate = new Date(parseInt(today.slice(0, 4)), parseInt(today.slice(5, 7)), 0);
+        const monthEnd = getKSTDateString(monthEndDate);
         q = query(
           collection(db, 'reservations'),
           where('checkIn', '>=', monthStart),
@@ -71,11 +74,11 @@ const BulkSMSSender = () => {
         ...doc.data()
       }));
       
-      // 객실별 필터링
+      // 객실별 필터링 (호수뷰객실은 초호쉼터에 속함)
       if (property === 'choho') {
         data = data.filter(r => ['Forest', 'Forest mini', 'Forest mini 패밀리', 'Forest 패밀리'].includes(r.roomName));
       } else if (property === 'shelter') {
-        data = data.filter(r => ['호수뷰객실', '1박2일워크샵', '야유회'].includes(r.roomName));
+        data = data.filter(r => ['호수뷰객실', '1박2일워크샵', '야유회', '단체예약'].includes(r.roomName));
       }
       
       setRecipients(data);

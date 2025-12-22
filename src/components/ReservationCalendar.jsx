@@ -31,6 +31,30 @@ const ReservationCalendar = ({
     loadReservations();
   }, []);
 
+  // 모바일에서 캘린더 페이지 body 스크롤 방지
+  useEffect(() => {
+    const isMobile = window.innerWidth < 768;
+    if (isMobile) {
+      document.body.classList.add('calendar-page-mobile');
+    }
+    return () => {
+      document.body.classList.remove('calendar-page-mobile');
+    };
+  }, []);
+
+  // 모바일에서 상세 패널 열릴 때 하단 바 숨기기
+  useEffect(() => {
+    const isMobile = window.innerWidth < 768;
+    if (isMobile && selectedDate) {
+      document.body.classList.add('detail-panel-open');
+    } else {
+      document.body.classList.remove('detail-panel-open');
+    }
+    return () => {
+      document.body.classList.remove('detail-panel-open');
+    };
+  }, [selectedDate]);
+
   const loadRooms = async () => {
     try {
       const snapshot = await getDocs(collection(db, 'rooms'));
@@ -169,86 +193,393 @@ const ReservationCalendar = ({
 
   // 예약 취소
   const handleCancelReservation = async (reservation) => {
-    if (!confirm(`${reservation.customerName}님의 예약을 취소하시겠습니까?`)) return;
+    console.log('🔴 [ReservationCalendar] handleCancelReservation 호출됨');
+    console.log('🔴 [ReservationCalendar] reservation:', reservation);
+    console.log('🔴 [ReservationCalendar] onCancelReservation 존재:', !!onCancelReservation);
+
+    if (!confirm(`${reservation.customerName}님의 예약을 취소하시겠습니까?`)) {
+      console.log('🔴 [ReservationCalendar] 사용자가 취소함');
+      return;
+    }
+
     try {
-      await onCancelReservation(reservation);
+      console.log('🔴 [ReservationCalendar] onCancelReservation 호출 시작...');
+      // cancelData를 빈 객체로 전달
+      await onCancelReservation(reservation, {});
+      console.log('🔴 [ReservationCalendar] onCancelReservation 완료');
       await loadReservations();
     } catch (error) {
-      console.error('예약 취소 실패:', error);
+      console.error('🔴 [ReservationCalendar] 예약 취소 실패:', error);
+      alert('예약 취소 중 오류가 발생했습니다: ' + error.message);
     }
   };
 
-  // 화면 캡쳐 (스타일 임시 변경 방식 - 전체 스크롤 캡쳐)
+  // 화면 캡쳐 - DOM 복제 후 body에 임시 삽입하여 캡처
   const handleCapture = async () => {
     if (!panelRef.current || isCapturing) return;
 
     setIsCapturing(true);
 
-    const panel = panelRef.current;
-    const panelContent = panel.querySelector('.panel-content');
-    const isMobile = window.innerWidth <= 768;
-
-    // 원본 스타일 저장
-    const originalStyles = {
-      panel: {
-        position: panel.style.position,
-        bottom: panel.style.bottom,
-        left: panel.style.left,
-        right: panel.style.right,
-        maxHeight: panel.style.maxHeight,
-        height: panel.style.height,
-        borderRadius: panel.style.borderRadius,
-        transform: panel.style.transform
-      },
-      panelContent: panelContent ? {
-        maxHeight: panelContent.style.maxHeight,
-        overflow: panelContent.style.overflow
-      } : null,
-      scrollTop: panelContent?.scrollTop || 0,
-      windowScrollX: window.scrollX,
-      windowScrollY: window.scrollY
-    };
-
     try {
-      // 1. 스크롤 초기화
-      window.scrollTo(0, 0);
-      if (panelContent) {
-        panelContent.scrollTop = 0;
-      }
+      const panel = panelRef.current;
+      const originalContent = panel.querySelector('.panel-content');
 
-      // 2. 모바일에서 스타일 임시 변경 (전체 콘텐츠 표시)
-      if (isMobile) {
-        panel.style.position = 'absolute';
-        panel.style.bottom = 'auto';
-        panel.style.left = '0';
-        panel.style.right = '0';
-        panel.style.maxHeight = 'none';
-        panel.style.height = 'auto';
-        panel.style.borderRadius = '0';
-        panel.style.transform = 'none';
+      // 원본 스크롤 영역의 전체 높이 구하기
+      const contentScrollHeight = originalContent ? originalContent.scrollHeight : 0;
 
-        if (panelContent) {
-          panelContent.style.maxHeight = 'none';
-          panelContent.style.overflow = 'visible';
+      // 1. 패널을 완전히 복제
+      const clonedPanel = panel.cloneNode(true);
+
+      // 2. 복제된 패널에 캡처용 스타일 적용 (화면 내에 배치하되 뒤로 숨김)
+      clonedPanel.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 420px;
+        max-height: none;
+        height: auto;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        background: #ffffff;
+        box-shadow: none;
+        transform: none;
+        animation: none;
+        opacity: 1;
+        visibility: visible;
+        z-index: -99999;
+        display: block;
+        overflow: visible;
+        pointer-events: none;
+      `;
+
+      // 3. 모든 요소에 인라인 스타일 강제 적용 (rgba → solid 색상)
+      // 패널 헤더
+      const header = clonedPanel.querySelector('.panel-header');
+      if (header) {
+        header.style.cssText = `
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 14px 16px;
+          background: #1f2937;
+          color: #ffffff;
+          border-radius: 8px 8px 0 0;
+          opacity: 1;
+          visibility: visible;
+        `;
+
+        // 헤더 내 h3
+        const h3 = header.querySelector('h3');
+        if (h3) {
+          h3.style.cssText = 'margin: 0; font-size: 15px; font-weight: 600; color: #ffffff;';
+        }
+
+        // 예약 건수 배지 (rgba → solid)
+        const countBadge = header.querySelector('.reservation-count');
+        if (countBadge) {
+          countBadge.style.cssText = `
+            font-size: 13px;
+            background: #4b5563;
+            color: #ffffff;
+            padding: 3px 10px;
+            border-radius: 12px;
+          `;
+        }
+
+        // 캡처 버튼 숨김 (캡처 이미지에 불필요)
+        const captureBtn = header.querySelector('.capture-btn');
+        if (captureBtn) {
+          captureBtn.style.display = 'none';
+        }
+
+        // 닫기 버튼 숨김
+        const closeBtn = header.querySelector('.close-btn');
+        if (closeBtn) {
+          closeBtn.style.display = 'none';
         }
       }
 
-      // 3. 렌더링 안정화 대기
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // 패널 액션 영역
+      const actions = clonedPanel.querySelector('.panel-actions');
+      if (actions) {
+        actions.style.cssText = `
+          padding: 12px 16px;
+          border-bottom: 1px solid #e5e7eb;
+          background: #f9fafb;
+          opacity: 1;
+          visibility: visible;
+        `;
 
-      // 4. 캡쳐 실행
-      const canvas = await html2canvas(panel, {
-        backgroundColor: '#ffffff',
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        scrollX: 0,
-        scrollY: 0,
-        windowWidth: panel.scrollWidth,
-        windowHeight: panel.scrollHeight
+        const addBtn = actions.querySelector('.add-btn');
+        if (addBtn) {
+          addBtn.style.cssText = `
+            width: 100%;
+            padding: 10px;
+            background: #1f2937;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+          `;
+        }
+      }
+
+      // 패널 컨텐츠 - 원본의 scrollHeight를 명시적으로 적용
+      const content = clonedPanel.querySelector('.panel-content');
+      if (content) {
+        content.style.cssText = `
+          display: block;
+          max-height: none;
+          min-height: ${contentScrollHeight}px;
+          height: auto;
+          overflow: visible;
+          padding: 12px;
+          background: #ffffff;
+          opacity: 1;
+          visibility: visible;
+        `;
+      }
+
+      // 빈 메시지
+      const emptyMsg = clonedPanel.querySelector('.empty-message');
+      if (emptyMsg) {
+        emptyMsg.style.cssText = `
+          text-align: center;
+          padding: 40px 20px;
+          color: #6b7280;
+          background: #ffffff;
+        `;
+      }
+
+      // 예약 리스트
+      const list = clonedPanel.querySelector('.detail-reservation-list');
+      if (list) {
+        list.style.cssText = `
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        `;
+      }
+
+      // 모든 예약 카드
+      clonedPanel.querySelectorAll('.detail-reservation-card').forEach(card => {
+        card.style.cssText = `
+          border: 1px solid #d1d5db;
+          border-radius: 6px;
+          overflow: hidden;
+          background: #ffffff;
+          opacity: 1;
+          visibility: visible;
+        `;
       });
 
-      // 5. 이미지 다운로드
+      // 카드 헤더
+      clonedPanel.querySelectorAll('.detail-card-header').forEach(cardHeader => {
+        cardHeader.style.cssText = `
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 10px 12px;
+          background: #f3f4f6;
+          border-bottom: 1px solid #e5e7eb;
+          opacity: 1;
+          visibility: visible;
+        `;
+
+        const roomName = cardHeader.querySelector('.room-name');
+        if (roomName) {
+          roomName.style.cssText = 'font-size: 14px; font-weight: 700; color: #111827;';
+        }
+
+        const statusBadge = cardHeader.querySelector('.status-badge');
+        if (statusBadge) {
+          const isWaiting = statusBadge.classList.contains('waiting');
+          statusBadge.style.cssText = `
+            font-size: 12px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 4px;
+            background: ${isWaiting ? '#fef3c7' : '#d1fae5'};
+            color: ${isWaiting ? '#b45309' : '#047857'};
+          `;
+        }
+      });
+
+      // 테이블
+      clonedPanel.querySelectorAll('.info-table').forEach(table => {
+        table.style.cssText = 'width: 100%; border-collapse: collapse; font-size: 13px; background: #ffffff;';
+      });
+
+      clonedPanel.querySelectorAll('.info-table th').forEach(th => {
+        th.style.cssText = `
+          padding: 8px 10px;
+          background: #f9fafb;
+          color: #374151;
+          font-weight: 600;
+          border-bottom: 1px solid #e5e7eb;
+          text-align: left;
+          vertical-align: middle;
+        `;
+      });
+
+      clonedPanel.querySelectorAll('.info-table td').forEach(td => {
+        td.style.cssText = `
+          padding: 8px 10px;
+          color: #111827;
+          border-bottom: 1px solid #e5e7eb;
+          background: #ffffff;
+          vertical-align: middle;
+        `;
+      });
+
+      // 박 수 배지
+      clonedPanel.querySelectorAll('.nights').forEach(nights => {
+        nights.style.cssText = `
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          margin-left: 8px;
+          padding: 2px 10px;
+          background: #3b82f6;
+          color: #ffffff;
+          font-size: 12px;
+          font-weight: 700;
+          border-radius: 12px;
+        `;
+      });
+
+      // 방문 횟수 배지
+      clonedPanel.querySelectorAll('.visit-badge').forEach(badge => {
+        const isVip = badge.classList.contains('vip');
+        const isRegular = badge.classList.contains('regular');
+        badge.style.cssText = `
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 20px;
+          height: 20px;
+          margin-left: 6px;
+          padding: 0 6px;
+          font-size: 11px;
+          font-weight: 700;
+          border-radius: 10px;
+          background: ${isVip ? '#fef3c7' : isRegular ? '#dbeafe' : '#f3f4f6'};
+          color: ${isVip ? '#b45309' : isRegular ? '#1d4ed8' : '#6b7280'};
+          border: 1px solid ${isVip ? '#fcd34d' : isRegular ? '#93c5fd' : '#d1d5db'};
+        `;
+      });
+
+      // 옵션 태그
+      clonedPanel.querySelectorAll('.option-tag').forEach(tag => {
+        tag.style.cssText = `
+          display: inline-block;
+          background: #ecfdf5;
+          color: #047857;
+          border: 1px solid #6ee7b7;
+          padding: 2px 8px;
+          border-radius: 12px;
+          font-size: 12px;
+          margin-right: 4px;
+          margin-bottom: 2px;
+        `;
+      });
+
+      // 가격
+      clonedPanel.querySelectorAll('.price').forEach(price => {
+        price.style.cssText = 'font-weight: 700; color: #059669;';
+      });
+
+      clonedPanel.querySelectorAll('.price-onsite').forEach(price => {
+        price.style.cssText = 'font-weight: 700; color: #f59e0b;';
+      });
+
+      // 메모
+      clonedPanel.querySelectorAll('.memo').forEach(memo => {
+        memo.style.cssText = 'color: #6b7280; font-size: 12px; line-height: 1.4;';
+      });
+
+      // 이력
+      clonedPanel.querySelectorAll('.history-item').forEach(item => {
+        item.style.cssText = `
+          display: inline-block;
+          margin-right: 8px;
+          padding: 2px 8px;
+          background: #e5e7eb;
+          color: #111827;
+          border-radius: 4px;
+          font-size: 11px;
+          font-weight: 500;
+        `;
+      });
+
+      // 카드 액션 버튼
+      clonedPanel.querySelectorAll('.detail-card-actions').forEach(cardActions => {
+        cardActions.style.cssText = `
+          display: flex;
+          gap: 8px;
+          padding: 10px 12px;
+          background: #f9fafb;
+          border-top: 1px solid #e5e7eb;
+        `;
+      });
+
+      clonedPanel.querySelectorAll('.btn-edit').forEach(btn => {
+        btn.style.cssText = `
+          flex: 1;
+          padding: 8px;
+          background: #ffffff;
+          border: 1px solid #d1d5db;
+          border-radius: 4px;
+          font-size: 13px;
+          font-weight: 500;
+          color: #374151;
+        `;
+      });
+
+      clonedPanel.querySelectorAll('.btn-cancel').forEach(btn => {
+        btn.style.cssText = `
+          flex: 1;
+          padding: 8px;
+          background: #ffffff;
+          border: 1px solid #fca5a5;
+          border-radius: 4px;
+          font-size: 13px;
+          font-weight: 500;
+          color: #dc2626;
+        `;
+      });
+
+      // 4. body에 임시로 추가
+      document.body.appendChild(clonedPanel);
+
+      // 5. 렌더링 대기 (충분한 시간)
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // 6. 실제 렌더링된 크기 구하기
+      const clonedContent = clonedPanel.querySelector('.panel-content');
+      const totalHeight = clonedPanel.scrollHeight;
+      const totalWidth = clonedPanel.scrollWidth;
+
+      // 7. 캡처 실행 (전체 크기 명시)
+      const canvas = await html2canvas(clonedPanel, {
+        backgroundColor: '#ffffff',
+        scale: 8,  // 고해상도 캡쳐 (8배)
+        useCORS: true,
+        logging: false,
+        allowTaint: true,
+        width: totalWidth,
+        height: totalHeight,
+        windowWidth: totalWidth,
+        windowHeight: totalHeight,
+        scrollX: 0,
+        scrollY: 0,
+      });
+
+      // 7. 임시 요소 제거
+      document.body.removeChild(clonedPanel);
+
+      // 8. 이미지 다운로드
       const link = document.createElement('a');
       const dateStr = formatDate(selectedDate).replace(/\s/g, '').replace(/[()]/g, '');
       link.download = `예약현황_${dateStr}.png`;
@@ -258,30 +589,13 @@ const ReservationCalendar = ({
     } catch (error) {
       console.error('캡쳐 실패:', error);
       alert('화면 캡쳐에 실패했습니다.');
+
+      // 에러 시에도 임시 요소 정리
+      const tempPanel = document.querySelector('.detail-panel[style*="z-index: -99999"]');
+      if (tempPanel) {
+        document.body.removeChild(tempPanel);
+      }
     } finally {
-      // 6. 스타일 복원
-      if (isMobile) {
-        panel.style.position = originalStyles.panel.position;
-        panel.style.bottom = originalStyles.panel.bottom;
-        panel.style.left = originalStyles.panel.left;
-        panel.style.right = originalStyles.panel.right;
-        panel.style.maxHeight = originalStyles.panel.maxHeight;
-        panel.style.height = originalStyles.panel.height;
-        panel.style.borderRadius = originalStyles.panel.borderRadius;
-        panel.style.transform = originalStyles.panel.transform;
-
-        if (panelContent && originalStyles.panelContent) {
-          panelContent.style.maxHeight = originalStyles.panelContent.maxHeight;
-          panelContent.style.overflow = originalStyles.panelContent.overflow;
-        }
-      }
-
-      // 7. 스크롤 위치 복원
-      window.scrollTo(originalStyles.windowScrollX, originalStyles.windowScrollY);
-      if (panelContent) {
-        panelContent.scrollTop = originalStyles.scrollTop;
-      }
-
       setIsCapturing(false);
     }
   };

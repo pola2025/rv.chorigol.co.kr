@@ -11,7 +11,6 @@ import {
   BookingIcon,
   RoomIcon,
   OptionsIcon,
-  ChartIcon,
   CustomerIcon
 } from '../components/Icons';
 import './MainLayout.css';
@@ -23,7 +22,6 @@ const TABS = [
   { id: 'rooms', path: '/rooms', label: '객실 관리', Icon: RoomIcon },
   { id: 'options', path: '/options', label: '옵션 설정', Icon: OptionsIcon },
   { id: 'notifications', path: '/notifications', label: '알림 설정', Icon: CustomerIcon },
-  { id: 'airtableStats', path: '/analytics', label: '광고 효율 분석', Icon: ChartIcon },
 ];
 
 function MainLayout({ user, onLogout }) {
@@ -110,7 +108,7 @@ function MainLayout({ user, onLogout }) {
       </header>
 
       {/* 메인 컨텐츠 영역 */}
-      <main className={`layout-content ${currentTab?.id === 'airtableStats' ? 'airtable-tab' : ''}`}>
+      <main className="layout-content">
         {/* 모바일 페이지 타이틀 */}
         {isMobile && currentTab && (
           <div className="mobile-page-title">

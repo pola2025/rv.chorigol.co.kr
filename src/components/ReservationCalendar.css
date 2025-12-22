@@ -477,10 +477,21 @@
   .reservation-calendar-wrapper {
     flex-direction: column;
     gap: 0;
+    /* 모바일에서 캘린더만 스크롤 */
+    height: 100%;
+    overflow: hidden;
+    /* iOS 바운스 방지 */
+    overscroll-behavior: none;
   }
 
   .calendar-section {
     width: 100%;
+    height: 100%;
+    overflow: hidden;
+    /* iOS 터치 최적화 */
+    -webkit-tap-highlight-color: transparent;
+    /* iOS 바운스 방지 */
+    overscroll-behavior: none;
   }
 
   /* 모바일: 하단 고정 패널 */
@@ -490,12 +501,17 @@
     left: 0;
     right: 0;
     width: 100%;
-    max-height: 60vh;
+    max-height: 70vh;
     border-radius: 16px 16px 0 0;
     border: none;
     box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
-    z-index: 100;
+    z-index: 200; /* 하단바(100)보다 높게 */
     animation: slideUp 0.25s ease-out;
+    /* iOS 스크롤 최적화 */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    /* iOS safe area 대응 */
+    padding-bottom: env(safe-area-inset-bottom, 0);
   }
 
   @keyframes slideUp {
@@ -527,6 +543,7 @@
 
   .panel-content {
     padding: 10px;
+    padding-bottom: 20px; /* 하단 바 숨겨지므로 적은 패딩 */
   }
 
   .detail-reservation-card .info-table {

@@ -3,7 +3,6 @@
 /* 세로 길이 최적화 스타일 import */
 @import './styles/vertical-optimization.css';
 @import './styles/settings-vertical-optimization.css';
-@import './styles/ad-efficiency-fix.css';
 
 /* 기존 스타일 제거하고 앱 전용 스타일로 교체 */
 

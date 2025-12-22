@@ -47,10 +47,10 @@ const MarketingStatsV2 = () => {
     loadMonthlyData();
   }, [selectedMonth, businessType]);
 
-  // 전전월, 전월 데이터 로드
+  // 전전월, 전월 데이터 로드 (selectedMonth 기준)
   useEffect(() => {
     loadPreviousMonthsData();
-  }, []);
+  }, [selectedMonth]);
 
   const loadMonthlyData = async () => {
     try {
@@ -78,20 +78,22 @@ const MarketingStatsV2 = () => {
   };
 
   const loadPreviousMonthsData = async () => {
-    const now = new Date();
-    const twoMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, 1);
-    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    
+    // selectedMonth 기준으로 전월, 전전월 계산
+    const [year, month] = selectedMonth.split('-').map(Number);
+    const selectedDate = new Date(year, month - 1, 1);
+    const twoMonthsAgo = new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 2, 1);
+    const lastMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1, 1);
+
     const formatMonth = (date) => {
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     };
-    
+
     try {
       // 전전월 데이터
       const twoMonthsAgoData = await loadMonthDataForSummary(formatMonth(twoMonthsAgo));
       // 전월 데이터
       const lastMonthData = await loadMonthDataForSummary(formatMonth(lastMonth));
-      
+
       setPreviousMonthsData({
         twoMonthsAgo: twoMonthsAgoData,
         lastMonth: lastMonthData
@@ -308,7 +310,7 @@ const MarketingStatsV2 = () => {
   return (
     <div className="marketing-stats-v2">
       {/* 상단 통계 요약 */}
-      <MonthlyStats previousData={previousMonthsData} />
+      <MonthlyStats previousData={previousMonthsData} selectedMonth={selectedMonth} />
       
       {/* 헤더 */}
       <div className="stats-header">

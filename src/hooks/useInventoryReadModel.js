@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { collection, query, onSnapshot, where, Timestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { auth } from '../config/firebase';
+import { getKSTDateString } from '../utils';
 
 export const useInventoryReadModel = () => {
   const [inventoryData, setInventoryData] = useState({});
@@ -42,7 +43,7 @@ export const useInventoryReadModel = () => {
             const data = {};
             snapshot.forEach((doc) => {
               const docData = doc.data();
-              const dateStr = docData.date.toDate().toISOString().split('T')[0];
+              const dateStr = getKSTDateString(docData.date.toDate());
               if (!data[dateStr]) {
                 data[dateStr] = {};
               }

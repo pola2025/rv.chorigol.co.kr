@@ -2,6 +2,51 @@
 
 import { useState, useEffect } from 'react';
 
+// KST(한국 표준시) 관련 유틸리티 함수
+// UTC가 아닌 KST 기준으로 날짜/시간 처리
+
+/**
+ * KST 기준 현재 날짜 문자열 반환 (YYYY-MM-DD)
+ * @param {Date} date - 기준 날짜 (기본값: 현재 시간)
+ * @returns {string} YYYY-MM-DD 형식의 날짜 문자열
+ */
+export const getKSTDateString = (date = new Date()) => {
+  const kstOffset = 9 * 60; // KST는 UTC+9
+  const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+  const kstDate = new Date(utc + (kstOffset * 60000));
+  return kstDate.toISOString().split('T')[0];
+};
+
+/**
+ * KST 기준 현재 시간 반환 (0-23)
+ * @param {Date} date - 기준 날짜 (기본값: 현재 시간)
+ * @returns {number} 시간 (0-23)
+ */
+export const getKSTHour = (date = new Date()) => {
+  const kstOffset = 9 * 60;
+  const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+  const kstDate = new Date(utc + (kstOffset * 60000));
+  return kstDate.getHours();
+};
+
+/**
+ * KST 기준 현재 분 반환 (0-59)
+ * @param {Date} date - 기준 날짜 (기본값: 현재 시간)
+ * @returns {number} 분 (0-59)
+ */
+export const getKSTMinute = (date = new Date()) => {
+  const kstOffset = 9 * 60;
+  const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+  const kstDate = new Date(utc + (kstOffset * 60000));
+  return kstDate.getMinutes();
+};
+
+/**
+ * KST 기준 오늘 날짜 문자열 반환 (YYYY-MM-DD)
+ * @returns {string} YYYY-MM-DD 형식의 오늘 날짜
+ */
+export const getKSTToday = () => getKSTDateString(new Date());
+
 export const useWindowWidth = () => {
 const [width, setWidth] = useState(window.innerWidth);
 useEffect(() => {
@@ -12,18 +57,18 @@ return () => window.removeEventListener('resize', handleResize);
 return width;
 };
 
-// 날짜에서 다음 날짜 문자열을 반환하는 함수
+// 날짜에서 다음 날짜 문자열을 반환하는 함수 (KST 기준)
 export const getNextDateStr = (dateStr) => {
   if (!dateStr) return '';
-  
+
   try {
-    const date = new Date(dateStr);
+    const date = new Date(dateStr + 'T00:00:00+09:00'); // KST 기준으로 파싱
     if (isNaN(date.getTime())) {
       console.error('Invalid date:', dateStr);
       return '';
     }
     date.setDate(date.getDate() + 1);
-    return date.toISOString().split('T')[0];
+    return getKSTDateString(date);
   } catch (error) {
     console.error('Error in getNextDateStr:', error, dateStr);
     return '';

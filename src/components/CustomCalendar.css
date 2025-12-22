@@ -8,6 +8,8 @@
   overflow: hidden;
   width: 100%;
   margin-bottom: 300px; /* 푸터 공간 확보 */
+  /* iOS 바운스 방지 */
+  overscroll-behavior: none;
 }
 
 /* 헤더 */
@@ -101,6 +103,9 @@
   /* 스크롤바 숨기기 */
   scrollbar-width: none;
   -ms-overflow-style: none;
+  /* iOS 바운스 스크롤 방지 */
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: auto;
 }
 
 .calendar-scroll-wrapper::-webkit-scrollbar {
@@ -546,12 +551,20 @@
   /* 모바일: 터치 드래그로 이동 가능한 캘린더 영역 */
   .calendar-scroll-wrapper {
     overflow: scroll;
-    -webkit-overflow-scrolling: touch;
+    -webkit-overflow-scrolling: auto; /* iOS 바운스 방지 */
     touch-action: pan-x pan-y;
     max-height: 60vh;
     /* 스크롤바 숨기기 */
     scrollbar-width: none; /* Firefox */
     -ms-overflow-style: none; /* IE/Edge */
+    /* iOS 스크롤 성능 최적화 */
+    will-change: scroll-position;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    /* iOS 바운스 스크롤 완전 방지 */
+    overscroll-behavior: none;
   }
 
   .calendar-scroll-wrapper::-webkit-scrollbar {
@@ -567,6 +580,9 @@
 
   .calendar-grid {
     min-width: 840px; /* 120px * 7 - 가로폭 확보 */
+    /* iOS GPU 가속 */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
   }
 
   .weekday {

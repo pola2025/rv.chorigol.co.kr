@@ -14,10 +14,34 @@ class SENSService {
     this.initialized = false;
   }
 
+  // 설정 직접 전달 (UI에서 테스트용)
+  initializeWithConfig(config) {
+    if (!config) return;
+
+    // 설정을 choho에 저장
+    this.configs.choho = {
+      serviceId: config.serviceId,
+      accessKey: config.accessKey,
+      secretKey: config.secretKey,
+      from: config.from
+    };
+
+    console.log('📡 [SENS] 설정 직접 초기화:', {
+      serviceId: this.configs.choho.serviceId,
+      from: this.configs.choho.from
+    });
+  }
+
   // Firestore에서 설정 로드 및 초기화
-  async initialize() {
+  async initialize(config = null) {
+    // config가 전달되면 직접 초기화
+    if (config) {
+      this.initializeWithConfig(config);
+      return;
+    }
+
     if (this.initialized) return;
-    
+
     try {
       // 초호펜션 설정 로드
       const chohoDoc = await getDoc(doc(db, 'settings', 'notifications_v2_choho'));
@@ -72,14 +96,20 @@ class SENSService {
   // 예약의 객실명으로 업체 구분
   getBusinessType(reservation) {
     const roomName = reservation.roomName || '';
-    
-    // 초호쉼터 객실
-    const shelterRooms = ['호수뷰객실', '1박2일워크샵', '야유회'];
-    if (shelterRooms.includes(roomName)) {
+
+    // 초호쉼터 객실: 호수뷰객실, 단체예약, 1박2일워크샵, 야유회 등
+    const shelterRooms = ['호수뷰객실', '1박2일워크샵', '야유회', '단체예약'];
+    if (shelterRooms.some(room => roomName.includes(room) || room.includes(roomName))) {
       return 'shelter';
     }
-    
-    // 초호펜션 객실 (기본)
+
+    // 초호펜션 객실: Forest, Forest mini, Forest 패밀리, Forest mini 패밀리
+    const chohoRooms = ['Forest', 'Forest mini', 'Forest 패밀리', 'Forest mini 패밀리'];
+    if (chohoRooms.some(room => roomName.includes(room) || room.includes(roomName))) {
+      return 'choho';
+    }
+
+    // 기본값: 초호펜션
     return 'choho';
   }
 
@@ -181,6 +211,81 @@ class SENSService {
     }
   }
 
+  // 입실 안내 발송
+  async sendCheckInNotification(reservation, template) {
+    const message = this.generateMessage(template, {
+      customerName: reservation.customerName,
+      roomName: reservation.roomName,
+      checkIn: reservation.checkIn,
+      checkOut: reservation.checkOut,
+      guests: reservation.guests,
+      totalPrice: reservation.totalPrice,
+      options: reservation.options,
+      pensionPhone: '010-7932-0029',
+      pensionAddress: '경기도 파주시 법원읍 초리골길 134'
+    });
+
+    return await this.sendSMS(
+      reservation.phone || reservation.customerPhone,
+      message,
+      reservation.id,
+      reservation
+    );
+  }
+
+  // 퇴실 안내 발송
+  async sendCheckOutNotification(reservation, template) {
+    const message = this.generateMessage(template, {
+      customerName: reservation.customerName,
+      roomName: reservation.roomName,
+      checkIn: reservation.checkIn,
+      checkOut: reservation.checkOut,
+      guests: reservation.guests,
+      totalPrice: reservation.totalPrice,
+      options: reservation.options,
+      pensionPhone: '010-7932-0029',
+      pensionAddress: '경기도 파주시 법원읍 초리골길 134'
+    });
+
+    return await this.sendSMS(
+      reservation.phone || reservation.customerPhone,
+      message,
+      reservation.id,
+      reservation
+    );
+  }
+
+  // 연결 테스트 (설정 유효성 확인)
+  async testConnection() {
+    console.log('📡 [SENS] 연결 테스트 시작');
+
+    // 설정 확인
+    const config = this.configs.choho || this.configs.shelter;
+
+    if (!config) {
+      console.error('📡 [SENS] 설정이 없습니다.');
+      return false;
+    }
+
+    // 필수 설정 확인
+    if (!config.serviceId || !config.accessKey || !config.secretKey || !config.from) {
+      console.error('📡 [SENS] 필수 설정이 누락되었습니다:', {
+        serviceId: !!config.serviceId,
+        accessKey: !!config.accessKey,
+        secretKey: !!config.secretKey,
+        from: !!config.from
+      });
+      return false;
+    }
+
+    console.log('📡 [SENS] 설정 확인 완료:', {
+      serviceId: config.serviceId,
+      from: config.from
+    });
+
+    return true;
+  }
+
   // SMS 테스트 발송
   async testSMS(phoneNumber = '01098979834') {
     console.log('📡 [SENS] SMS 테스트 발송 시작');
@@ -207,20 +312,47 @@ class SENSService {
 
     let message = template;
 
-    // 변수 치환
+    // 현장결제 옵션 계산
+    let onsiteText = '';
+    if (data.options && data.options.length > 0) {
+      const onsiteOptions = data.options.filter(opt => {
+        const name = typeof opt === 'object' ? (opt.name || '') : opt;
+        return name.includes('바베큐') || name.includes('BBQ') || name.toLowerCase().includes('bbq');
+      });
+
+      if (onsiteOptions.length > 0) {
+        const onsiteTotal = onsiteOptions.reduce((sum, opt) => {
+          const price = typeof opt === 'object' ? (opt.price || 0) : 0;
+          return sum + price;
+        }, 0);
+        if (onsiteTotal > 0) {
+          onsiteText = `현장결제: ${onsiteTotal.toLocaleString()}원`;
+        }
+      }
+    }
+    // onsitePrice 필드가 있는 경우도 처리
+    if (!onsiteText && data.onsitePrice && data.onsitePrice > 0) {
+      onsiteText = `현장결제: ${data.onsitePrice.toLocaleString()}원`;
+    }
+
+    // 금액 값 (원 없이, 숫자만)
+    const priceValue = (data.totalPrice || 0).toLocaleString();
+
+    // 변수 치환 (원, 명은 템플릿에서 직접 붙이도록)
     const replacements = {
       '{고객명}': data.customerName || '',
       '{객실명}': data.roomName || '',
       '{체크인}': data.checkIn || '',
       '{체크아웃}': data.checkOut || '',
       '{인원}': data.guests || '',
-      '{금액}': (data.totalPrice || 0).toLocaleString() + '원',
+      '{금액}': priceValue,  // 숫자만 (원 없이)
+      '{현장결제}': onsiteText,
       '{전화번호}': data.pensionPhone || '010-7932-0029',
       '{주소}': data.pensionAddress || '경기도 파주시 법원읍 초리골길 134'
     };
 
     for (const [key, value] of Object.entries(replacements)) {
-      message = message.replace(new RegExp(key, 'g'), value);
+      message = message.replace(new RegExp(key.replace(/[{}]/g, '\\$&'), 'g'), value);
     }
 
     return message;
@@ -260,8 +392,8 @@ class SENSService {
 
 📅 일정: {체크인} ~ {체크아웃}
 🏠 객실: {객실명}
-👥 인원: {인원}
-💰 금액: {금액}
+👥 인원: {인원}명
+💰 금액: {금액}원
 
 입실 당일 안내 문자 드리겠습니다.
 감사합니다 😊`,
@@ -287,7 +419,7 @@ class SENSService {
 
 🕐 퇴실시간: 오전 11시
 🧹 퇴실준비: 사용하신 그릇은 싱크대에
-🗑️ 쓰레기: 분리수거 부탁드립니다
+🗑️ 쓰레기배출장소: 숯불바베큐장 옆
 
 감사합니다. 또 뵙겠습니다 🙏`
     };

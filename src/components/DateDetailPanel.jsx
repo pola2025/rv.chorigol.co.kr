@@ -7,6 +7,7 @@ import { useAvailableStock } from '../hooks/useReservations';
 import BookingModal from './BookingModal';
 import CustomerBadge from './CustomerBadge';
 import migrationDebugger, { DEBUG_LEVELS } from '../utils/migrationDebugger';
+import { getKSTDateString } from '../utils';
 import './DateDetailPanel.css';
 
 function DateDetailPanel({ selectedDate, onClose, onNewReservation, onConfirmReservation, onCancelReservation, onUpdateReservation }) {
@@ -39,15 +40,25 @@ function DateDetailPanel({ selectedDate, onClose, onNewReservation, onConfirmRes
     const handleResize = () => {
       const newIsMobile = window.innerWidth < 768;
       queryClient.setQueryData(['isMobile-dateDetail'], newIsMobile);
-      migrationDebugger.log(DEBUG_LEVELS.TRACE, 'DateDetailPanel', 'Window resized', { 
+      migrationDebugger.log(DEBUG_LEVELS.TRACE, 'DateDetailPanel', 'Window resized', {
         isMobile: newIsMobile,
-        width: window.innerWidth 
+        width: window.innerWidth
       });
     };
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [queryClient]);
+
+  // 모바일에서 패널 열릴 때 하단바 숨기기
+  React.useEffect(() => {
+    if (isMobile) {
+      document.body.classList.add('detail-panel-open');
+    }
+    return () => {
+      document.body.classList.remove('detail-panel-open');
+    };
+  }, [isMobile]);
 
   // 선택된 날짜의 예약 정보 가져오기 (취소된 예약 제외)
   const dateReservations = React.useMemo(() => {
@@ -142,7 +153,7 @@ function DateDetailPanel({ selectedDate, onClose, onNewReservation, onConfirmRes
     const reservationData = {
       roomName,
       checkIn: selectedDate,
-      checkOut: checkOutDate.toISOString().split('T')[0] // 1박2일 기본
+      checkOut: getKSTDateString(checkOutDate) // 1박2일 기본 (KST)
     };
 
     migrationDebugger.log(DEBUG_LEVELS.INFO, 'DateDetailPanel', 'New reservation initiated', reservationData);
@@ -441,7 +452,7 @@ function DateDetailPanel({ selectedDate, onClose, onNewReservation, onConfirmRes
                           const blockData = {
                             roomName,
                             checkIn: selectedDate,
-                            checkOut: checkOutDate.toISOString().split('T')[0],
+                            checkOut: getKSTDateString(checkOutDate),
                             source: '막기'
                           };
 

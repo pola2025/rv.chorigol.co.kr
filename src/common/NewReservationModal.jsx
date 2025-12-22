@@ -1,7 +1,7 @@
 // src/common/NewReservationModal.jsx
 import React, { useState, useMemo } from 'react';
 import { serverTimestamp } from "firebase/firestore";
-import { useWindowWidth, getNextDateStr } from '../utils';
+import { useWindowWidth, getNextDateStr, getKSTDateString, getKSTToday } from '../utils';
 import { usePricingRules } from '../hooks/useOptions';
 import { useLateCheckoutSettings } from '../hooks/useOptionSettings';
 import { calculatePriceForDate } from '../utils/priceCalculator';
@@ -163,6 +163,21 @@ const NewReservationModal = ({
     }
   }, [isOpen, safeInitialData]);
 
+  // 모달이 열릴 때 dateStr로 날짜 업데이트 (새 예약인 경우)
+  // 입실일 설정 시 퇴실일을 자동으로 +1일로 설정 (1박 2일 기본값)
+  React.useEffect(() => {
+    if (isOpen && dateStr && !safeInitialData.checkIn) {
+      console.log('[NewReservationModal] useEffect - 날짜 업데이트:', dateStr);
+      const nextDay = getNextDateStr(dateStr);
+      console.log('[NewReservationModal] useEffect - 퇴실일 자동 설정:', nextDay);
+      setFormData(prev => ({
+        ...prev,
+        checkIn: dateStr,
+        checkOut: nextDay // 항상 입실일 +1일로 설정 (1박 2일 기본값)
+      }));
+    }
+  }, [isOpen, dateStr, safeInitialData.checkIn]);
+
   // 현재 선택된 예약출처 정보
   const selectedSource = useMemo(() => {
     return BOOKING_SOURCES.find(source => source.id === formData.source);
@@ -221,7 +236,7 @@ const NewReservationModal = ({
       const dayPrice = calculatePriceForDate(currentDate, selectedRoom, pricingRules);
       totalBasePrice += dayPrice;
       dailyPrices.push({
-        date: currentDate.toISOString().split('T')[0],
+        date: getKSTDateString(currentDate),
         price: dayPrice
       });
     }
@@ -310,7 +325,7 @@ const NewReservationModal = ({
       let unavailableDates = [];
       
       while (currentDate < endDate) {
-        const dateStr = currentDate.toISOString().split('T')[0];
+        const dateStr = getKSTDateString(currentDate);
         const stock = getAvailableStock(dateStr, formData.roomName);
         if (stock <= 0) {
           unavailableDates.push(dateStr);
@@ -509,7 +524,7 @@ const NewReservationModal = ({
                     const endDate = new Date(formData.checkOut);
                     
                     while (currentDate < endDate) {
-                      const dateStr = currentDate.toISOString().split('T')[0];
+                      const dateStr = getKSTDateString(currentDate);
                       const stock = getAvailableStock(dateStr, room.객실명);
                       minStock = Math.min(minStock, stock);
                       if (stock <= 0) hasUnavailableDates = true;
@@ -585,38 +600,41 @@ const NewReservationModal = ({
               </div>
             )}
 
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="checkIn">체크인 *</label>
-                <input
-                  id="checkIn"
-                  type="date"
-                  value={formData.checkIn}
-                  onChange={(e) => handleCheckInChange(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
-                  className={errors.checkIn ? 'error' : ''}
-                  disabled={isSubmitting}
-                />
-                {errors.checkIn && (
-                  <span className="error-message">{errors.checkIn}</span>
-                )}
-              </div>
+            <div className="form-group">
+              <label htmlFor="checkIn">체크인 *</label>
+              <input
+                id="checkIn"
+                type="date"
+                value={formData.checkIn}
+                onChange={(e) => handleCheckInChange(e.target.value)}
+                min={getKSTToday()}
+                className={errors.checkIn ? 'error' : ''}
+                disabled={isSubmitting}
+              />
+              {errors.checkIn && (
+                <span className="error-message">{errors.checkIn}</span>
+              )}
+            </div>
 
-              <div className="form-group">
-                <label htmlFor="checkOut">체크아웃 *</label>
-                <input
-                  id="checkOut"
-                  type="date"
-                  value={formData.checkOut}
-                  onChange={(e) => setFormData({...formData, checkOut: e.target.value})}
-                  min={formData.checkIn || new Date().toISOString().split('T')[0]}
-                  className={errors.checkOut ? 'error' : ''}
-                  disabled={isSubmitting}
-                />
-                {errors.checkOut && (
-                  <span className="error-message">{errors.checkOut}</span>
-                )}
-              </div>
+            <div className="form-group">
+              <label htmlFor="checkOut">체크아웃 *</label>
+              <input
+                id="checkOut"
+                type="date"
+                value={formData.checkOut}
+                onChange={(e) => setFormData({...formData, checkOut: e.target.value})}
+                min={formData.checkIn || getKSTToday()}
+                className={errors.checkOut ? 'error' : ''}
+                disabled={isSubmitting}
+              />
+              {formData.checkIn && formData.checkOut && (
+                <span className="nights-info">
+                  {Math.round((new Date(formData.checkOut) - new Date(formData.checkIn)) / (1000 * 60 * 60 * 24))}박
+                </span>
+              )}
+              {errors.checkOut && (
+                <span className="error-message">{errors.checkOut}</span>
+              )}
             </div>
 
             {/* 날짜별 재고 표시 */}
@@ -630,7 +648,7 @@ const NewReservationModal = ({
                     const endDate = new Date(formData.checkOut);
                     
                     while (currentDate < endDate) {
-                      const dateStr = currentDate.toISOString().split('T')[0];
+                      const dateStr = getKSTDateString(currentDate);
                       const stock = getAvailableStock(dateStr, formData.roomName);
                       stockInfo.push({
                         date: dateStr,

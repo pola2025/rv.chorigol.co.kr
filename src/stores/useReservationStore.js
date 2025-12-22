@@ -18,6 +18,7 @@ import { db, timeHelpers, getServerTimestamp } from '../config/firebase';
 import useFirebaseStore from './useFirebaseStore';
 import { CustomerGrades } from '../models/Customer';
 import useReservationCache from './useReservationCache';
+import { getKSTDateString, getKSTToday } from '../utils';
 
 const useReservationStore = create((set, get) => ({
     // 예약 관련 작업 상태
@@ -85,7 +86,7 @@ const useReservationStore = create((set, get) => ({
         const end = new Date(checkOut);
         
         while (current < end) {
-            dates.push(current.toISOString().split('T')[0]);
+            dates.push(getKSTDateString(current));
             current.setDate(current.getDate() + 1);
         }
         
@@ -194,12 +195,23 @@ const useReservationStore = create((set, get) => ({
                     const notificationService = (await import('../services/notificationService')).default;
                     await notificationService.initialize();
 
-                    // 새 예약 알림 발송 (텔레그램)
-                    const notificationResult = await notificationService.sendNewReservationNotifications({
-                        ...reservationData,
-                        id: docRef.id
-                    });
-                    console.log('📬 [Store] 새 예약 알림 발송 완료:', notificationResult);
+                    // 예약확정 상태면 확정 알림만, 그 외에는 새 예약 알림만 발송
+                    if (dataToSave.status === '예약확정') {
+                        console.log('📬 [Store] 예약확정 상태 - 확정 알림 발송');
+                        const smsResult = await notificationService.sendConfirmationNotifications({
+                            ...reservationData,
+                            id: docRef.id,
+                            status: '예약확정'
+                        });
+                        console.log('📬 [Store] 예약확정 알림 발송 완료:', smsResult);
+                    } else {
+                        // 입금대기 등 다른 상태일 때만 새 예약 알림 발송
+                        const notificationResult = await notificationService.sendNewReservationNotifications({
+                            ...reservationData,
+                            id: docRef.id
+                        });
+                        console.log('📬 [Store] 새 예약 알림 발송 완료:', notificationResult);
+                    }
                 } catch (notificationError) {
                     console.error('📬 [Store] 알림 발송 실패 (예약은 성공):', notificationError);
                     // 알림 실패해도 예약은 성공으로 처리
@@ -439,7 +451,7 @@ const useReservationStore = create((set, get) => ({
     // 예약 통계
     getStatistics: () => {
         const { reservations, rooms } = useFirebaseStore.getState();
-        const today = new Date().toISOString().split('T')[0];
+        const today = getKSTToday();
         
         return {
             todayCheckIn: reservations.filter(res => 

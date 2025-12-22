@@ -4,6 +4,7 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator, serverTimestamp } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getFunctions } from 'firebase/functions';
+import { getKSTDateString } from '../utils';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -88,17 +89,17 @@ export const timeHelpers = {
     return d > today;
   },
   
-  // 날짜 범위 생성
+  // 날짜 범위 생성 (KST)
   getDateRange: (startDate, endDate) => {
     const dates = [];
     const currentDate = new Date(startDate);
     const end = new Date(endDate);
-    
+
     while (currentDate < end) {
-      dates.push(new Date(currentDate).toISOString().split('T')[0]);
+      dates.push(getKSTDateString(currentDate));
       currentDate.setDate(currentDate.getDate() + 1);
     }
-    
+
     return dates;
   },
   

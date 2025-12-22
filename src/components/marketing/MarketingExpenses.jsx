@@ -1,9 +1,9 @@
 // src/components/marketing/MarketingExpenses.jsx
 import React, { useState, useEffect } from 'react';
-import { 
-  collection, 
-  doc, 
-  getDocs, 
+import {
+  collection,
+  doc,
+  getDocs,
   setDoc,
   addDoc, // addDoc 추가
   deleteDoc,
@@ -12,13 +12,14 @@ import {
   orderBy
 } from 'firebase/firestore';
 import { db } from '../../config/firebase';
+import { getKSTToday } from '../../utils';
 import './MarketingExpenses.css';
 
 const MarketingExpenses = ({ selectedMonth }) => {
   const [expenses, setExpenses] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newExpense, setNewExpense] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: getKSTToday(),
     category: '',
     description: '',
     amount: '',
@@ -155,7 +156,7 @@ const MarketingExpenses = ({ selectedMonth }) => {
   // 폼 리셋
   const resetForm = () => {
     setNewExpense({
-      date: new Date().toISOString().split('T')[0],
+      date: getKSTToday(),
       category: '',
       description: '',
       amount: '',

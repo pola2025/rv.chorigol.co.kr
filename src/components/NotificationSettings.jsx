@@ -39,10 +39,10 @@ const NotificationSettings = () => {
     from: ''
   });
   
-  // 초호펜션 텔레그램 설정
+  // 초호펜션 텔레그램 설정 (봇 토큰은 서버에서 관리)
   const [chohoTelegramConfig, setChohoTelegramConfig] = useState({
-    botToken: import.meta.env.VITE_TELEGRAM_BOT_TOKEN || '',
-    chatId: import.meta.env.VITE_TELEGRAM_CHAT_ID || '',
+    botToken: '', // Firestore에서 로드 (보안)
+    chatId: '', // Firestore에서 로드
     useReservation: true,
     useCancellation: true,
     autoSendDaily: true
@@ -109,8 +109,8 @@ const NotificationSettings = () => {
         if (data.sens) setChohoSensConfig(data.sens);
         if (data.telegram) {
           setChohoTelegramConfig({
-            botToken: data.telegram.botToken || import.meta.env.VITE_TELEGRAM_BOT_TOKEN || '',
-            chatId: data.telegram.chatId || import.meta.env.VITE_TELEGRAM_CHAT_ID || '',
+            botToken: data.telegram.botToken || '', // 서버에서 관리
+            chatId: data.telegram.chatId || '',
             useReservation: data.telegram.useReservation !== undefined ? data.telegram.useReservation : true,
             useCancellation: data.telegram.useCancellation !== undefined ? data.telegram.useCancellation : true,
             autoSendDaily: data.telegram.autoSendDaily !== undefined ? data.telegram.autoSendDaily : true

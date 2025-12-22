@@ -20,8 +20,7 @@ import {
   ReservationsPage,
   RoomsPage,
   OptionsPage,
-  NotificationsPage,
-  AnalyticsPage
+  NotificationsPage
 } from './pages';
 
 // 로그인 화면
@@ -165,7 +164,6 @@ function App() {
                     <Route path="/rooms" element={<RoomsPage />} />
                     <Route path="/options" element={<OptionsPage />} />
                     <Route path="/notifications" element={<NotificationsPage />} />
-                    <Route path="/analytics" element={<AnalyticsPage />} />
                   </Route>
 
                   {/* 기본 리다이렉트 */}

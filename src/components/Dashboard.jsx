@@ -22,7 +22,6 @@ const MessageTemplates = lazy(() => import('./MessageTemplates'));
 const MonthlyStatsInput = lazy(() => import('./MonthlyStats/MonthlyStatsInput'));
 const IntegratedStatsView = lazy(() => import('./MonthlyStats/IntegratedStatsView'));
 const TestComponent = lazy(() => import('./MonthlyStats/TestComponent'));
-const AirtableDashboard = lazy(() => import('./AirtableDashboard/AirtableDashboard'));
 import { PerformanceMonitor } from './PerformanceMonitor';
 import { useDerivedState } from '../application/hooks/useReactiveState';
 import notificationService from '../services/notificationService'; // 알림 서비스 추가
@@ -85,7 +84,6 @@ const TABS = [
   { id: 'pricing', label: '가격 설정', Icon: PriceIcon },
   { id: 'options', label: '옵션 설정', Icon: OptionsIcon },
   { id: 'notifications', label: '알림 설정', Icon: CustomerIcon },
-  { id: 'airtableStats', label: '광고 효율 분석', Icon: ChartIcon },
   { id: 'security', label: '보안 관리', Icon: OptionsIcon },
 ];
 
@@ -328,7 +326,7 @@ const Dashboard = ({ user, onLogout }) => {
     
     // 기본 템플릿
     return type === 'create' 
-      ? `[초호수뷰펜션]\n{고객명}님, 예약이 확정되었습니다.\n\n📅 일정: {체크인} ~ {체크아웃}\n🏠 객실: {객실명}\n👥 인원: {인원}\n💰 금액: {금액}\n\n입실 당일 안내 문자 드리겠습니다.\n감사합니다 😊`
+      ? `[초호수뷰펜션]\n{고객명}님, 예약이 확정되었습니다.\n\n📅 일정: {체크인} ~ {체크아웃}\n🏠 객실: {객실명}\n👥 인원: {인원}명\n💰 금액: {금액}원\n\n입실 당일 안내 문자 드리겠습니다.\n감사합니다 😊`
       : `[초호수뷰펜션]\n{고객명}님, 예약이 취소되었습니다.\n\n📅 일정: {체크인} ~ {체크아웃}\n🏠 객실: {객실명}\n\n다음에 더 좋은 기회로 뜵겠습니다.\n감사합니다.`;
   };
 
@@ -566,9 +564,6 @@ const Dashboard = ({ user, onLogout }) => {
           </div>
         );
 
-      case 'airtableStats':
-        return <Suspense fallback={<LazyFallback />}><AirtableDashboard /></Suspense>;
-
       case 'security':
         return <Suspense fallback={<LazyFallback />}><BlockedIPManager /></Suspense>;
       
@@ -617,7 +612,7 @@ const Dashboard = ({ user, onLogout }) => {
       </header>
 
       {/* 메인 컨텐츠 */}
-      <main className={`dashboard-content ${activeTab === 'airtableStats' ? 'airtable-tab' : ''}`}>
+      <main className="dashboard-content">
         {/* 상단 통계 표시 삭제 - 2025.01.08 */}
         
         {isMobile && currentTab && (

@@ -14,6 +14,30 @@ class NotificationScheduler {
     this.lastDailySentDate = null;
   }
 
+  // KST 기준 현재 날짜 문자열 반환 (YYYY-MM-DD)
+  getKSTDateString(date = new Date()) {
+    const kstOffset = 9 * 60; // KST는 UTC+9
+    const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+    const kstDate = new Date(utc + (kstOffset * 60000));
+    return kstDate.toISOString().split('T')[0];
+  }
+
+  // KST 기준 현재 시간 반환
+  getKSTHour(date = new Date()) {
+    const kstOffset = 9 * 60;
+    const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+    const kstDate = new Date(utc + (kstOffset * 60000));
+    return kstDate.getHours();
+  }
+
+  // KST 기준 현재 분 반환
+  getKSTMinute(date = new Date()) {
+    const kstOffset = 9 * 60;
+    const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+    const kstDate = new Date(utc + (kstOffset * 60000));
+    return kstDate.getMinutes();
+  }
+
   // 스케줄러 시작
   async start() {
     console.log('📅 [SCHEDULER] 알림 스케줄러 시작');
@@ -62,9 +86,9 @@ class NotificationScheduler {
   // 일일현황 발송 체크
   async checkDailySummary() {
     const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
+    const todayStr = this.getKSTDateString(now);
+    const currentHour = this.getKSTHour(now);
+    const currentMinute = this.getKSTMinute(now);
 
     // 이미 오늘 발송했으면 스킵
     if (this.lastDailySentDate === todayStr) {
@@ -112,7 +136,7 @@ class NotificationScheduler {
 
   // 일일현황 데이터 조회
   async getDailySummaryData(type) {
-    const today = new Date().toISOString().split('T')[0];
+    const today = this.getKSTDateString();
     const rooms = type === 'choho'
       ? ['Forest', 'Forest mini', 'Forest mini 패밀리', 'Forest 패밀리']
       : ['호수뷰객실'];
@@ -232,29 +256,187 @@ class NotificationScheduler {
     }
   }
 
-  // 알림 체크 및 발송
+  // 알림 체크 및 발송 (V2 설정 사용)
   async checkAndSendNotifications() {
-    if (!this.settings || !this.settings.autoSend) return;
-
     const now = new Date();
-    
-    // 입실 안내 체크
-    if (this.settings.autoSend.checkInEnabled) {
-      await this.checkCheckInNotifications(now);
+
+    // V2 설정 새로고침
+    await this.loadSettingsV2();
+
+    // 초호펜션 입실/퇴실 안내
+    if (this.settingsV2.choho?.roomSettings) {
+      const roomSettings = this.settingsV2.choho.roomSettings;
+      // 하나라도 입실/퇴실 안내가 활성화되어 있으면 체크
+      const checkInEnabled = Object.values(roomSettings).some(r => r?.autoSend?.checkInEnabled);
+      const checkOutEnabled = Object.values(roomSettings).some(r => r?.autoSend?.checkOutEnabled);
+
+      if (checkInEnabled) {
+        await this.checkCheckInNotificationsV2(now, 'choho');
+      }
+      if (checkOutEnabled) {
+        await this.checkCheckOutNotificationsV2(now, 'choho');
+      }
     }
-    
-    // 퇴실 안내 체크
-    if (this.settings.autoSend.checkOutEnabled) {
-      await this.checkCheckOutNotifications(now);
+
+    // 초호쉼터 입실/퇴실 안내
+    if (this.settingsV2.shelter?.roomSettings) {
+      const roomSettings = this.settingsV2.shelter.roomSettings;
+      const checkInEnabled = Object.values(roomSettings).some(r => r?.autoSend?.checkInEnabled);
+      const checkOutEnabled = Object.values(roomSettings).some(r => r?.autoSend?.checkOutEnabled);
+
+      if (checkInEnabled) {
+        await this.checkCheckInNotificationsV2(now, 'shelter');
+      }
+      if (checkOutEnabled) {
+        await this.checkCheckOutNotificationsV2(now, 'shelter');
+      }
+    }
+
+    // 레거시 설정도 체크 (하위 호환성)
+    if (this.settings?.autoSend) {
+      if (this.settings.autoSend.checkInEnabled) {
+        await this.checkCheckInNotifications(now);
+      }
+      if (this.settings.autoSend.checkOutEnabled) {
+        await this.checkCheckOutNotifications(now);
+      }
     }
   }
 
-  // 입실 안내 체크
+  // V2 입실 안내 체크
+  async checkCheckInNotificationsV2(now, type) {
+    const settingsV2 = type === 'choho' ? this.settingsV2.choho : this.settingsV2.shelter;
+    if (!settingsV2?.roomSettings) return;
+
+    const rooms = type === 'choho'
+      ? ['Forest', 'Forest mini', 'Forest mini 패밀리', 'Forest 패밀리']
+      : ['호수뷰객실'];
+
+    // 각 객실의 checkInHoursBefore 중 가장 큰 값 사용
+    let maxHoursBefore = 3;
+    Object.values(settingsV2.roomSettings).forEach(r => {
+      if (r?.autoSend?.checkInHoursBefore > maxHoursBefore) {
+        maxHoursBefore = r.autoSend.checkInHoursBefore;
+      }
+    });
+
+    const targetTime = new Date(now.getTime() + (maxHoursBefore * 60 * 60 * 1000));
+    const targetDate = this.getKSTDateString(targetTime);
+
+    try {
+      const q = query(
+        collection(db, 'reservations'),
+        where('checkIn', '==', targetDate),
+        where('status', '==', '예약확정'),
+        where('checkInNotificationSent', '!=', true)
+      );
+
+      const querySnapshot = await getDocs(q);
+
+      for (const docSnap of querySnapshot.docs) {
+        const reservation = { id: docSnap.id, ...docSnap.data() };
+
+        // 해당 타입의 객실인지 확인
+        if (!rooms.some(room => reservation.roomName?.includes(room))) continue;
+
+        // 해당 객실의 입실 안내 설정 확인
+        const roomSetting = settingsV2.roomSettings[reservation.roomName];
+        if (!roomSetting?.autoSend?.checkInEnabled) continue;
+
+        await this.sendCheckInNotificationV2(reservation, settingsV2);
+      }
+    } catch (error) {
+      console.error(`📅 [SCHEDULER] ${type} 입실 안내 체크 실패:`, error);
+    }
+  }
+
+  // V2 퇴실 안내 체크
+  async checkCheckOutNotificationsV2(now, type) {
+    const settingsV2 = type === 'choho' ? this.settingsV2.choho : this.settingsV2.shelter;
+    if (!settingsV2?.roomSettings) return;
+
+    const rooms = type === 'choho'
+      ? ['Forest', 'Forest mini', 'Forest mini 패밀리', 'Forest 패밀리']
+      : ['호수뷰객실'];
+
+    let maxHoursBefore = 1;
+    Object.values(settingsV2.roomSettings).forEach(r => {
+      if (r?.autoSend?.checkOutHoursBefore > maxHoursBefore) {
+        maxHoursBefore = r.autoSend.checkOutHoursBefore;
+      }
+    });
+
+    const targetTime = new Date(now.getTime() + (maxHoursBefore * 60 * 60 * 1000));
+    const targetDate = this.getKSTDateString(targetTime);
+
+    try {
+      const q = query(
+        collection(db, 'reservations'),
+        where('checkOut', '==', targetDate),
+        where('status', '==', '예약확정'),
+        where('checkOutNotificationSent', '!=', true)
+      );
+
+      const querySnapshot = await getDocs(q);
+
+      for (const docSnap of querySnapshot.docs) {
+        const reservation = { id: docSnap.id, ...docSnap.data() };
+
+        if (!rooms.some(room => reservation.roomName?.includes(room))) continue;
+
+        const roomSetting = settingsV2.roomSettings[reservation.roomName];
+        if (!roomSetting?.autoSend?.checkOutEnabled) continue;
+
+        await this.sendCheckOutNotificationV2(reservation, settingsV2);
+      }
+    } catch (error) {
+      console.error(`📅 [SCHEDULER] ${type} 퇴실 안내 체크 실패:`, error);
+    }
+  }
+
+  // V2 입실 안내 발송
+  async sendCheckInNotificationV2(reservation, settingsV2) {
+    try {
+      const roomSetting = settingsV2.roomSettings?.[reservation.roomName];
+      const template = roomSetting?.templates?.checkIn?.content || this.getDefaultCheckInTemplate();
+
+      // SENS 초기화
+      if (settingsV2.globalSettings?.sens) {
+        sensService.initialize(settingsV2.globalSettings.sens);
+      }
+
+      await sensService.sendCheckInNotification(reservation, template);
+      await this.markNotificationSent(reservation.id, 'checkInNotificationSent');
+      console.log(`📅 [SCHEDULER] V2 입실 안내 발송 완료: ${reservation.customerName}`);
+    } catch (error) {
+      console.error('📅 [SCHEDULER] V2 입실 안내 발송 실패:', error);
+    }
+  }
+
+  // V2 퇴실 안내 발송
+  async sendCheckOutNotificationV2(reservation, settingsV2) {
+    try {
+      const roomSetting = settingsV2.roomSettings?.[reservation.roomName];
+      const template = roomSetting?.templates?.checkOut?.content || this.getDefaultCheckOutTemplate();
+
+      if (settingsV2.globalSettings?.sens) {
+        sensService.initialize(settingsV2.globalSettings.sens);
+      }
+
+      await sensService.sendCheckOutNotification(reservation, template);
+      await this.markNotificationSent(reservation.id, 'checkOutNotificationSent');
+      console.log(`📅 [SCHEDULER] V2 퇴실 안내 발송 완료: ${reservation.customerName}`);
+    } catch (error) {
+      console.error('📅 [SCHEDULER] V2 퇴실 안내 발송 실패:', error);
+    }
+  }
+
+  // 입실 안내 체크 (레거시)
   async checkCheckInNotifications(now) {
     const hoursBefore = this.settings.autoSend.checkInHoursBefore || 3;
     const targetTime = new Date(now.getTime() + (hoursBefore * 60 * 60 * 1000));
-    const targetDate = targetTime.toISOString().split('T')[0];
-    const targetHour = targetTime.getHours();
+    const targetDate = this.getKSTDateString(targetTime);
+    const targetHour = this.getKSTHour(targetTime);
 
     try {
       // 오늘 입실 예약 조회
@@ -281,12 +463,12 @@ class NotificationScheduler {
     }
   }
 
-  // 퇴실 안내 체크
+  // 퇴실 안내 체크 (레거시)
   async checkCheckOutNotifications(now) {
     const hoursBefore = this.settings.autoSend.checkOutHoursBefore || 1;
     const targetTime = new Date(now.getTime() + (hoursBefore * 60 * 60 * 1000));
-    const targetDate = targetTime.toISOString().split('T')[0];
-    const targetHour = targetTime.getHours();
+    const targetDate = this.getKSTDateString(targetTime);
+    const targetHour = this.getKSTHour(targetTime);
 
     try {
       // 오늘 퇴실 예약 조회
@@ -380,7 +562,7 @@ class NotificationScheduler {
 
 🕐 퇴실시간: 오전 11시
 🧹 퇴실준비: 사용하신 그릇은 싱크대에
-🗑️ 쓰레기: 분리수거 부탁드립니다
+🗑️ 쓰레기배출장소: 숯불바베큐장 옆
 🔑 열쇠: 테이블 위에 놓아주세요
 
 감사합니다. 또 뵙겠습니다 🙏`;

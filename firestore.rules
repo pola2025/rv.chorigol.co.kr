@@ -74,6 +74,12 @@ service cloud.firestore {
     }
     
     // 알림 설정 관련 컬렉션들
+    // secure_credentials는 클라이언트 접근 완전 차단 (Cloud Functions에서만 접근)
+    match /settings/secure_credentials {
+      allow read, write: if false;
+    }
+
+    // 기타 settings 문서
     match /settings/{settingId} {
       allow read: if isAdmin();
       allow write: if isAdmin();

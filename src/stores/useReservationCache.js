@@ -1,5 +1,6 @@
 // useReservationCache.js
 import { create } from 'zustand';
+import { getKSTDateString } from '../utils';
 
 const useReservationCache = create((set, get) => ({
     // 재고 캐시 (키: "날짜_객실명", 값: 재고수)
@@ -92,7 +93,7 @@ const useReservationCache = create((set, get) => ({
             const newCache = new Map(state.stockCache);
             
             while (start < end) {
-                const dateStr = start.toISOString().split('T')[0];
+                const dateStr = getKSTDateString(start);
                 const key = `${dateStr}_${roomName}`;
                 newCache.delete(key);
                 start.setDate(start.getDate() + 1);

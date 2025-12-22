@@ -4,4 +4,3 @@ export { default as ReservationsPage } from './ReservationsPage';
 export { default as RoomsPage } from './RoomsPage';
 export { default as OptionsPage } from './OptionsPage';
 export { default as NotificationsPage } from './NotificationsPage';
-export { default as AnalyticsPage } from './AnalyticsPage';

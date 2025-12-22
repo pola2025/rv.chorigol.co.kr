@@ -1,4 +1,5 @@
 // src/utils/priceCalculator.js
+import { getKSTDateString } from '../utils';
 
 // 한국 공휴일 목록
 export const KOREAN_HOLIDAYS = {
@@ -50,8 +51,8 @@ export const isWeekend = (date) => {
 
 // 날짜가 공휴일인지 확인
 export const isHoliday = (date, customHolidays = []) => {
-  const dateStr = date instanceof Date ? 
-    date.toISOString().split('T')[0] : date;
+  const dateStr = date instanceof Date ?
+    getKSTDateString(date) : date;
   
   const year = new Date(dateStr).getFullYear();
   const defaultHolidays = KOREAN_HOLIDAYS[year] || [];
@@ -70,7 +71,7 @@ export const isBeforeHoliday = (date, customHolidays = []) => {
 // 특정 날짜의 가격 타입 결정
 export const getPriceType = (date, customHolidays = []) => {
   const dateObj = new Date(date);
-  const dateStr = dateObj.toISOString().split('T')[0];
+  const dateStr = getKSTDateString(dateObj);
   
   // 우선순위: 공휴일/전날 > 특별날짜 > 주말 > 주중
   if (isHoliday(dateStr, customHolidays) || isBeforeHoliday(dateStr, customHolidays)) {
@@ -94,7 +95,7 @@ export const getPriceType = (date, customHolidays = []) => {
 
 // 가격 계산 헬퍼 함수
 export const calculatePriceForDate = (date, room, pricingRules, customHolidays = []) => {
-  const dateStr = date.toISOString().split('T')[0];
+  const dateStr = getKSTDateString(date);
   
   // 시즌 가격 확인
   const seasonRule = pricingRules?.find(rule => 

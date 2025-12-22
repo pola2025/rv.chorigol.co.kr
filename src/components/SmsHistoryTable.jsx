@@ -2,11 +2,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { getKSTToday, getKSTDateString, formatPhoneNumber } from '../utils';
 
 // 업체별 객실 구분
+// 호수뷰객실은 초호쉼터에 속함
 const ROOM_GROUPS = {
   choho: ['Forest', 'Forest mini', 'Forest mini 패밀리', 'Forest 패밀리'],
-  shelter: ['호수뷰객실', '1박2일워크샵', '야유회']
+  shelter: ['호수뷰객실', '1박2일워크샵', '야유회', '단체예약']
 };
 
 // 신호등 상태 컴포넌트
@@ -43,10 +45,9 @@ const SmsHistoryTable = ({ businessType = 'choho' }) => {
   const [loading, setLoading] = useState(true);
   const [showCompleted, setShowCompleted] = useState(false);
 
-  // 오늘 날짜 (YYYY-MM-DD)
+  // 오늘 날짜 (YYYY-MM-DD) - KST 기준
   const today = useMemo(() => {
-    const now = new Date();
-    return now.toISOString().split('T')[0];
+    return getKSTToday();
   }, []);
 
   useEffect(() => {
@@ -58,10 +59,10 @@ const SmsHistoryTable = ({ businessType = 'choho' }) => {
     try {
       const rooms = ROOM_GROUPS[businessType];
 
-      // 최근 30일 + 미래 예약 조회
+      // 최근 30일 + 미래 예약 조회 (KST 기준)
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const dateStr = thirtyDaysAgo.toISOString().split('T')[0];
+      const dateStr = getKSTDateString(thirtyDaysAgo);
 
       const reservationsRef = collection(db, 'reservations');
       const q = query(
@@ -74,7 +75,8 @@ const SmsHistoryTable = ({ businessType = 'choho' }) => {
       const snapshot = await getDocs(q);
       const allReservations = snapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(r => rooms.includes(r.roomName));
+        .filter(r => rooms.includes(r.roomName))
+        .filter(r => r.status !== '예약취소'); // 취소된 예약 제외
 
       setReservations(allReservations);
     } catch (error) {
@@ -133,7 +135,7 @@ const SmsHistoryTable = ({ businessType = 'choho' }) => {
       </td>
       <td className="name-cell">{reservation.customerName || '-'}</td>
       <td className="guests-cell hide-mobile">{reservation.guests || reservation.guestCount || '-'}명</td>
-      <td className="phone-cell hide-mobile">{reservation.phone || '-'}</td>
+      <td className="phone-cell hide-mobile">{formatPhoneNumber(reservation.phone) || '-'}</td>
       <td className="option-cell hide-mobile">
         {reservation.options || reservation.addons ? '✓' : '-'}
       </td>

@@ -4,7 +4,7 @@
 import sensService from './sensService';
 import telegramService from './telegramService';
 import notificationValidator from '../utils/notificationValidator';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
 class NotificationService {
@@ -16,25 +16,85 @@ class NotificationService {
     };
   }
 
+  // 설정 강제 새로고침 (알림 발송 시마다 호출)
+  async refreshSettings() {
+    console.log('📬 [REFRESH] =====================================');
+    console.log('📬 [REFRESH] 설정 새로고침 시작');
+    try {
+      // 초호펜션 설정 로드
+      const chohoDoc = await getDoc(doc(db, 'settings', 'notifications_v2_choho'));
+      if (chohoDoc.exists()) {
+        this.settings.choho = chohoDoc.data();
+
+        console.log('📬 [REFRESH] 초호펜션 설정 로드됨');
+        console.log('📬 [REFRESH] roomSettings 키:', Object.keys(this.settings.choho?.roomSettings || {}));
+
+        // 각 객실별 confirmationEnabled 상태 출력
+        if (this.settings.choho?.roomSettings) {
+          Object.entries(this.settings.choho.roomSettings).forEach(([room, setting]) => {
+            console.log(`📬 [REFRESH] ${room}: confirmationEnabled=${setting?.autoSend?.confirmationEnabled}`);
+          });
+        }
+
+        // SENS 초기화
+        if (this.settings.choho?.globalSettings?.sens) {
+          sensService.initialize(this.settings.choho.globalSettings.sens);
+        }
+
+        // 텔레그램 초기화
+        if (this.settings.choho?.globalSettings?.telegram) {
+          telegramService.initialize(this.settings.choho.globalSettings.telegram);
+        }
+      } else {
+        console.warn('📬 [REFRESH] ⚠️ notifications_v2_choho 문서가 없습니다!');
+      }
+
+      // 초호쉼터 설정 로드
+      const shelterDoc = await getDoc(doc(db, 'settings', 'notifications_v2_shelter'));
+      if (shelterDoc.exists()) {
+        this.settings.shelter = shelterDoc.data();
+        console.log('📬 [REFRESH] 초호쉼터 설정 로드됨');
+        console.log('📬 [REFRESH] shelter roomSettings 키:', Object.keys(this.settings.shelter?.roomSettings || {}));
+      } else {
+        console.warn('📬 [REFRESH] ⚠️ notifications_v2_shelter 문서가 없습니다!');
+      }
+
+      console.log('📬 [REFRESH] 설정 새로고침 완료');
+      console.log('📬 [REFRESH] =====================================');
+    } catch (error) {
+      console.error('📬 [REFRESH] 설정 새로고침 실패:', error);
+    }
+  }
+
   // 초기화
   async initialize() {
     if (this.initialized) return;
+
+    // 텔레그램은 Cloud Functions를 통해 발송 (토큰 불필요)
+    // 채팅 ID 등 설정은 Firestore에서 관리
 
     try {
       // 초호펜션 설정 로드
       const chohoDoc = await getDoc(doc(db, 'settings', 'notifications_v2_choho'));
       if (chohoDoc.exists()) {
         this.settings.choho = chohoDoc.data();
-        
+
         // SENS 초기화
         if (this.settings.choho?.globalSettings?.sens) {
           sensService.initialize(this.settings.choho.globalSettings.sens);
         }
-        
-        // 텔레그램 초기화
-        if (this.settings.choho?.globalSettings?.telegram) {
-          telegramService.initialize(this.settings.choho.globalSettings.telegram);
-        }
+
+        // 텔레그램은 Cloud Functions 사용으로 별도 초기화 불필요
+        console.log('📬 [INIT] 텔레그램: Cloud Functions 사용');
+      } else {
+        // Firestore에 설정이 없으면 기본값 사용
+        console.warn('📬 [INIT] notifications_v2_choho 문서가 없습니다.');
+        this.settings.choho = {
+          globalSettings: {
+            telegram: { useReservation: true, useCancellation: true }
+          },
+          roomSettings: {}
+        };
       }
 
       // 초호쉼터 설정 로드
@@ -65,17 +125,64 @@ class NotificationService {
 
   // 객실명으로 적절한 설정 가져오기
   getSettingsForRoom(roomName) {
-    const isChoho = roomName && roomName.includes('Forest');
+    // 초호펜션 객실: Forest, Forest mini, Forest 패밀리, Forest mini 패밀리
+    // 초호쉼터 객실: 호수뷰객실, 그 외
+    const isChoho = roomName && roomName.includes('Forest') && !roomName.includes('호수뷰');
+    const settingsType = isChoho ? 'choho' : 'shelter';
     const settings = isChoho ? this.settings.choho : this.settings.shelter;
-    
+
+    console.log('📬 [SETTINGS] =====================================');
+    console.log('📬 [SETTINGS] 객실명:', roomName);
+    console.log('📬 [SETTINGS] 설정 타입:', settingsType);
+    console.log('📬 [SETTINGS] 전체 설정 존재:', !!settings);
+    console.log('📬 [SETTINGS] roomSettings 키:', settings?.roomSettings ? Object.keys(settings.roomSettings) : 'NONE');
+
     if (!settings) {
-      console.warn(`No settings found for room: ${roomName}`);
+      console.warn(`📬 [SETTINGS] ❌ No settings found for room: ${roomName}`);
       return null;
     }
 
+    // 객실 설정 찾기 (정확히 일치하는 것 먼저, 없으면 유사 이름 시도)
+    let roomSettings = settings.roomSettings?.[roomName];
+    let matchMethod = '정확히 일치';
+
+    console.log('📬 [SETTINGS] 정확히 일치하는 설정:', !!roomSettings);
+
+    // 정확히 일치하는 설정이 없으면, roomSettings에서 유사한 이름 찾기
+    if (!roomSettings && settings.roomSettings) {
+      const roomKeys = Object.keys(settings.roomSettings);
+      const matchedKey = roomKeys.find(key =>
+        roomName.includes(key) || key.includes(roomName)
+      );
+      if (matchedKey) {
+        roomSettings = settings.roomSettings[matchedKey];
+        matchMethod = `유사 매칭: "${roomName}" → "${matchedKey}"`;
+        console.log(`📬 [SETTINGS] ${matchMethod}`);
+      }
+    }
+
+    // 기본값 설정: roomSettings가 없으면 명시적 설정 필요 (발송 안함)
+    const defaultRoomSettings = {
+      enabled: true,
+      autoSend: {
+        confirmationEnabled: false,  // 기본값: 사용자가 명시적으로 켜야 함
+        cancellationEnabled: false   // 기본값: 사용자가 명시적으로 켜야 함
+      }
+    };
+
+    const finalRoomSettings = roomSettings || defaultRoomSettings;
+
+    console.log('📬 [SETTINGS] 최종 객실 설정:', {
+      매칭방식: roomSettings ? matchMethod : '기본값 사용 (설정 없음)',
+      enabled: finalRoomSettings.enabled,
+      confirmationEnabled: finalRoomSettings.autoSend?.confirmationEnabled,
+      cancellationEnabled: finalRoomSettings.autoSend?.cancellationEnabled
+    });
+    console.log('📬 [SETTINGS] =====================================');
+
     return {
       global: settings.globalSettings,
-      room: settings.roomSettings?.[roomName] || null
+      room: finalRoomSettings
     };
   }
 
@@ -111,6 +218,15 @@ class NotificationService {
 
     const roomName = reservation.roomName || reservation.room;
     const settings = this.getSettingsForRoom(roomName);
+
+    console.log('📬 [DEBUG] sendNewReservationNotifications - settings:', {
+      hasSettings: !!settings,
+      hasGlobal: !!settings?.global,
+      hasTelegram: !!settings?.global?.telegram,
+      useReservation: settings?.global?.telegram?.useReservation,
+      botToken: settings?.global?.telegram?.botToken ? 'SET' : 'NOT SET',
+      chatId: settings?.global?.telegram?.chatId || 'NOT SET'
+    });
 
     const results = {
       telegram: null
@@ -223,6 +339,10 @@ class NotificationService {
         console.error('📬 [ERROR] 텔레그램 알림 발송 실패:', error);
         results.telegram = { error: error.message };
       }
+    } else {
+      console.warn('📬 [SKIP] 텔레그램 알림 발송 스킵 - useReservation이 false이거나 설정이 없습니다.');
+      console.warn('📬 [SKIP] Firestore settings/notifications_v2_choho 문서에서 globalSettings.telegram.useReservation을 true로 설정하세요.');
+      results.telegram = { skipped: true, reason: 'useReservation is not enabled' };
     }
 
     return results;
@@ -231,10 +351,14 @@ class NotificationService {
   // 예약 확정 알림 발송
   async sendConfirmationNotifications(reservation) {
     console.log('📬 [DEBUG] sendConfirmationNotifications 시작:', reservation);
-    
+
+    // 초기화 및 설정 새로고침 (항상 최신 설정 사용)
     if (!this.initialized) {
       console.log('📬 [DEBUG] 초기화 필요, initialize 호출');
       await this.initialize();
+    } else {
+      // 이미 초기화됐어도 설정 새로고침
+      await this.refreshSettings();
     }
     
     // 알림 발송 전 검증
@@ -271,19 +395,21 @@ class NotificationService {
       telegram: null
     };
 
-    // SMS 발송 조건 디버깅
+    // SMS 발송 조건: 명시적으로 활성화된 경우에만 발송
+    const roomEnabled = settings.room?.enabled !== false;
+    const confirmationEnabled = settings.room?.autoSend?.confirmationEnabled === true;
+    const shouldSendSms = roomEnabled && confirmationEnabled;
+
     console.log('📬 [DEBUG] SMS 발송 조건 체크:', {
       'settings.room': !!settings.room,
       'settings.room?.enabled': settings.room?.enabled,
-      'settings.room?.autoSend': !!settings.room?.autoSend,
-      'settings.room?.autoSend?.confirmationEnabled': settings.room?.autoSend?.confirmationEnabled,
-      'global.sens': !!settings.global?.sens,
-      'global.sens.serviceId': settings.global?.sens?.serviceId,
-      'will_send_sms': settings.room?.enabled !== false && settings.room?.autoSend?.confirmationEnabled
+      'roomEnabled': roomEnabled,
+      'confirmationEnabled': confirmationEnabled,
+      'shouldSendSms': shouldSendSms
     });
 
-    // SMS 발송 (객실 설정 확인)
-    if (settings.room?.enabled !== false && settings.room?.autoSend?.confirmationEnabled) {
+    // SMS 발송 (명시적으로 활성화된 경우에만)
+    if (shouldSendSms) {
       try {
         const template = settings.room?.templates?.confirmation || 
                         await sensService.getTemplate('confirmation', roomName);
@@ -311,13 +437,39 @@ class NotificationService {
         results.sms = await sensService.sendSMS(
           phoneNumber,
           message,
-          reservation.id
+          reservation.id,
+          reservation  // 업체 구분을 위해 reservation 객체 전달
         );
         console.log('📬 [DEBUG] SMS sent successfully:', results.sms);
+
+        // SMS 발송 성공 시 smsStatus 업데이트
+        if (reservation.id && results.sms && !results.sms.error) {
+          try {
+            await updateDoc(doc(db, 'reservations', reservation.id), {
+              'smsStatus.confirmationSent': true,
+              'smsStatus.confirmationSentAt': new Date().toISOString()
+            });
+            console.log('📬 [DEBUG] smsStatus 업데이트 완료');
+          } catch (updateError) {
+            console.error('📬 [DEBUG] smsStatus 업데이트 실패:', updateError);
+          }
+        }
       } catch (error) {
         console.error('📬 [DEBUG] SMS 발송 실패:', error);
         console.error('📬 [DEBUG] SMS 에러 스택:', error.stack);
         results.sms = { error: error.message };
+
+        // SMS 발송 실패 시 에러 상태 기록
+        if (reservation.id) {
+          try {
+            await updateDoc(doc(db, 'reservations', reservation.id), {
+              'smsStatus.confirmationError': error.message,
+              'smsStatus.confirmationErrorAt': new Date().toISOString()
+            });
+          } catch (updateError) {
+            console.error('📬 [DEBUG] smsStatus 에러 업데이트 실패:', updateError);
+          }
+        }
       }
     } else {
       console.log('📬 [DEBUG] SMS 발송 스킵 - 조건 미충족');
@@ -355,10 +507,14 @@ class NotificationService {
   // 예약 취소 알림 발송
   async sendCancellationNotifications(reservation) {
     console.log('❌ [CANCEL DEBUG] 예약 취소 알림 시작:', reservation);
-    
+
+    // 초기화 및 설정 새로고침 (항상 최신 설정 사용)
     if (!this.initialized) {
       console.log('❌ [CANCEL DEBUG] 초기화 필요, initialize 호출');
       await this.initialize();
+    } else {
+      // 이미 초기화됐어도 설정 새로고침
+      await this.refreshSettings();
     }
     
     // 알림 발송 전 검증
@@ -389,8 +545,19 @@ class NotificationService {
       telegram: null
     };
 
-    // SMS 발송 (객실 설정 확인)
-    if (settings.room?.enabled !== false && settings.room?.autoSend?.cancellationEnabled) {
+    // SMS 발송 조건: 명시적으로 활성화된 경우에만 발송
+    const roomEnabledCancel = settings.room?.enabled !== false;
+    const cancellationEnabled = settings.room?.autoSend?.cancellationEnabled === true;
+    const shouldSendCancelSms = roomEnabledCancel && cancellationEnabled;
+
+    console.log('❌ [CANCEL DEBUG] SMS 발송 조건 체크:', {
+      roomEnabled: roomEnabledCancel,
+      cancellationEnabled: cancellationEnabled,
+      shouldSendSms: shouldSendCancelSms
+    });
+
+    // SMS 발송 (명시적으로 활성화된 경우에만)
+    if (shouldSendCancelSms) {
       try {
         const template = settings.room?.templates?.cancellation || 
                         await sensService.getTemplate('cancellation', roomName);
@@ -409,9 +576,10 @@ class NotificationService {
         results.sms = await sensService.sendSMS(
           reservation.phone,
           message,
-          reservation.id
+          reservation.id,
+          reservation  // 업체 구분을 위해 reservation 객체 전달
         );
-        console.log('SMS sent successfully:', results.sms);
+        console.log('📬 [CANCEL] SMS sent successfully:', results.sms);
       } catch (error) {
         console.error('SMS 발송 실패:', error);
         results.sms = { error: error.message };
@@ -713,4 +881,45 @@ class NotificationService {
 
 // 싱글톤 인스턴스
 const notificationService = new NotificationService();
+
+// 브라우저 디버깅용 함수
+if (typeof window !== 'undefined') {
+  window.debugNotificationSettings = async () => {
+    console.log('🔍 [DEBUG] 알림 설정 디버깅 시작...');
+
+    // 설정 새로고침
+    await notificationService.refreshSettings();
+
+    console.log('🔍 [DEBUG] 현재 로드된 설정:');
+    console.log('🔍 [DEBUG] 초호펜션:', notificationService.settings.choho);
+    console.log('🔍 [DEBUG] 초호쉼터:', notificationService.settings.shelter);
+
+    // 각 객실별 SMS 발송 가능 여부 테스트
+    // 초호펜션: Forest 계열 / 초호쉼터: 호수뷰객실
+    const testRooms = ['Forest', 'Forest mini', 'Forest 패밀리', 'Forest mini 패밀리', '호수뷰객실'];
+
+    console.log('\n🔍 [DEBUG] 객실별 SMS 발송 상태:');
+    console.log('─'.repeat(60));
+
+    testRooms.forEach(roomName => {
+      const settings = notificationService.getSettingsForRoom(roomName);
+      const canSendSms = settings?.room?.enabled !== false &&
+                         settings?.room?.autoSend?.confirmationEnabled === true;
+
+      console.log(`🔍 [DEBUG] ${roomName}: SMS 발송 가능=${canSendSms}`);
+    });
+
+    console.log('─'.repeat(60));
+    console.log('🔍 [DEBUG] 디버깅 완료');
+
+    return {
+      choho: notificationService.settings.choho,
+      shelter: notificationService.settings.shelter
+    };
+  };
+
+  window.notificationService = notificationService;
+  console.log('💡 [TIP] 브라우저 콘솔에서 window.debugNotificationSettings() 실행하여 설정 확인 가능');
+}
+
 export default notificationService;

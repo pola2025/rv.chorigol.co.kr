@@ -107,8 +107,8 @@ const MarketingStats = ({ reservations = [] }) => {
   const calculateRevenue = () => {
     // 초호펜션 객실 타입
     const pensionRooms = ['forest', 'forest 패밀리', 'forest mini', 'forest mini 패밀리'];
-    // 초호쉼터 객실 타입
-    const shelterRooms = ['호수뷰객실'];
+    // 초호쉼터 객실 타입 (호수뷰객실 포함)
+    const shelterRooms = ['호수뷰객실', '1박2일워크샵', '야유회', '단체예약'];
     
     // 주간 날짜 설정
     const weekStart = new Date(weeklyDateRange.startDate);

@@ -295,3 +295,37 @@
     max-height: 50vh;
   }
 }
+
+/* 상세 패널 열릴 때 하단 바 숨김 */
+body.detail-panel-open .mobile-bottom-nav {
+  display: none !important;
+}
+
+/* 상세 패널 열릴 때 body 스크롤 방지 */
+body.detail-panel-open {
+  overflow: hidden;
+}
+
+/* 상세 패널 열릴 때 패널 크기 확대 (하단바 공간까지) */
+body.detail-panel-open .date-detail-panel.mobile {
+  max-height: calc(85vh + 64px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+/* 캘린더 페이지에서 body 스크롤 완전 방지 (모바일) */
+body.calendar-page-mobile {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+body.calendar-page-mobile .main-layout {
+  height: 100vh;
+  overflow: hidden;
+}
+
+body.calendar-page-mobile .layout-content {
+  height: calc(100vh - 52px - 64px); /* 헤더 52px, 하단바 64px */
+  overflow: hidden;
+}

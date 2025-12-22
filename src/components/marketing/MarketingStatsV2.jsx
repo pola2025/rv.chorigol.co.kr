@@ -16,12 +16,11 @@ import RevenueStats from './RevenueStats';
 import VisitStats from './VisitStats';
 import AdStats from './AdStats';
 import MarketingExpenses from './MarketingExpenses';
-import AdEfficiencyDashboard from './AdEfficiencyDashboard';
 import './MarketingStatsV2.css';
 
 const MarketingStatsV2 = ({ reservations = [] }) => {
   const [activeTab, setActiveTab] = useState('pension'); // pension 또는 shelter
-  const [statsTab, setStatsTab] = useState('efficiency'); // efficiency, revenue, visit, ad, expense
+  const [statsTab, setStatsTab] = useState('revenue'); // revenue, visit, ad, expense
   const [selectedMonth, setSelectedMonth] = useState({
     year: new Date().getFullYear(),
     month: new Date().getMonth() + 1
@@ -172,14 +171,7 @@ const MarketingStatsV2 = ({ reservations = [] }) => {
 
       {/* 탭 메뉴 */}
       <div className="stats-tabs">
-        <button 
-          className={`tab ${statsTab === 'efficiency' ? 'active' : ''}`}
-          onClick={() => setStatsTab('efficiency')}
-        >
-          <span className="tab-icon">🎯</span>
-          광고 효율
-        </button>
-        <button 
+        <button
           className={`tab ${statsTab === 'revenue' ? 'active' : ''}`}
           onClick={() => setStatsTab('revenue')}
         >
@@ -212,16 +204,6 @@ const MarketingStatsV2 = ({ reservations = [] }) => {
       {/* 탭 컨텐츠 */}
       <div className="tab-content">
         <div className="content-sections">
-          {/* 광고 효율 대시보드 */}
-          {statsTab === 'efficiency' && (
-            <div className="section-card">
-              <AdEfficiencyDashboard 
-                selectedMonth={selectedMonth}
-                businessType={activeTab}
-              />
-            </div>
-          )}
-
           {/* 매출 통계 */}
           {statsTab === 'revenue' && (
             <div className="section-card">

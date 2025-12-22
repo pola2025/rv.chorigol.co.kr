@@ -1,6 +1,7 @@
 // src/hooks/useRooms.js
 import useFirebaseStore from '../stores/useFirebaseStore';
 import useReservationStore from '../stores/useReservationStore';
+import { getKSTToday } from '../utils';
 
 // 객실 데이터 훅
 export const useRooms = () => {
@@ -32,7 +33,7 @@ export const useRoom = (roomId) => {
 // 객실별 현재 재고 훅
 export const useRoomInventory = (roomName, date) => {
     const getAvailableStock = useReservationStore((state) => state.getAvailableStock);
-    const stock = getAvailableStock(date || new Date().toISOString().split('T')[0], roomName);
+    const stock = getAvailableStock(date || getKSTToday(), roomName);
     
     return {
         availableStock: stock,

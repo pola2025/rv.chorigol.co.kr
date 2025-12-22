@@ -2,13 +2,19 @@
 import React from 'react';
 import './MonthlyStats.css';
 
-const MonthlyStats = ({ previousData }) => {
+const MonthlyStats = ({ previousData, selectedMonth }) => {
   const { twoMonthsAgo, lastMonth } = previousData || {};
-  
+
   const getMonthName = (monthStr) => {
     if (!monthStr) return '';
     const [year, month] = monthStr.split('-');
     return `${parseInt(month)}월`;
+  };
+
+  const getSelectedMonthName = () => {
+    if (!selectedMonth) return '';
+    const [year, month] = selectedMonth.split('-');
+    return `${year}년 ${parseInt(month)}월`;
   };
   
   const calculateTotals = (data) => {
@@ -55,6 +61,12 @@ const MonthlyStats = ({ previousData }) => {
   
   return (
     <div className="monthly-stats-summary">
+      {/* 선택된 월 기준 표시 */}
+      {selectedMonth && (
+        <div className="selected-month-indicator">
+          <span>📅 {getSelectedMonthName()} 기준</span>
+        </div>
+      )}
       {/* 전전월 통계 */}
       <div className="month-summary">
         <h3>{getMonthName(twoMonthsAgo?.month)} 통계 요약</h3>

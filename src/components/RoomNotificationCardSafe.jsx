@@ -52,7 +52,21 @@ ${safeRoomName} 예약 고객님 입실 안내드립니다.
     },
     checkOut: {
       title: `${pensionName} ${safeRoomName} 퇴실안내`,
-      content: `[${pensionName}]
+      content: isChoho
+        ? `[${pensionName}]
+{고객명}님, 즐거운 시간 보내셨나요?
+
+🏠 객실: ${safeRoomName}
+🕐 퇴실시간: 오전 11시
+
+🧹 퇴실준비
+- 사용하신 그릇은 싱크대에
+- 쓰레기배출장소: 숯불바베큐장 옆
+- 열쇠는 테이블 위에 놓아주세요
+
+감사합니다. 또 뵙겠습니다 🙏
+문의: {전화번호}`
+        : `[${pensionName}]
 {고객명}님, 즐거운 시간 보내셨나요?
 
 🏠 객실: ${safeRoomName}
@@ -118,8 +132,8 @@ const RoomNotificationCardSafe = ({ roomName, settings, onSave, loading }) => {
         checkInHoursBefore: 3,
         checkOutEnabled: true,
         checkOutHoursBefore: 1,
-        confirmationEnabled: false,
-        cancellationEnabled: false
+        confirmationEnabled: false,  // 기본값: 사용자가 명시적으로 켜야 함
+        cancellationEnabled: false   // 기본값: 사용자가 명시적으로 켜야 함
       }
     };
     
@@ -171,16 +185,20 @@ const RoomNotificationCardSafe = ({ roomName, settings, onSave, loading }) => {
 
   // 템플릿 내용 변경
   const handleTemplateChange = (type, field, value) => {
-    setLocalSettings(prev => ({
-      ...prev,
-      templates: {
-        ...prev.templates,
-        [type]: {
-          ...prev.templates[type],
-          [field]: value
+    setLocalSettings(prev => {
+      // 현재 템플릿이 없으면 기본 템플릿 사용
+      const currentTemplate = prev.templates?.[type] || getDefaultTemplate(roomName, type);
+      return {
+        ...prev,
+        templates: {
+          ...prev.templates,
+          [type]: {
+            ...currentTemplate,
+            [field]: value
+          }
         }
-      }
-    }));
+      };
+    });
   };
 
   // 자동발송 설정 변경
@@ -464,17 +482,11 @@ const RoomNotificationCardSafe = ({ roomName, settings, onSave, loading }) => {
           {/* 액션 버튼 */}
           <div className="room-card-actions">
             <button
-              className="btn btn-secondary"
-              onClick={resetAllTemplates}
-            >
-              모든 템플릿 초기화
-            </button>
-            <button
               className="btn btn-primary"
               onClick={handleSave}
               disabled={loading}
             >
-              {loading ? '저장 중...' : '저장'}
+              {loading ? '저장 중...' : '💾 설정 저장'}
             </button>
           </div>
         </div>

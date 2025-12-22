@@ -469,10 +469,241 @@ export const trackLoginAttempt = functions.https.onRequest(async (request, respo
 // 헬스 체크
 export const healthCheck = functions.https.onRequest((request, response) => {
   setCorsHeaders(response);
-  response.status(200).json({ 
+  response.status(200).json({
     status: 'ok',
     timestamp: new Date().toISOString()
   });
+});
+
+// ========================================
+// 텔레그램 발송 함수 (보안 강화 - 토큰 서버사이드 관리)
+// ========================================
+export const sendTelegram = functions.region('asia-northeast3').https.onRequest(async (request, response) => {
+  setCorsHeaders(response);
+
+  if (request.method === 'OPTIONS') {
+    response.status(204).send('');
+    return;
+  }
+
+  console.log('=== 텔레그램 발송 시작 ===');
+
+  try {
+    const { message, chatId, parseMode = 'HTML' } = request.body;
+
+    if (!message) {
+      response.status(400).json({
+        success: false,
+        error: '메시지가 없습니다.'
+      });
+      return;
+    }
+
+    // Firestore에서 텔레그램 설정 로드 (secure 문서에서 토큰 읽기)
+    const [settingsDoc, secureDoc] = await Promise.all([
+      db.collection('settings').doc('notifications_v2_choho').get(),
+      db.collection('settings').doc('secure_credentials').get()
+    ]);
+
+    if (!secureDoc.exists) {
+      response.status(500).json({
+        success: false,
+        error: '보안 설정을 찾을 수 없습니다.'
+      });
+      return;
+    }
+
+    const secureData = secureDoc.data();
+    const settings = settingsDoc.exists ? settingsDoc.data() : {};
+    const botToken = secureData?.choho?.telegram?.botToken;
+    const defaultChatId = settings?.globalSettings?.telegram?.chatId;
+    const targetChatId = chatId || defaultChatId;
+
+    if (!botToken) {
+      response.status(500).json({
+        success: false,
+        error: '봇 토큰이 설정되지 않았습니다.'
+      });
+      return;
+    }
+
+    if (!targetChatId) {
+      response.status(400).json({
+        success: false,
+        error: '채팅 ID가 없습니다.'
+      });
+      return;
+    }
+
+    console.log('[텔레그램] 발송 대상 chatId:', targetChatId);
+    console.log('[텔레그램] 메시지 길이:', message.length);
+
+    // 텔레그램 API 호출
+    const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
+
+    const telegramResponse = await fetch(telegramUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        chat_id: targetChatId,
+        text: message,
+        parse_mode: parseMode,
+        disable_web_page_preview: true
+      })
+    });
+
+    const result = await telegramResponse.json();
+    console.log('[텔레그램] API 응답:', result);
+
+    if (result.ok) {
+      // 발송 성공 로그 저장
+      try {
+        await db.collection('notification_logs').add({
+          type: 'telegram',
+          chatId: targetChatId,
+          messagePreview: message.substring(0, 100) + '...',
+          status: 'success',
+          messageId: result.result.message_id,
+          timestamp: admin.firestore.FieldValue.serverTimestamp()
+        });
+      } catch (logError) {
+        console.error('로그 저장 실패:', logError);
+      }
+
+      response.status(200).json({
+        success: true,
+        messageId: result.result.message_id
+      });
+    } else {
+      console.error('[텔레그램] 발송 실패:', result);
+
+      // 실패 로그 저장
+      try {
+        await db.collection('notification_logs').add({
+          type: 'telegram',
+          chatId: targetChatId,
+          status: 'failed',
+          error: result.description,
+          timestamp: admin.firestore.FieldValue.serverTimestamp()
+        });
+      } catch (logError) {
+        console.error('로그 저장 실패:', logError);
+      }
+
+      response.status(400).json({
+        success: false,
+        error: result.description || '텔레그램 발송 실패'
+      });
+    }
+  } catch (error) {
+    console.error('[텔레그램] 오류:', error);
+    response.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// 텔레그램 연결 테스트 (업체별 지원)
+export const testTelegramConnection = functions.region('asia-northeast3').https.onRequest(async (request, response) => {
+  setCorsHeaders(response);
+
+  if (request.method === 'OPTIONS') {
+    response.status(204).send('');
+    return;
+  }
+
+  console.log('=== 텔레그램 연결 테스트 ===');
+
+  try {
+    // businessType 파라미터로 업체 구분 (기본값: choho)
+    const { businessType = 'choho' } = request.body || {};
+    const docName = businessType === 'shelter' ? 'notifications_v2_shelter' : 'notifications_v2_choho';
+    const secureKey = businessType === 'shelter' ? 'shelter' : 'choho';
+
+    console.log('[텔레그램] 업체 타입:', businessType);
+    console.log('[텔레그램] 설정 문서:', docName);
+
+    // Firestore에서 설정 로드 (secure 문서에서 토큰 읽기)
+    const [settingsDoc, secureDoc] = await Promise.all([
+      db.collection('settings').doc(docName).get(),
+      db.collection('settings').doc('secure_credentials').get()
+    ]);
+
+    if (!secureDoc.exists) {
+      response.status(500).json({
+        success: false,
+        error: '보안 설정을 찾을 수 없습니다.'
+      });
+      return;
+    }
+
+    const secureData = secureDoc.data();
+    const settings = settingsDoc.exists ? settingsDoc.data() : {};
+    const botToken = secureData?.[secureKey]?.telegram?.botToken;
+    const chatId = settings?.globalSettings?.telegram?.chatId;
+
+    console.log('[텔레그램] chatId:', chatId);
+
+    if (!botToken || !chatId) {
+      response.status(400).json({
+        success: false,
+        error: `봇 토큰 또는 채팅 ID가 설정되지 않았습니다. (${businessType === 'shelter' ? '초호쉼터' : '초호펜션'})`
+      });
+      return;
+    }
+
+    // getMe로 봇 확인
+    const getMeResponse = await fetch(`https://api.telegram.org/bot${botToken}/getMe`);
+    const getMeResult = await getMeResponse.json();
+
+    if (!getMeResult.ok) {
+      response.status(400).json({
+        success: false,
+        error: '봇 토큰이 유효하지 않습니다.',
+        details: getMeResult
+      });
+      return;
+    }
+
+    // 테스트 메시지 발송
+    const businessName = businessType === 'shelter' ? '초호쉼터' : '초호펜션';
+    const testMessage = `✅ [${businessName}] 텔레그램 연결 테스트 성공!\n${new Date().toLocaleString('ko-KR')}`;
+
+    const sendResponse = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: testMessage,
+        parse_mode: 'HTML'
+      })
+    });
+
+    const sendResult = await sendResponse.json();
+
+    if (sendResult.ok) {
+      response.status(200).json({
+        success: true,
+        message: `${businessName} 텔레그램 연결 테스트 성공!`,
+        botName: getMeResult.result.username,
+        messageId: sendResult.result.message_id
+      });
+    } else {
+      response.status(400).json({
+        success: false,
+        error: sendResult.description || '메시지 발송 실패'
+      });
+    }
+  } catch (error) {
+    console.error('[테스트] 오류:', error);
+    response.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
 });
 
 // 스케줄러 import는 모든 초기화 이후에

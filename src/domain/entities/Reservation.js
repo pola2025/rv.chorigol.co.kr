@@ -1,8 +1,9 @@
 /**
  * Reservation Entity
  * 도메인 엔티티 - 비즈니스 로직의 핵심
- * 외부 의존성 없음
+ * KST 기준 날짜 처리
  */
+import { getKSTDateString } from '../../utils';
 
 export class Reservation {
   constructor({
@@ -104,12 +105,12 @@ export class DateRange {
     const days = [];
     const current = new Date(this.startDate);
     const end = new Date(this.endDate);
-    
+
     while (current < end) {
-      days.push(current.toISOString().split('T')[0]);
+      days.push(getKSTDateString(current));
       current.setDate(current.getDate() + 1);
     }
-    
+
     return days;
   }
 }

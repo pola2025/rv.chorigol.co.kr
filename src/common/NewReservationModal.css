@@ -401,3 +401,15 @@ textarea {
   resize: vertical;
   min-height: 80px;
 }
+
+/* 숙박일수 표시 */
+.nights-info {
+  display: inline-block;
+  margin-left: 0.75rem;
+  padding: 0.25rem 0.75rem;
+  background: #3B82F6;
+  color: white;
+  border-radius: 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}

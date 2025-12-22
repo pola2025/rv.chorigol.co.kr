@@ -66,6 +66,8 @@
 
 .date-detail-panel.mobile {
   max-height: 80vh;
+  /* iOS safe area 대응 - 하단바 숨김 시 패널이 전체 영역 사용 */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .date-detail-panel.desktop {
@@ -307,7 +309,7 @@
 }
 
 .date-detail-panel.mobile .room-title h4 {
-  font-size: 0.95rem;  /* 1.1rem -> 0.95rem */
+  font-size: 14px;  /* 수정/취소 버튼과 동일 */
   font-weight: 700;
   color: #1976D2;
 }

@@ -5,12 +5,13 @@ import { db } from '../config/firebase';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../config/firebase';
 import sensService from '../services/sensService';
+import { getKSTToday } from '../utils';
 import './SMSDashboard.css';
 
 const SMSDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [loading, setLoading] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [selectedMonth, setSelectedMonth] = useState(getKSTToday().slice(0, 7));
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedProperty, setSelectedProperty] = useState('all'); // all, choho, shelter

@@ -16,10 +16,21 @@ const BUSINESS_INFO = {
 };
 
 // 예약의 객실명으로 업체 구분
+// 초호펜션: Forest, Forest mini, Forest 패밀리, Forest mini 패밀리
+// 초호쉼터: 호수뷰객실, 1박2일워크샵, 야유회, 단체예약
 const getBusinessType = (reservation) => {
   const roomName = reservation.roomName || '';
-  const shelterRooms = ['호수뷰객실', '1박2일워크샵', '야유회'];
-  return shelterRooms.includes(roomName) ? 'shelter' : 'choho';
+  // 호수뷰객실은 초호쉼터 소속
+  const shelterRooms = ['호수뷰객실', '1박2일워크샵', '야유회', '단체예약'];
+  if (shelterRooms.some(room => roomName.includes(room) || room.includes(roomName))) {
+    return 'shelter';
+  }
+  // Forest 계열은 초호펜션 소속
+  const chohoRooms = ['Forest', 'Forest mini', 'Forest 패밀리', 'Forest mini 패밀리'];
+  if (chohoRooms.some(room => roomName.includes(room) || room.includes(roomName))) {
+    return 'choho';
+  }
+  return 'choho'; // 기본값
 };
 
 // 이모지 제거 함수 (줄바꿈 유지)
@@ -89,34 +100,61 @@ const getMessageTemplate = async (type, businessType, roomName) => {
 // 템플릿 변수 치환
 const replaceTemplateVariables = (template, reservation, type) => {
   if (!template) return '';
-  
+
   // content 필드가 있는 경우 (객체 형태)
   let message = typeof template === 'object' && template.content ? template.content : template;
-  
-  // 변수 치환
+
+  // 금액 값 (원 없이)
+  const priceValue = reservation.totalPrice ? reservation.totalPrice.toLocaleString() : '0';
+
+  // 현장결제 옵션 계산
+  let onsiteText = '';
+  if (reservation.options && reservation.options.length > 0) {
+    const onsiteOptions = reservation.options.filter(opt => {
+      const name = typeof opt === 'object' ? (opt.name || '') : opt;
+      return name.includes('바베큐') || name.includes('BBQ') || name.toLowerCase().includes('bbq');
+    });
+
+    if (onsiteOptions.length > 0) {
+      const onsiteTotal = onsiteOptions.reduce((sum, opt) => {
+        const price = typeof opt === 'object' ? (opt.price || 0) : 0;
+        return sum + price;
+      }, 0);
+      if (onsiteTotal > 0) {
+        onsiteText = `현장결제: ${onsiteTotal.toLocaleString()}원`;
+      }
+    }
+  }
+  // onsitePrice 필드가 있는 경우도 처리
+  if (!onsiteText && reservation.onsitePrice && reservation.onsitePrice > 0) {
+    onsiteText = `현장결제: ${reservation.onsitePrice.toLocaleString()}원`;
+  }
+
+  // 변수 치환 (원, 명은 템플릿에서 직접 붙이도록)
   message = message.replace(/{고객명}/g, reservation.customerName || '');
   message = message.replace(/{객실명}/g, reservation.roomName || '');
   message = message.replace(/{체크인}/g, reservation.checkIn || '');
   message = message.replace(/{체크아웃}/g, reservation.checkOut || '');
   message = message.replace(/{인원}/g, reservation.guests || reservation.guestCount || 2);
-  message = message.replace(/{금액}/g, reservation.totalPrice ? `${reservation.totalPrice.toLocaleString()}원` : '');
-  
+  message = message.replace(/{금액}/g, priceValue);  // 숫자만 (원 없이)
+  message = message.replace(/{현장결제}/g, onsiteText);
+
   // 옵션 처리
   if (reservation.options && reservation.options.length > 0) {
-    const optionNames = reservation.options.map(opt => 
+    const optionNames = reservation.options.map(opt =>
       typeof opt === 'object' ? opt.name : opt
     ).join(', ');
     message = message.replace(/{옵션}/g, optionNames);
   } else {
     message = message.replace(/{옵션}/g, '');
   }
-  
+
   // 주소 처리 - 퇴실안내에는 주소 제외
   if (type !== 'checkOut') {
     const businessType = getBusinessType(reservation);
     const business = BUSINESS_INFO[businessType];
     message = message.replace(/{주소}/g, business.address);
-    
+
     // 템플릿에 주소가 전혀 없으면 끝에 추가 (퇴실안내 제외)
     if (!message.includes(business.address) && !message.includes('주소')) {
       message += `\n\n주소: ${business.address}`;
@@ -127,7 +165,7 @@ const replaceTemplateVariables = (template, reservation, type) => {
     // 주소: 라는 텍스트가 있으면 해당 줄 전체 제거
     message = message.replace(/.*주소:.*\n?/g, '');
   }
-  
+
   return message;
 };
 

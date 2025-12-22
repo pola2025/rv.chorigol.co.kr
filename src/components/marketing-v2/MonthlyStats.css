@@ -6,6 +6,20 @@
   margin-bottom: 30px;
 }
 
+.selected-month-indicator {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
 .month-summary {
   background: white;
   border-radius: 10px;

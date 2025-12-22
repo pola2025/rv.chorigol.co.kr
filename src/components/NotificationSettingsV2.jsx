@@ -9,6 +9,7 @@ import SmsHistoryTable from './SmsHistoryTable';
 import './NotificationSettings.css';
 
 // 객실 그룹 정의
+// 호수뷰객실은 초호쉼터에 속함 (별도 알림 채널 사용)
 const ROOM_GROUPS = {
   choho: {
     name: '초호펜션',
@@ -16,7 +17,7 @@ const ROOM_GROUPS = {
   },
   shelter: {
     name: '초호쉼터',
-    rooms: ['호수뷰객실', '1박2일워크샵', '야유회']
+    rooms: ['호수뷰객실', '1박2일워크샵', '야유회', '단체예약']
   }
 };
 
@@ -46,8 +47,8 @@ const NotificationSettingsV2 = () => {
         from: ''
       },
       telegram: {
-        botToken: import.meta.env.VITE_TELEGRAM_BOT_TOKEN || '',
-        chatId: import.meta.env.VITE_TELEGRAM_CHAT_ID || '',
+        botToken: '', // Firestore에서 로드 (보안)
+        chatId: '', // Firestore에서 로드
         useReservation: true,
         useCancellation: true,
         autoSendDaily: true
@@ -345,15 +346,14 @@ const NotificationSettingsV2 = () => {
     }
   };
 
-  // 텔레그램 연결 테스트
+  // 텔레그램 연결 테스트 (업체별)
   const testTelegramConnection = async (type) => {
     setTesting(true);
-    const config = globalSettings[type].telegram;
-    
+
     try {
-      telegramService.initialize(config);
-      const result = await telegramService.testConnection();
-      
+      // type을 businessType으로 전달 ('choho' 또는 'shelter')
+      const result = await telegramService.testConnection(type);
+
       if (result) {
         alert(`${ROOM_GROUPS[type].name} 텔레그램 연결 테스트 성공! 테스트 메시지를 확인해주세요.`);
       } else {
@@ -514,31 +514,34 @@ const NotificationSettingsV2 = () => {
           <div className="section-title">
             <span className="section-icon">💬</span>
             <span>텔레그램 설정</span>
-            {currentGlobalSettings.telegram.botToken && (
-              <span className="status-badge connected">연결됨</span>
-            )}
+            <span className="status-badge connected">서버 관리</span>
           </div>
           <span className="toggle-icon">{expandedSections.telegram ? '▲' : '▼'}</span>
         </div>
 
         {expandedSections.telegram && (
           <div className="section-content">
-            <div className="form-grid">
-              <div className="form-group">
-                <label>봇 토큰</label>
-                <input
-                  type="password"
-                  value={currentGlobalSettings.telegram.botToken}
-                  onChange={(e) => setGlobalSettings(prev => ({
-                    ...prev,
-                    [activeTab]: {
-                      ...prev[activeTab],
-                      telegram: { ...prev[activeTab].telegram, botToken: e.target.value }
-                    }
-                  }))}
-                  placeholder="봇 토큰"
-                />
+            {/* 보안 안내 메시지 */}
+            <div className="security-notice" style={{
+              background: '#f0f9ff',
+              border: '1px solid #bae6fd',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              marginBottom: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <span style={{ fontSize: '20px' }}>🔒</span>
+              <div>
+                <strong style={{ color: '#0369a1' }}>보안 강화됨</strong>
+                <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#475569' }}>
+                  봇 토큰은 서버에서 안전하게 관리됩니다. Firebase Console에서 직접 수정하세요.
+                </p>
               </div>
+            </div>
+
+            <div className="form-grid">
               <div className="form-group">
                 <label>채팅 ID</label>
                 <input

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
+import { getKSTToday, getKSTDateString } from '../../utils';
 import './MobileDashboardStats.css';
 
 const MobileDashboardStats = () => {
@@ -11,8 +12,8 @@ const MobileDashboardStats = () => {
     averagePrice: 0
   });
   
-  // 현재 월 포맷
-  const currentMonth = new Date().toISOString().slice(0, 7);
+  // 현재 월 포맷 (KST)
+  const currentMonth = getKSTToday().slice(0, 7);
   
   useEffect(() => {
     loadStats();
@@ -47,8 +48,8 @@ const MobileDashboardStats = () => {
       
       const reservationsQuery = query(
         collection(db, 'reservations'),
-        where('checkIn', '>=', startDate.toISOString().split('T')[0]),
-        where('checkIn', '<=', endDate.toISOString().split('T')[0])
+        where('checkIn', '>=', getKSTDateString(startDate)),
+        where('checkIn', '<=', getKSTDateString(endDate))
       );
       
       const snapshot = await getDocs(reservationsQuery);

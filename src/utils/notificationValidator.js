@@ -13,7 +13,8 @@ class NotificationValidator {
    */
   async validateImmediateSettings(type = 'choho') {
     try {
-      const docName = type === 'choho' ? 'notifications_choho' : 'notifications_shelter';
+      // V2 설정 문서 사용 (notifications_v2_choho, notifications_v2_shelter)
+      const docName = type === 'choho' ? 'notifications_v2_choho' : 'notifications_v2_shelter';
       const settingsDoc = await getDoc(doc(db, 'settings', docName));
       
       if (!settingsDoc.exists()) {
@@ -25,18 +26,37 @@ class NotificationValidator {
           message: '알림 설정이 구성되지 않았습니다.'
         };
       }
-      
+
       const data = settingsDoc.data();
-      const autoSend = data.autoSend || {};
-      
+
+      // V2 구조: roomSettings에서 각 객실의 autoSend 설정 확인
+      // 하나라도 활성화되어 있으면 전체적으로 활성화된 것으로 처리
+      const roomSettings = data.roomSettings || {};
+      let confirmationEnabled = false;
+      let cancellationEnabled = false;
+      let checkInEnabled = false;
+      let checkOutEnabled = false;
+      let checkInHoursBefore = 3;
+      let checkOutHoursBefore = 1;
+
+      // 모든 객실의 설정을 확인하여 하나라도 활성화되어 있으면 true
+      Object.values(roomSettings).forEach(roomSetting => {
+        if (roomSetting?.autoSend?.confirmationEnabled) confirmationEnabled = true;
+        if (roomSetting?.autoSend?.cancellationEnabled) cancellationEnabled = true;
+        if (roomSetting?.autoSend?.checkInEnabled) checkInEnabled = true;
+        if (roomSetting?.autoSend?.checkOutEnabled) checkOutEnabled = true;
+        if (roomSetting?.autoSend?.checkInHoursBefore) checkInHoursBefore = roomSetting.autoSend.checkInHoursBefore;
+        if (roomSetting?.autoSend?.checkOutHoursBefore) checkOutHoursBefore = roomSetting.autoSend.checkOutHoursBefore;
+      });
+
       const result = {
         exists: true,
-        confirmationEnabled: autoSend.confirmationEnabled || false,
-        cancellationEnabled: autoSend.cancellationEnabled || false,
-        checkInEnabled: autoSend.checkInEnabled || false,
-        checkOutEnabled: autoSend.checkOutEnabled || false,
-        checkInHoursBefore: autoSend.checkInHoursBefore || 3,
-        checkOutHoursBefore: autoSend.checkOutHoursBefore || 1,
+        confirmationEnabled,
+        cancellationEnabled,
+        checkInEnabled,
+        checkOutEnabled,
+        checkInHoursBefore,
+        checkOutHoursBefore,
         message: ''
       };
       
@@ -75,7 +95,8 @@ class NotificationValidator {
    */
   async canSendSMS(roomName, type = 'choho') {
     try {
-      const docName = type === 'choho' ? 'notifications_choho' : 'notifications_shelter';
+      // V2 설정 문서 사용
+      const docName = type === 'choho' ? 'notifications_v2_choho' : 'notifications_v2_shelter';
       const settingsDoc = await getDoc(doc(db, 'settings', docName));
       
       if (!settingsDoc.exists()) {
@@ -107,7 +128,8 @@ class NotificationValidator {
    */
   async getFullStatus(type = 'choho') {
     try {
-      const docName = type === 'choho' ? 'notifications_choho' : 'notifications_shelter';
+      // V2 설정 문서 사용
+      const docName = type === 'choho' ? 'notifications_v2_choho' : 'notifications_v2_shelter';
       const settingsDoc = await getDoc(doc(db, 'settings', docName));
       
       if (!settingsDoc.exists()) {
@@ -267,15 +289,18 @@ class NotificationValidator {
    * @returns {string} 'choho' 또는 'shelter'
    */
   getRoomType(roomName) {
+    // 초호펜션: Forest, Forest mini, Forest 패밀리, Forest mini 패밀리
+    // 초호쉼터: 호수뷰객실, 1박2일워크샵, 야유회, 단체예약
+    const shelterRooms = ['호수뷰객실', '1박2일워크샵', '야유회', '단체예약'];
     const chohoRooms = ['Forest', 'Forest mini', 'Forest mini 패밀리', 'Forest 패밀리'];
-    const shelterRooms = ['호수뷰객실', '1박2일워크샵', '야유회'];
-    
-    if (chohoRooms.includes(roomName)) {
-      return 'choho';
-    } else if (shelterRooms.includes(roomName)) {
+
+    // 호수뷰객실은 초호쉼터 소속
+    if (shelterRooms.some(room => roomName?.includes(room) || room.includes(roomName || ''))) {
       return 'shelter';
+    } else if (chohoRooms.some(room => roomName?.includes(room) || room.includes(roomName || ''))) {
+      return 'choho';
     }
-    
+
     // 기본값은 choho
     return 'choho';
   }

@@ -2,21 +2,26 @@
 import React, { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
+import { getKSTToday, getKSTDateString } from '../../utils';
 import './DashboardStatsV2.css';
 
 const DashboardStatsV2 = () => {
   const [statsData, setStatsData] = useState({
     currentMonth: {
       visitors: 0,
+      websiteVisitors: 0,
+      naverVisitors: 0,
       revenue: 0,
       manualRevenue: 0,
-      autoRevenue: 0
+      autoRevenue: 0,
+      reservationCount: 0,
+      reviewCount: 0
     }
   });
   const [isEditMode, setIsEditMode] = useState(false);
   const [tempManualRevenue, setTempManualRevenue] = useState('');
   
-  const currentMonth = new Date().toISOString().slice(0, 7);
+  const currentMonth = getKSTToday().slice(0, 7);
   const currentMonthDisplay = `${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월`;
   
   useEffect(() => {
@@ -28,33 +33,42 @@ const DashboardStatsV2 = () => {
     try {
       const pensionDoc = await getDoc(doc(db, 'marketing_stats_v2', `pension_${currentMonth}`));
       const shelterDoc = await getDoc(doc(db, 'marketing_stats_v2', `shelter_${currentMonth}`));
-      
-      let totalVisitors = 0;
-      
+
+      let websiteVisitors = 0;
+      let naverVisitors = 0;
+      let reviewCount = 0;
+
       if (pensionDoc.exists()) {
         const data = pensionDoc.data();
-        totalVisitors += (data.visitors?.website?.visitors || 0);
-        totalVisitors += (data.visitors?.naverPlace?.placeVisits || 0);
+        websiteVisitors += (data.visitors?.website?.visitors || 0);
+        naverVisitors += (data.visitors?.naverPlace?.placeVisits || 0);
+        reviewCount += (data.visitors?.naverPlace?.reviews || 0);
       }
-      
+
       if (shelterDoc.exists()) {
         const data = shelterDoc.data();
-        totalVisitors += (data.visitors?.website?.visitors || 0);
-        totalVisitors += (data.visitors?.naverPlace?.placeVisits || 0);
+        websiteVisitors += (data.visitors?.website?.visitors || 0);
+        naverVisitors += (data.visitors?.naverPlace?.placeVisits || 0);
+        reviewCount += (data.visitors?.naverPlace?.reviews || 0);
       }
-      
+
+      const totalVisitors = websiteVisitors + naverVisitors;
+
       const manualRevenueDoc = await getDoc(doc(db, 'manual_revenue', currentMonth));
       const manualRevenue = manualRevenueDoc.exists() ? manualRevenueDoc.data().amount || 0 : 0;
-      
+
       setStatsData(prev => ({
         ...prev,
         currentMonth: {
           ...prev.currentMonth,
           visitors: totalVisitors,
+          websiteVisitors: websiteVisitors,
+          naverVisitors: naverVisitors,
+          reviewCount: reviewCount,
           manualRevenue: manualRevenue
         }
       }));
-      
+
       setTempManualRevenue(manualRevenue.toString());
     } catch (error) {
       console.error('통계 데이터 로드 오류:', error);
@@ -64,31 +78,34 @@ const DashboardStatsV2 = () => {
   const loadReservationRevenue = async () => {
     try {
       const { collection, query, where, getDocs } = await import('firebase/firestore');
-      
+
       const startDate = new Date(currentMonth + '-01');
       const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
-      
+
       const reservationsQuery = query(
         collection(db, 'reservations'),
-        where('checkIn', '>=', startDate.toISOString().split('T')[0]),
-        where('checkIn', '<=', endDate.toISOString().split('T')[0])
+        where('checkIn', '>=', getKSTDateString(startDate)),
+        where('checkIn', '<=', getKSTDateString(endDate))
       );
-      
+
       const snapshot = await getDocs(reservationsQuery);
       let totalRevenue = 0;
-      
+      let reservationCount = 0;
+
       snapshot.forEach(doc => {
         const data = doc.data();
         if (data.status === '예약확정' && data.source !== '막기') {
           totalRevenue += (data.totalPrice || 0);
+          reservationCount++;
         }
       });
-      
+
       setStatsData(prev => ({
         ...prev,
         currentMonth: {
           ...prev.currentMonth,
-          autoRevenue: totalRevenue
+          autoRevenue: totalRevenue,
+          reservationCount: reservationCount
         }
       }));
     } catch (error) {
@@ -166,12 +183,12 @@ const DashboardStatsV2 = () => {
           <div className="stat-label">전체 유입 통계</div>
           <div className="stat-value">{formatNumber(statsData.currentMonth.visitors)}<span className="unit">명</span></div>
           <div className="stat-details">
-            <span>웹사이트: {formatNumber(Math.floor(statsData.currentMonth.visitors * 0.6))}명</span>
+            <span>웹사이트: {formatNumber(statsData.currentMonth.websiteVisitors)}명</span>
             <span className="divider">|</span>
-            <span>네이버: {formatNumber(Math.floor(statsData.currentMonth.visitors * 0.4))}명</span>
+            <span>네이버: {formatNumber(statsData.currentMonth.naverVisitors)}명</span>
           </div>
         </div>
-        
+
         <div className="stat-item total-revenue">
           <div className="stat-label">
             {currentMonth < '2024-09' ? '매출액 (수동입력)' : '매출액'}
@@ -206,28 +223,28 @@ const DashboardStatsV2 = () => {
             </>
           )}
         </div>
-        
+
         <div className="stat-item conversion-rate">
           <div className="stat-label">예약 전환율</div>
           <div className="stat-value">
-            {statsData.currentMonth.visitors > 0 
-              ? ((32 / statsData.currentMonth.visitors) * 100).toFixed(1)
+            {statsData.currentMonth.visitors > 0 && statsData.currentMonth.reservationCount > 0
+              ? ((statsData.currentMonth.reservationCount / statsData.currentMonth.visitors) * 100).toFixed(1)
               : '0'}<span className="unit">%</span>
           </div>
           <div className="stat-details">
-            예약 신청: 32건
+            예약 확정: {formatNumber(statsData.currentMonth.reservationCount)}건
           </div>
         </div>
-        
+
         <div className="stat-item average-price">
           <div className="stat-label">평균 객단가</div>
           <div className="stat-value">
-            {totalRevenue > 0 && 32 > 0 
-              ? formatNumber(Math.floor(totalRevenue / 32))
+            {totalRevenue > 0 && statsData.currentMonth.reservationCount > 0
+              ? formatNumber(Math.floor(totalRevenue / statsData.currentMonth.reservationCount))
               : '0'}<span className="unit">원</span>
           </div>
           <div className="stat-details">
-            리뷰: 2개
+            리뷰: {formatNumber(statsData.currentMonth.reviewCount)}개
           </div>
         </div>
       </div>

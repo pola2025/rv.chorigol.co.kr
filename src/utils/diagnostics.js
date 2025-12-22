@@ -1,6 +1,7 @@
 // Firebase 환경 및 예약 시스템 진단 스크립트
 import { db, auth } from '../config/firebase';
 import reservationDebugger from '../utils/reservationDebugger';
+import { getKSTToday, getKSTDateString } from '../utils';
 
 export const runDiagnostics = async () => {
   console.log('='.repeat(50));
@@ -124,8 +125,8 @@ export const runDiagnostics = async () => {
     customerName: '테스트 고객',
     phone: '010-1234-5678',
     roomName: 'Forest',
-    checkIn: new Date().toISOString().split('T')[0],
-    checkOut: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+    checkIn: getKSTToday(),
+    checkOut: getKSTDateString(new Date(Date.now() + 86400000)),
     guests: 2,
     totalPrice: 100000,
     status: '입금대기',
