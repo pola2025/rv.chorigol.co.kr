@@ -952,3 +952,32 @@
   grid-column: unset !important;
   grid-row: unset !important;
 }
+
+/* ==================== 예약일/취소일 시간 표시 ==================== */
+.reservation-list .datetime-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.85rem;
+}
+
+.reservation-list .datetime-cell .cancelled-at {
+  color: #DC2626;
+  font-size: 0.75rem;
+}
+
+/* 모바일 카드 취소일 스타일 */
+.reservation-list .card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  align-items: center;
+}
+
+.reservation-list .card-meta .cancel-label {
+  color: #DC2626;
+}
+
+.reservation-list .card-meta .cancel-value {
+  color: #DC2626;
+}

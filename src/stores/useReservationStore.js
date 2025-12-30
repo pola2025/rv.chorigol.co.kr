@@ -230,23 +230,61 @@ const useReservationStore = create((set, get) => ({
     },
 
     // 예약 수정
-    updateReservation: async (reservationId, updates) => {
+    updateReservation: async (reservationId, updates, options = {}) => {
         set({ operationLoading: true, operationError: null });
-        
+
         try {
+            // 기존 예약 정보 가져오기 (객실 변경 감지용)
+            const reservations = useFirebaseStore.getState().reservations;
+            const previousReservation = reservations.find(r => r.id === reservationId);
+            const previousRoomName = previousReservation?.roomName;
+
             const docRef = doc(db, 'reservations', reservationId);
             await updateDoc(docRef, {
                 ...updates,
                 updatedAt: getServerTimestamp()
             });
-            
+
             set({ operationLoading: false });
+
+            // 객실이 변경되었고, 막기 예약이 아닌 경우 텔레그램 알림 발송
+            const newRoomName = updates.roomName;
+            if (newRoomName &&
+                previousRoomName &&
+                newRoomName !== previousRoomName &&
+                previousReservation?.source !== '막기' &&
+                !options.skipNotification) {
+
+                console.log('🔄 [Store] 객실 변경 감지:', previousRoomName, '->', newRoomName);
+
+                try {
+                    const telegramService = (await import('../services/telegramService')).default;
+
+                    // 업데이트된 예약 정보로 알림 발송
+                    const updatedReservation = {
+                        ...previousReservation,
+                        ...updates,
+                        id: reservationId
+                    };
+
+                    await telegramService.sendRoomChangeNotification(
+                        updatedReservation,
+                        previousRoomName,
+                        newRoomName
+                    );
+                    console.log('🔄 [Store] 객실 변경 알림 발송 완료');
+                } catch (notificationError) {
+                    console.error('🔄 [Store] 객실 변경 알림 발송 실패:', notificationError);
+                    // 알림 실패해도 예약 수정은 성공으로 처리
+                }
+            }
+
             return { success: true };
         } catch (error) {
             console.error('예약 수정 오류:', error);
-            set({ 
-                operationLoading: false, 
-                operationError: error.message 
+            set({
+                operationLoading: false,
+                operationError: error.message
             });
             return { success: false, error: error.message };
         }

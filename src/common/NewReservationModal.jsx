@@ -150,33 +150,94 @@ const NewReservationModal = ({
     depositorName: safeInitialData.depositorName || ''
   });
 
-  // initialData가 변경될 때 formData 업데이트
+  // 수정 모드 여부 확인
+  const isEditMode = !!(safeInitialData && safeInitialData.id);
+
+  // 모달이 열릴 때 날짜 및 데이터 초기화 (통합된 useEffect)
   React.useEffect(() => {
-    if (isOpen && safeInitialData.roomName) {
+    if (!isOpen) return;
+
+    console.log('[NewReservationModal] useEffect - 모달 열림, 데이터 초기화');
+    console.log('[NewReservationModal] dateStr:', dateStr);
+    console.log('[NewReservationModal] safeInitialData:', safeInitialData);
+    console.log('[NewReservationModal] isEditMode:', isEditMode);
+
+    // 1. 수정 모드인 경우 (initialData에 id가 있음)
+    if (safeInitialData.id) {
+      const checkOutValue = safeInitialData.checkOut || (safeInitialData.checkIn ? getNextDateStr(safeInitialData.checkIn) : '');
+      console.log('[NewReservationModal] 수정 모드 - 모든 필드 초기화');
+
+      // 기존 예약의 옵션을 selectedOptions 형태로 변환
+      let selectedOptions = safeInitialData.selectedOptions || [];
+      if (safeInitialData.options && Array.isArray(safeInitialData.options)) {
+        selectedOptions = safeInitialData.options.map(opt => {
+          if (typeof opt === 'object' && opt.name) {
+            // 옵션명으로 ID 매핑
+            if (opt.name === '캠핑버너&그릴') return 'camping_burner';
+            if (opt.name === '숯불바베큐') return 'charcoal_bbq';
+            if (opt.name === '레이트 체크아웃') return 'late_checkout';
+            return opt.name;
+          }
+          return opt;
+        });
+      }
+
+      // 예약 출처 ID 매핑
+      let sourceId = safeInitialData.source || '';
+      const sourceMapping = {
+        '네이버 플레이스': 'naver_place',
+        '네이버 펜션예약': 'naver_booking',
+        '네이버 지도': 'naver_map',
+        '이체예약': 'transfer',
+        '단체예약': 'group',
+        '기타': 'etc'
+      };
+      if (sourceMapping[sourceId]) {
+        sourceId = sourceMapping[sourceId];
+      }
+
+      setFormData({
+        customerName: safeInitialData.customerName || '',
+        phone: safeInitialData.phone || safeInitialData.customerPhone || '',
+        roomName: safeInitialData.roomName || '',
+        checkIn: safeInitialData.checkIn || '',
+        checkOut: checkOutValue,
+        guests: safeInitialData.guests || safeInitialData.guestCount || 2,
+        selectedOptions: selectedOptions,
+        totalPrice: safeInitialData.totalPrice || 0,
+        roomPrice: safeInitialData.roomPrice || 0,
+        optionPrice: safeInitialData.optionPrice || 0,
+        onsitePrice: safeInitialData.onsitePrice || 0,
+        memo: safeInitialData.memo || '',
+        source: sourceId,
+        depositorName: safeInitialData.depositorName || ''
+      });
+    }
+    // 2. initialData에 roomName이 있는 경우 (DateDetailPanel에서 호출 - 새 예약)
+    else if (safeInitialData.roomName) {
+      const checkOutValue = safeInitialData.checkOut || (safeInitialData.checkIn ? getNextDateStr(safeInitialData.checkIn) : '');
+      console.log('[NewReservationModal] initialData 사용 - checkOut:', checkOutValue);
+
       setFormData(prev => ({
         ...prev,
         roomName: safeInitialData.roomName,
         checkIn: safeInitialData.checkIn || prev.checkIn,
-        checkOut: safeInitialData.checkOut || prev.checkOut,
+        checkOut: checkOutValue,
         source: safeInitialData.source || prev.source
       }));
     }
-  }, [isOpen, safeInitialData]);
-
-  // 모달이 열릴 때 dateStr로 날짜 업데이트 (새 예약인 경우)
-  // 입실일 설정 시 퇴실일을 자동으로 +1일로 설정 (1박 2일 기본값)
-  React.useEffect(() => {
-    if (isOpen && dateStr && !safeInitialData.checkIn) {
-      console.log('[NewReservationModal] useEffect - 날짜 업데이트:', dateStr);
+    // 3. 새 예약인 경우 (ReservationCalendar에서 호출 - initialData가 없음)
+    else if (dateStr) {
       const nextDay = getNextDateStr(dateStr);
-      console.log('[NewReservationModal] useEffect - 퇴실일 자동 설정:', nextDay);
+      console.log('[NewReservationModal] dateStr 사용 - checkIn:', dateStr, 'checkOut:', nextDay);
+
       setFormData(prev => ({
         ...prev,
         checkIn: dateStr,
-        checkOut: nextDay // 항상 입실일 +1일로 설정 (1박 2일 기본값)
+        checkOut: nextDay
       }));
     }
-  }, [isOpen, dateStr, safeInitialData.checkIn]);
+  }, [isOpen, dateStr, safeInitialData.id, safeInitialData.roomName, safeInitialData.checkIn, safeInitialData.checkOut, safeInitialData.source, safeInitialData.customerName, safeInitialData.phone, safeInitialData.guests, safeInitialData.memo, safeInitialData.depositorName]);
 
   // 현재 선택된 예약출처 정보
   const selectedSource = useMemo(() => {
@@ -319,20 +380,34 @@ const NewReservationModal = ({
         newErrors.checkOut = '체크아웃은 체크인 이후여야 합니다.';
       }
       
-      // 재고 확인
+      // 재고 확인 (수정 모드일 때는 현재 예약이 차지한 재고 +1로 계산)
       let currentDate = new Date(formData.checkIn);
       const endDate = new Date(formData.checkOut);
       let unavailableDates = [];
-      
+
+      // 수정 모드일 때 기존 예약의 날짜 범위 확인
+      const originalCheckIn = safeInitialData.checkIn;
+      const originalCheckOut = safeInitialData.checkOut;
+      const originalRoomName = safeInitialData.roomName;
+
       while (currentDate < endDate) {
         const dateStr = getKSTDateString(currentDate);
-        const stock = getAvailableStock(dateStr, formData.roomName);
+        let stock = getAvailableStock(dateStr, formData.roomName);
+
+        // 수정 모드이고, 같은 객실이며, 기존 예약 기간에 포함된 날짜라면 재고 +1
+        if (isEditMode &&
+            formData.roomName === originalRoomName &&
+            originalCheckIn && originalCheckOut &&
+            dateStr >= originalCheckIn && dateStr < originalCheckOut) {
+          stock += 1;
+        }
+
         if (stock <= 0) {
           unavailableDates.push(dateStr);
         }
         currentDate.setDate(currentDate.getDate() + 1);
       }
-      
+
       if (unavailableDates.length > 0) {
         newErrors.checkIn = `선택한 날짜에 예약이 불가능합니다: ${unavailableDates.join(', ')}`;
       }
@@ -356,9 +431,16 @@ const NewReservationModal = ({
     setIsSubmitting(true);
     
     try {
-      // 예약출처에 따라 상태 결정
-      const status = selectedSource?.isPaid ? '예약확정' : '입금대기';
-      
+      // 예약출처에 따라 상태 결정 (수정 모드일 때는 기존 상태 유지)
+      let status;
+      if (isEditMode) {
+        // 수정 모드: 기존 상태 유지
+        status = safeInitialData.status || '예약확정';
+      } else {
+        // 새 예약: 출처에 따라 상태 결정
+        status = selectedSource?.isPaid ? '예약확정' : '입금대기';
+      }
+
       // 선택된 옵션들의 객체 배열 생성
       const selectedOptionObjects = formData.selectedOptions.map(optionId => {
         // 하드코딩된 옵션 매핑 (옵션 데이터가 없을 경우를 위해)
@@ -370,30 +452,41 @@ const NewReservationModal = ({
         const mappedOption = optionMapping[optionId];
         return mappedOption || { name: optionId, price: 0 };
       });
-      
+
       const reservationData = {
         ...formData,
         ...calculatedPrices,
         options: selectedOptionObjects, // 객체 배열로 저장
-        status,
-        createdAt: serverTimestamp()
+        status
       };
-      
-      reservationDebugger.logAddReservation('예약 데이터 준비 완료', reservationData);
-      
+
+      // 수정 모드일 때 예약 ID 포함
+      if (isEditMode) {
+        reservationData.id = safeInitialData.id;
+        // 수정 모드에서는 createdAt 유지
+        if (safeInitialData.createdAt) {
+          reservationData.createdAt = safeInitialData.createdAt;
+        }
+      } else {
+        // 새 예약일 때만 createdAt 추가
+        reservationData.createdAt = serverTimestamp();
+      }
+
+      reservationDebugger.logAddReservation(isEditMode ? '예약 수정 데이터 준비' : '예약 데이터 준비 완료', reservationData);
+
       // 데이터 검증
       const validation = reservationDebugger.validateReservationData(reservationData);
       if (!validation.isValid) {
         throw new Error(`데이터 검증 실패: ${validation.errors.join(', ')}`);
       }
-      
+
       if (validation.warnings.length > 0) {
         console.warn('경고:', validation.warnings);
       }
-      
+
       await onSubmit(reservationData);
-      
-      reservationDebugger.logAddReservation('예약 추가 성공', { id: 'success' });
+
+      reservationDebugger.logAddReservation(isEditMode ? '예약 수정 성공' : '예약 추가 성공', { id: reservationData.id || 'success' });
       
       // 예약 성공 시 항상 모달 닫기
       handleClose();
@@ -449,7 +542,7 @@ const NewReservationModal = ({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">
-          <h2>새 예약 추가</h2>
+          <h2>{isEditMode ? '예약 수정' : '새 예약 추가'}</h2>
           <button className="modal-close" onClick={handleClose}>
             ×
           </button>
@@ -853,7 +946,7 @@ const NewReservationModal = ({
             className="btn btn-primary"
             disabled={isSubmitting}
           >
-            {isSubmitting ? '처리 중...' : '예약 추가'}
+            {isSubmitting ? '처리 중...' : (isEditMode ? '예약 수정' : '예약 추가')}
           </button>
         </div>
       </div>

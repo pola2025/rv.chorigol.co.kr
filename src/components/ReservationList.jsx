@@ -274,13 +274,13 @@ const ReservationList = ({ reservations, onUpdateReservation, onCancelReservatio
 
   const formatDate = (date) => {
     if (!date) return '-';
-    
+
     // Firebase Timestamp 객체 처리
     if (date && typeof date === 'object' && date.seconds) {
       const d = new Date(date.seconds * 1000);
       return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
     }
-    
+
     // 문자열인 경우
     if (typeof date === 'string') {
       if (date.includes('-')) {
@@ -288,13 +288,39 @@ const ReservationList = ({ reservations, onUpdateReservation, onCancelReservatio
       }
       return date;
     }
-    
+
     // Date 객체 처리
     if (date instanceof Date) {
       return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
     }
-    
+
     return '-';
+  };
+
+  // 날짜와 시간을 함께 표시하는 함수
+  const formatDateTime = (date) => {
+    if (!date) return '-';
+
+    let d;
+    // Firebase Timestamp 객체 처리
+    if (date && typeof date === 'object' && date.seconds) {
+      d = new Date(date.seconds * 1000);
+    }
+    // ISO 문자열인 경우
+    else if (typeof date === 'string') {
+      d = new Date(date);
+    }
+    // Date 객체 처리
+    else if (date instanceof Date) {
+      d = date;
+    }
+    else {
+      return '-';
+    }
+
+    const dateStr = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+    const timeStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    return `${dateStr} ${timeStr}`;
   };
 
   const getRefundStatus = (reservation) => {
@@ -565,7 +591,13 @@ const ReservationList = ({ reservations, onUpdateReservation, onCancelReservatio
                       <div className="card-footer">
                         <div className="card-meta">
                           <span className="meta-label">예약일</span>
-                          <span className="meta-value">{formatDate(res.createdAt)}</span>
+                          <span className="meta-value">{formatDateTime(res.createdAt)}</span>
+                          {res.status === '예약취소' && res.canceledAt && (
+                            <>
+                              <span className="meta-label cancel-label">취소일</span>
+                              <span className="meta-value cancel-value">{formatDateTime(res.canceledAt)}</span>
+                            </>
+                          )}
                         </div>
                         <div className="card-actions">
                           {res.status === '입금대기' && (
@@ -645,7 +677,14 @@ const ReservationList = ({ reservations, onUpdateReservation, onCancelReservatio
                           className={isPastReservation(res) ? 'past-reservation' : ''}
                           style={{ cursor: 'pointer' }}
                         >
-                          <td>{formatDate(res.createdAt)}</td>
+                          <td>
+                            <div className="datetime-cell">
+                              <span>{formatDateTime(res.createdAt)}</span>
+                              {res.status === '예약취소' && res.canceledAt && (
+                                <span className="cancelled-at">취소: {formatDateTime(res.canceledAt)}</span>
+                              )}
+                            </div>
+                          </td>
                           <td>{res.customerName}</td>
                           <td>{res.phone}</td>
                           <td>

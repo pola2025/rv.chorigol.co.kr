@@ -34,7 +34,9 @@ function CalendarPage() {
 
   const handleUpdateReservation = async (id, data) => {
     try {
-      await updateReservation({ id, ...data });
+      console.log('[CalendarPage] handleUpdateReservation called:', id, data);
+      await updateReservation(id, data);
+      console.log('[CalendarPage] 예약 수정 성공');
     } catch (error) {
       console.error('예약 수정 실패:', error);
       alert('예약 수정에 실패했습니다.');

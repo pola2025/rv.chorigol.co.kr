@@ -52,17 +52,25 @@ class TelegramService {
     const nights = this.calculateNights(reservation.checkIn, reservation.checkOut);
 
     // 객실 기준 인원 정보
+    // Forest: 기준 2인, 최대 4인 (추가인원 요금 발생)
+    // Forest mini: 기준/최대 2인 (추가인원 없음)
+    // Forest 패밀리: 기준 4인, 최대 5인 (추가비용 없음)
+    // Forest mini 패밀리: 기준 2인, 최대 3인 (추가비용 없음)
+    // 호수뷰객실: 기준 4인, 최대 6인 (추가인원당 2만원)
     const rooms = [
       { 객실명: 'Forest', 기준인원: 2, 추가요금: 20000 },
-      { 객실명: 'Forest mini', 기준인원: 2, 추가요금: 20000 },
-      { 객실명: '호수뷰객실', 기준인원: 4, 추가요금: 20000 },
-      { 객실명: '스파객실', 기준인원: 2, 추가요금: 20000 }
+      { 객실명: 'Forest mini', 기준인원: 2, 추가요금: 0 },
+      { 객실명: 'Forest 패밀리', 기준인원: 4, 추가요금: 0 },
+      { 객실명: 'Forest mini 패밀리', 기준인원: 2, 추가요금: 0 },
+      { 객실명: '호수뷰객실', 기준인원: 4, 추가요금: 20000 }
     ];
 
     const room = rooms.find(r => r.객실명 === reservation.roomName);
     const baseGuests = room?.기준인원 || 2;
     const extraGuests = Math.max(0, (reservation.guests || baseGuests) - baseGuests);
-    const extraGuestPrice = extraGuests * (room?.추가요금 || 20000) * nights;
+    // 예약에 저장된 extraGuestPrice 우선 사용, 없으면 계산 (추가요금이 0원인 객실 고려)
+    const extraGuestFee = room ? room.추가요금 : 20000;
+    const extraGuestPrice = reservation.extraGuestPrice ?? (extraGuests * extraGuestFee * nights);
 
     // 옵션 정보 파싱 및 분류
     let includedOptions = [];
@@ -109,7 +117,8 @@ class TelegramService {
     message += `📞 연락처: ${reservation.phone}\n`;
     message += `👥 인원: ${reservation.guests}명`;
 
-    if (extraGuests > 0) {
+    // 추가인원 요금이 있는 경우에만 "(기준 X명 + 추가 Y명)" 표시
+    if (extraGuests > 0 && extraGuestPrice > 0) {
       message += ` (기준 ${baseGuests}명 + 추가 ${extraGuests}명)`;
     }
     message += '\n';
@@ -118,7 +127,8 @@ class TelegramService {
     message += `────────────────\n`;
     message += `객실 요금: ${basePrice.toLocaleString()}원\n`;
 
-    if (extraGuests > 0) {
+    // 추가인원 요금이 있는 경우에만 표시
+    if (extraGuests > 0 && extraGuestPrice > 0) {
       message += `인원 추가: ${extraGuestPrice.toLocaleString()}원 (${extraGuests}명 × ${nights}박)\n`;
     }
 
@@ -174,22 +184,60 @@ class TelegramService {
     return result;
   }
 
+  // 객실 변경 알림
+  async sendRoomChangeNotification(reservation, previousRoomName, newRoomName) {
+    const nights = this.calculateNights(reservation.checkIn, reservation.checkOut);
+
+    let message = `🔄 <b>객실이 변경되었습니다</b>\n\n`;
+    message += `📅 날짜: ${reservation.checkIn} ~ ${reservation.checkOut} (${nights}박)\n`;
+    message += `👤 예약자: ${reservation.customerName}\n`;
+    message += `📞 연락처: ${reservation.phone}\n\n`;
+    message += `🏠 <b>객실 변경</b>\n`;
+    message += `────────────────\n`;
+    message += `변경 전: ${previousRoomName}\n`;
+    message += `변경 후: ${newRoomName}\n`;
+    message += `────────────────\n`;
+    message += `\n#객실변경 #${newRoomName.replace(/\s/g, '')}`;
+
+    // 기본 채널로 발송
+    const result = await this.sendMessage(message);
+
+    // 호수뷰객실 관련 변경인 경우 추가 채널로도 발송
+    if ((previousRoomName && previousRoomName.includes('호수뷰')) ||
+        (newRoomName && newRoomName.includes('호수뷰'))) {
+      try {
+        console.log('🏞️ [DEBUG] 호수뷰객실 관련 변경 - 추가 채널로 발송');
+        await this.sendMessage(message, 'HTML', TelegramService.LAKE_VIEW_CHAT_ID);
+        console.log('🏞️ [DEBUG] 호수뷰객실 추가 채널 발송 완료');
+      } catch (error) {
+        console.error('🏞️ [ERROR] 호수뷰객실 추가 채널 발송 실패:', error);
+      }
+    }
+
+    return result;
+  }
+
   // 예약 취소 알림
   async sendCancellationNotification(reservation, cancellationData) {
     console.log('❌ [텔레그램] 취소 알림 시작');
 
     const nights = this.calculateNights(reservation.checkIn, reservation.checkOut);
 
+    // 객실 기준 인원 정보 (sendReservationNotification과 동일)
     const rooms = [
       { 객실명: 'Forest', 기준인원: 2, 추가요금: 20000 },
-      { 객실명: 'Forest mini', 기준인원: 2, 추가요금: 20000 },
-      { 객실명: '호수뷰객실', 기준인원: 4, 추가요금: 20000 },
-      { 객실명: '스파객실', 기준인원: 2, 추가요금: 20000 }
+      { 객실명: 'Forest mini', 기준인원: 2, 추가요금: 0 },
+      { 객실명: 'Forest 패밀리', 기준인원: 4, 추가요금: 0 },
+      { 객실명: 'Forest mini 패밀리', 기준인원: 2, 추가요금: 0 },
+      { 객실명: '호수뷰객실', 기준인원: 4, 추가요금: 20000 }
     ];
 
     const room = rooms.find(r => r.객실명 === reservation.roomName);
     const baseGuests = room?.기준인원 || 2;
     const extraGuests = Math.max(0, (reservation.guests || baseGuests) - baseGuests);
+    // 추가인원 요금 계산 (추가요금이 0원인 객실 고려)
+    const extraGuestFee = room ? room.추가요금 : 20000;
+    const extraGuestPrice = reservation.extraGuestPrice ?? (extraGuests * extraGuestFee * nights);
 
     let cancelledOptions = [];
 
@@ -216,7 +264,8 @@ class TelegramService {
     message += `📞 연락처: ${reservation.phone}\n`;
     message += `👥 인원: ${reservation.guests}명`;
 
-    if (extraGuests > 0) {
+    // 추가인원 요금이 있는 경우에만 "(기준 X명 + 추가 Y명)" 표시
+    if (extraGuests > 0 && extraGuestPrice > 0) {
       message += ` (기준 ${baseGuests}명 + 추가 ${extraGuests}명)`;
     }
     message += '\n';

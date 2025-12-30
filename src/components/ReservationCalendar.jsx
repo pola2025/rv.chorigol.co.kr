@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { collection, query, getDocs } from 'firebase/firestore';
 import html2canvas from 'html2canvas';
 import { db } from '../config/firebase';
+import { toYYYYMMDD } from '../utils';
 import CustomCalendar from './CustomCalendar';
 import NewReservationModal from '../common/NewReservationModal';
 import './ReservationCalendar.css';
@@ -95,10 +96,15 @@ const ReservationCalendar = ({
     return reservations
       .filter(res => {
         if (res.status === '예약취소') return false;
-        const checkIn = new Date(res.checkIn);
-        const checkOut = new Date(res.checkOut);
-        const target = new Date(selectedDate);
-        return target >= checkIn && target < checkOut;
+
+        // Firebase Timestamp/다양한 날짜 형식 처리
+        const checkInStr = toYYYYMMDD(res.checkIn);
+        const checkOutStr = toYYYYMMDD(res.checkOut);
+
+        if (!checkInStr || !checkOutStr) return false;
+
+        // 문자열 비교로 날짜 범위 체크 (체크인 <= 선택일 < 체크아웃)
+        return selectedDate >= checkInStr && selectedDate < checkOutStr;
       })
       .sort((a, b) => {
         // 객실명 순서로 정렬
@@ -610,10 +616,15 @@ const ReservationCalendar = ({
     const booked = reservations.filter(res => {
       if (res.status === '예약취소') return false;
       if (res.roomName !== roomName) return false;
-      const checkIn = new Date(res.checkIn);
-      const checkOut = new Date(res.checkOut);
-      const target = new Date(dateStr);
-      return target >= checkIn && target < checkOut;
+
+      // Firebase Timestamp/다양한 날짜 형식 처리
+      const checkInStr = toYYYYMMDD(res.checkIn);
+      const checkOutStr = toYYYYMMDD(res.checkOut);
+
+      if (!checkInStr || !checkOutStr) return false;
+
+      // 문자열 비교로 날짜 범위 체크
+      return dateStr >= checkInStr && dateStr < checkOutStr;
     }).length;
 
     return Math.max(0, maxStock - booked);

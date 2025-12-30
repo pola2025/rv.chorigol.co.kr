@@ -11,10 +11,9 @@ import { useState, useEffect } from 'react';
  * @returns {string} YYYY-MM-DD 형식의 날짜 문자열
  */
 export const getKSTDateString = (date = new Date()) => {
-  const kstOffset = 9 * 60; // KST는 UTC+9
-  const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
-  const kstDate = new Date(utc + (kstOffset * 60000));
-  return kstDate.toISOString().split('T')[0];
+  // Intl.DateTimeFormat을 사용하여 항상 Asia/Seoul 타임존으로 변환
+  // 시스템 타임존에 관계없이 KST 기준 날짜 반환
+  return date.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
 };
 
 /**
@@ -23,10 +22,13 @@ export const getKSTDateString = (date = new Date()) => {
  * @returns {number} 시간 (0-23)
  */
 export const getKSTHour = (date = new Date()) => {
-  const kstOffset = 9 * 60;
-  const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
-  const kstDate = new Date(utc + (kstOffset * 60000));
-  return kstDate.getHours();
+  // Intl.DateTimeFormat을 사용하여 KST 시간 추출
+  const hourStr = date.toLocaleString('en-US', {
+    timeZone: 'Asia/Seoul',
+    hour: 'numeric',
+    hour12: false
+  });
+  return parseInt(hourStr, 10);
 };
 
 /**
@@ -35,10 +37,12 @@ export const getKSTHour = (date = new Date()) => {
  * @returns {number} 분 (0-59)
  */
 export const getKSTMinute = (date = new Date()) => {
-  const kstOffset = 9 * 60;
-  const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
-  const kstDate = new Date(utc + (kstOffset * 60000));
-  return kstDate.getMinutes();
+  // Intl.DateTimeFormat을 사용하여 KST 분 추출
+  const minuteStr = date.toLocaleString('en-US', {
+    timeZone: 'Asia/Seoul',
+    minute: 'numeric'
+  });
+  return parseInt(minuteStr, 10);
 };
 
 /**
@@ -57,18 +61,23 @@ return () => window.removeEventListener('resize', handleResize);
 return width;
 };
 
-// 날짜에서 다음 날짜 문자열을 반환하는 함수 (KST 기준)
+// 날짜에서 다음 날짜 문자열을 반환하는 함수 (YYYY-MM-DD 형식)
 export const getNextDateStr = (dateStr) => {
   if (!dateStr) return '';
 
   try {
-    const date = new Date(dateStr + 'T00:00:00+09:00'); // KST 기준으로 파싱
-    if (isNaN(date.getTime())) {
-      console.error('Invalid date:', dateStr);
-      return '';
-    }
-    date.setDate(date.getDate() + 1);
-    return getKSTDateString(date);
+    // YYYY-MM-DD 형식의 문자열을 파싱
+    const [year, month, day] = dateStr.split('-').map(Number);
+
+    // 다음 날 계산
+    const nextDate = new Date(year, month - 1, day + 1);
+
+    // YYYY-MM-DD 형식으로 반환
+    const nextYear = nextDate.getFullYear();
+    const nextMonth = String(nextDate.getMonth() + 1).padStart(2, '0');
+    const nextDay = String(nextDate.getDate()).padStart(2, '0');
+
+    return `${nextYear}-${nextMonth}-${nextDay}`;
   } catch (error) {
     console.error('Error in getNextDateStr:', error, dateStr);
     return '';
