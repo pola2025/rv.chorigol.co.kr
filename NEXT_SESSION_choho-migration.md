@@ -1,14 +1,39 @@
-# 초호펜션 예약관리시스템 — Firebase → Vercel + Cloudflare D1 마이그레이션
+# 초호펜션 예약관리시스템 — Firebase·Airtable → Vercel + Cloudflare D1 마이그레이션
 
-> 세션 핸드오프 · 2026-07-16 작성
+> 세션 핸드오프 · 최종 갱신 2026-07-16
 
 ## 복사용 요청문
 ```
-초호펜션 예약관리시스템 마이그레이션 진행 중. Phase 1(D1 스키마) 완료, Phase 2(데이터 이관) 진행 중.
-NEXT_SESSION_choho-migration.md 에 전체 컨텍스트. 계획서: 아래 아티팩트 링크.
+초호펜션 예약시스템 Firebase→Vercel+D1 이관 중. Phase 0~4 완료 + Phase3 화면 4/5.
+다음: 알림설정 화면(마지막) → 예약 편집UI → 인증(Phase5).
+F:\rv-chorigol.co.kr\NEXT_SESSION_choho-migration.md 전체 컨텍스트. 브랜치 migrate/nextjs-d1.
+테스트: 문자는 01098979834로만, 예약 알림봇 실채널 발송금지, 한글 payload curl금지(node).
 ```
 
-계획서 아티팩트: https://claude.ai/code/artifact/84c4a8c2-5770-4966-9404-aa70a3b82164
+**계획서**: https://claude.ai/code/artifact/84c4a8c2-5770-4966-9404-aa70a3b82164
+**브랜치**: `migrate/nextjs-d1` (라이브 Vite 앱은 `main`, 무영향)
+
+## 한눈에 보는 진행률
+
+| Phase | 내용 | 상태 |
+|---|---|---|
+| 0 | 계정·SSH·DNS(Cloudflare)·admin 도메인 | ✅ |
+| 1 | D1 생성 + 스키마 13테이블 | ✅ |
+| 2 | 데이터 2,067건 전량 이관 + 검증 + 시크릿 env 분리 | ✅ |
+| 3 | Next.js 15 + 화면 이식 **4/5** (캘린더·예약목록·객실·옵션) | 🔄 |
+| 4 | 쓰기 API + 알림 통합 (트리거 대체) | ✅ |
+| — | 인프라봇 헬스체크 분리 | ✅ |
+| 5 | 인증 (Firebase Auth → JWT 쿠키) | ⬜ |
+| 6 | api.chorigol.co.kr Worker 보안 | ⬜ |
+| 7 | 컷오버 (rv CNAME) → 병렬운영 2주 | ⬜ |
+| 8 | Firebase·Airtable 폐기 | ⬜ |
+
+**운영은 100% 기존 Firebase에서 가동 중.** 오늘 배포한 것은 문자버그 수정(main `9ece739`)뿐.
+
+## 다음 세션 첫 액션
+1. **알림 설정 화면** (Phase3 마지막) — room_templates/sms_config 편집 UI + 쓰기 API
+2. **예약 편집 UI** — 캘린더에 수정/확정/취소 모달 (API PATCH는 이미 준비됨)
+3. Phase 5 인증
 
 ---
 
