@@ -1,8 +1,16 @@
 // src/components/ReservationCalendar.jsx
 // 2025 리뉴얼 - 관공서 스타일, 직관적이고 가독성 중심
+//
+// ⚠️ Firebase → D1 이관 (2026-07-17).
+//    이 화면은 rooms/options/reservations 를 **자체 useState 로 중복 fetch** 하고 있었다
+//    (getDocs 3곳). 같은 데이터를 전역 스토어(useFirebaseStore)가 이미 /api/snapshot 으로
+//    들고 있으므로 훅으로 치환했다 — 데이터 출처만 바뀌고 화면 모양은 그대로다.
+//    쓰기는 원래부터 props(onAddReservation 등)로 상위에 위임하고 있어 손댈 게 없었다.
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { collection, query, getDocs } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { useRooms } from '../hooks/useRooms';
+import { useOptions } from '../hooks/useOptions';
+import { useReservations } from '../hooks/useReservations';
+import useFirebaseStore from '../stores/useFirebaseStore';
 import { toYYYYMMDD } from '../utils';
 import telegramService from '../services/telegramService';
 import CustomCalendar from './CustomCalendar';
@@ -16,10 +24,10 @@ const ReservationCalendar = ({
   onUpdateReservation,
   onAddReservation
 }) => {
-  const [reservations, setReservations] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [rooms, setRooms] = useState([]);
-  const [options, setOptions] = useState([]);
+  // 전역 스냅샷에서 받는다 (레거시는 여기서 getDocs 로 또 읽었다)
+  const { data: rooms = [] } = useRooms();
+  const { data: options = [] } = useOptions();
+  const { data: reservations = [], isLoading: loading } = useReservations();
   const [selectedDate, setSelectedDate] = useState(null);
   const [isNewReservationOpen, setIsNewReservationOpen] = useState(false);
   const [editingReservation, setEditingReservation] = useState(null);
@@ -28,13 +36,7 @@ const ReservationCalendar = ({
   const [showTelegramConfirm, setShowTelegramConfirm] = useState(false);
   const panelRef = useRef(null);
 
-  // 데이터 로드
-  useEffect(() => {
-    loadRooms();
-    loadOptions();
-    loadReservations();
-  }, []);
-
+  // 데이터 로드는 useFirebaseStore(초기화 시 /api/snapshot 1회)가 담당한다 — 여기서 또 받지 않는다
   // 모바일에서 캘린더 페이지 body 스크롤 방지
   useEffect(() => {
     const isMobile = window.innerWidth < 768;
@@ -59,38 +61,8 @@ const ReservationCalendar = ({
     };
   }, [selectedDate]);
 
-  const loadRooms = async () => {
-    try {
-      const snapshot = await getDocs(collection(db, 'rooms'));
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setRooms(data);
-    } catch (error) {
-      console.error('객실 로드 실패:', error);
-    }
-  };
-
-  const loadOptions = async () => {
-    try {
-      const snapshot = await getDocs(collection(db, 'options'));
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setOptions(data);
-    } catch (error) {
-      console.error('옵션 로드 실패:', error);
-    }
-  };
-
-  const loadReservations = async () => {
-    setLoading(true);
-    try {
-      const snapshot = await getDocs(query(collection(db, 'reservations')));
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setReservations(data);
-    } catch (error) {
-      console.error('예약 로드 실패:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  /** 쓰기 후 갱신 — 레거시의 loadReservations() 자리. D1 엔 push 가 없어 다시 받아야 한다 */
+  const loadReservations = () => useFirebaseStore.getState().refresh();
 
   // 선택된 날짜의 예약 필터링
   const selectedDateReservations = useMemo(() => {

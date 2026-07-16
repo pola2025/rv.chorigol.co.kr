@@ -23,3 +23,6 @@ functions/node_modules/
 # Next.js
 .next/
 next-env.d.ts
+
+# reachability.mjs 생성물
+scripts/audit/.dead-files.txt
