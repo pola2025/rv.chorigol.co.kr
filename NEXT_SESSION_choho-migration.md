@@ -352,6 +352,59 @@ Firestore 보고 발송 중). 화면에 그렇게 명시해둠. 컷오버 전 �
   사실상 죽은 코드. 실제 관리자 목록은 `firestore.rules` 9-12행 (3개)
 - Firebase Auth 비번 해시는 이관 안 함 — 신규 스택은 새 비번 (스키마 주석대로)
 
+## 🔒 재고 가드 완료 (2026-07-16, 커밋 `c3d2257`) — `lib/inventory.js`
+
+### 발견: 현행(Firestore)은 오버부킹을 못 막고 있다
+`useReservationStore.js:509-518`이 예약목록을 `runTransaction` **밖**에서 `getDocs`로 읽고,
+안에서는 그 **낡은 배열**로 센다. `transaction.get`은 override 문서 하나뿐 → 충돌 감지 없음.
+**동시 예약이 같은 스냅샷을 보고 둘 다 통과하는 TOCTOU.** 540건에 오버부킹 0건인 건
+트랜잭션 덕이 아니라 **동시성이 낮아서**(관리자 1~2명 수기 입력).
+
+### 해법: 단일 문장 원자성
+D1엔 대화형 트랜잭션이 없지만 **한 문장은 원자적**이고, D1은 쓰기를 단일 primary로 직렬화한다.
+재고검사를 INSERT/UPDATE의 `WHERE`에 넣어 통과할 때만 쓰이게 했다 → **레거시보다 엄격**.
+- `insertGuarded` / `updateGuarded` / `diagnose` / `availableStock`
+- **UPDATE도 반드시 가드** — INSERT만 막으면 취소→확정 되돌리기·날짜수정으로 점유가 되살아남
+- `x.id != ?4` **자기제외 필수** — 없으면 재고 1짜리 방이 자기가 자기를 막는다
+- 숙박 **60박 상한** — CTE가 쓰기락 잡은 채 폭주하는 사고 차단
+
+### 재고 규칙 (레거시 이식 + override만 교정)
+```
+1) rooms에 객실 없으면 → 0            (override보다 먼저 — 레거시 순서)
+2) 정원 = override.stock ?? rooms.stock ?? 0
+3) 남은재고 = max(0, 정원 - 점유예약수)
+4) 점유: check_in <= d < check_out · 취소 제외 · 막기도 점유로 셈
+5) source='막기' → 검사 스킵 (레거시 동일)
+```
+- `재고` = D1 **`stock`** 컬럼 (`base_stock`=`기본재고`는 별개). **`base_stock` 폴백 넣으면 틀림**
+
+### ⚠️ override 의미 교정 (사용자 결정 B안 · 레거시와 유일하게 달라지는 점)
+레거시는 override를 "남은 재고 **절대값**"으로 읽어 **예약수를 차감하지 않았다** →
+`2025-08-15 호수뷰객실`(ov=6·예약=6·만실)을 "6실 남음"으로 판단해 **계속 받던 버그**.
+→ override = **정원**으로 해석해 차감. 저장값 4건이 전부 `rooms.stock`과 같아 **데이터 변환 불필요**.
+- 달라지는 날: `2025-08-15 Forest 패밀리`, `2025-08-15 호수뷰객실` (둘 다 만실 → 이제 막힘). 그 외 전건 동일
+
+### 🐞 inventory_overrides 이관 버그 (수정 완료)
+`date`·`stock`이 **26건 전부 NULL**이었고 실값은 `data` JSON에만 → **막아둔 날 19건이 통째로 무시**됨
+(9/1~9/3 전객실 차단이 D1에선 예약을 받는 상태였음). ID(`{date}_{room}`)에서 파싱해 복구, 9/9 검증 통과.
+- **레거시는 override를 문서 ID로 조회**하므로 **ID가 진실**. json.roomName은 낡을 수 있음(단체예약→단체-워크샵)
+- 랜덤 id 3건은 레거시가 `doc(id)`로 못 읽는 **죽은 데이터** → NULL 유지해 동일하게 무시
+
+### 감사 (23건 통과) — `scratchpad/audit-inventory.mjs`
+- 동등성 **2,940건 대조**(5객실×420일) — 가드SQL == 확정규칙 불일치 0
+- **동시 8건 → 정확히 2건만 성공, 실점유 2, 오버부킹 0** ← 레거시가 못 하던 것
+- 없는 객실 거절 / 막기 통과 / 진단 날짜특정 / UPDATE 자기제외 / D1 원상복구
+
+### fable 교차검증에서 나온 미반영 권고 (다음 세션 검토)
+- **`calendar` 유틸 테이블**(2020~2035 날짜)로 CTE 대체 → 트리거에서 CTE 금지라 트리거화의 전제
+- **BEFORE INSERT/UPDATE 트리거**로 가드를 DB 제약화 → 모든 쓰기 경로 자동 커버 (백필 후에 생성할 것)
+- 스키마 보강: `UNIQUE(rooms.name)`, `UNIQUE(inventory_overrides.room_name,date)`,
+  `CHECK(check_out >= check_in)`, `status NOT NULL DEFAULT '입금대기'`,
+  `INDEX(reservations.room_name, status, check_in, check_out)`
+- **REST `/query`는 control-plane API** — 글로벌 rate limit(~1200req/5분) 공유, 지연 큼.
+  `web-architecture.md`대로 **D1 Proxy Worker** 뒤로 옮길 것 (Phase 6)
+- HTTP 재시도 중복: 클라 생성 `id`를 멱등키로 — PK 충돌은 성공으로 처리
+
 ## Phase 4 완료 — 예약 쓰기 API + 알림 통합 (트리거 대체)
 
 - `app/api/reservations/route.js`: POST(생성)/PATCH(수정·취소)/GET. 상태전환·객실변경 감지 → 알림
