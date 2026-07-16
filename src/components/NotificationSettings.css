@@ -464,6 +464,26 @@
   border-top: 1px solid #e5e7eb;
 }
 
+/* 시크릿은 서버 env 가 단일 소스 — 값을 브라우저로 내려보내지 않는다는 안내 */
+.managed-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid #e5e7eb;
+  border-left: 3px solid #6b7280;
+  border-radius: 6px;
+  background: #f9fafb;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.managed-notice small {
+  color: #6b7280;
+  font-size: 0.8125rem;
+}
+
 /* 폼 그리드 */
 .form-grid {
   display: grid;
