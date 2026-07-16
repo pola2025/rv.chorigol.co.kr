@@ -33,7 +33,10 @@ function ReservationsPage() {
 
   const handleUpdateReservation = async (id, data) => {
     try {
-      await updateReservation({ id, ...data });
+      // useUpdateReservation 은 (id, data) 두 인자를 받는다.
+      // 객체 하나로 넘기면 스토어가 reservationId={객체}, updates=undefined 를 받아
+      // 수정이 항상 실패한다. 캘린더(CalendarPage)는 처음부터 두 인자로 부르고 있었다.
+      await updateReservation(id, data);
     } catch (error) {
       console.error('예약 수정 실패:', error);
       alert('예약 수정에 실패했습니다.');
