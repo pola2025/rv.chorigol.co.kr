@@ -151,8 +151,34 @@ Firestore 접근: firebase-tools refresh_token (`C:/Users/flame/.config/configst
 ### 다음 액션 (Phase 3 시작 전 확인)
 - marketing_stats_v2 이관 여부 결정
 
+---
+
+## Phase 3 진행 중 — Next.js + D1 (브랜치: migrate/nextjs-d1)
+
+### 프로젝트 경로 정리 (중요 — 혼동 주의)
+- **F:\rv-chorigol.co.kr** = 예약시스템 (이식 대상, 지금 여기). Next.js 앱을 **이 repo 안에** 신규 구축
+- **F:\choho_2025** = 초호펜션 공개 홈페이지 (Next.js+D1, 구 계정 pola2025/choho). 무관
+- **F:\chohopark** = 별개 .net 브랜드사이트. **무관 — 건드리지 말 것**
+- admin = 기존 경로 없음 → 이 repo에서 신규 생성. admin.chorigol.co.kr (새 계정 chohopark134에 연결됨)
+- 라이브 Vite 앱은 main 브랜치 유지. Next.js 작업은 migrate/nextjs-d1 브랜치에 격리
+
+### 완료 (검증됨)
+- **D1 접근 계층**: `lib/d1.js` (HTTP API 클라이언트, 파라미터 바인딩, 서버 전용 — 토큰 클라이언트 노출 0)
+  - 인증 우선순위: CLOUDFLARE_D1_TOKEN(Bearer) → GLOBAL_API_KEY+EMAIL(X-Auth)
+- **예약 조회 계층**: `lib/reservations.js` — listByCheckIn/listByRange/listByStatus/getById/statusSummary
+  - 옵션 join은 IN 절 청크(90개)로 D1 변수한도(100) 회피 — 검증 중 발견·수정
+- `.env.local`에 `D1_DATABASE_ID=d9bf20dc-68cf-4077-b238-f1efc7e0ab3b` 추가
+- 검증: 실제 이관 데이터 읽기·옵션/현장결제 구분·범위 106건 정상
+
+### 다음 액션 (Phase 3 이어서)
+1. Next.js 14 App Router 스캐폴딩 (이 repo 내). D1 접근은 `lib/` 재사용
+2. D1 접근 방식: 현재 HTTP API 직접. Phase 6에서 api.chorigol.co.kr Worker 프록시로 승격 검토
+3. 화면 이식: 캘린더/예약/객실/옵션/알림 (기존 src/pages/*.jsx 참고)
+4. 리스너 7곳(onSnapshot) → 폴링/revalidate, Airtable 제거
+5. 나머지 조회 계층 작성: rooms/customers/options/templates
+
 ## 이후 Phase (계획서 참조)
-- Phase 3: Vite→Next.js, Firestore→D1 SQL, 리스너 7곳→폴링, Airtable 제거
+- Phase 3(계속): Vite→Next.js 화면 이식, 리스너→폴링, Airtable 제거
 - Phase 4: 알림 트리거 2개 → API Route 쓰기 경로 통합 (최대 난관, D1엔 트리거 없음)
 - Phase 5: Firebase Auth → JWT admin_token 쿠키
 - Phase 6: api.chorigol.co.kr Worker 7-Layer 보안
