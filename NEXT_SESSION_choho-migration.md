@@ -4,10 +4,11 @@
 
 ## 복사용 요청문
 ```
-초호펜션 예약시스템 Firebase→Vercel+D1 이관 중. Phase 0~4 완료 + Phase3 화면 5/5 완료.
-다음: 예약 편집UI(캘린더 수정/확정/취소 모달) → 인증(Phase5).
+초호펜션 예약시스템 Firebase→Vercel+D1 이관 중. Phase 0~4 완료 + Phase3 화면 5/5 + 예약 편집UI 완료.
+다음: Phase 5 인증 (Firebase Auth → JWT admin_token 쿠키).
 F:\rv-chorigol.co.kr\NEXT_SESSION_choho-migration.md 전체 컨텍스트. 브랜치 migrate/nextjs-d1.
 테스트: 문자는 01098979834로만, 예약 알림봇 실채널 발송금지, 한글 payload curl금지(node).
+D1 쓰기테스트는 source="막기"로만. 삭제는 정확한 ID로만 (LIKE 패턴 금지 — 실데이터 삭제 사고 있었음).
 ```
 
 **계획서**: https://claude.ai/code/artifact/84c4a8c2-5770-4966-9404-aa70a3b82164
@@ -31,16 +32,33 @@ F:\rv-chorigol.co.kr\NEXT_SESSION_choho-migration.md 전체 컨텍스트. 브랜
 **운영은 100% 기존 Firebase에서 가동 중.** 신규 스택(D1/Next)은 아직 아무도 안 씀.
 
 ## 다음 세션 첫 액션
-1. **예약 편집 UI** — 캘린더에 수정/확정/취소 모달 (API PATCH는 이미 준비됨).
-   확정 버튼 → PATCH status=예약확정 (→ 문자+텔레그램), 취소 버튼 → cancel (→ 텔레그램만)
-2. **Phase 5 인증** — Firebase Auth → JWT admin_token 쿠키
-3. 조회 계층 잔여: customers, inventory_overrides, marketing_stats, pricing
+1. **Phase 5 인증** — Firebase Auth → JWT admin_token 쿠키.
+   현재 신규 스택은 **인증이 아예 없다** — 컷오버 전 필수. 쿠키 규칙은 `web-architecture.md`
+   (Domain=admin 한정 / HttpOnly / Secure / SameSite=Strict. 부모도메인 쿠키 금지)
+2. 조회 계층 잔여: customers, inventory_overrides, marketing_stats, pricing
+3. 입실·퇴실 스케줄러 이관 (아래 미이관 항목)
 
 ## ⚠️ 정리 필요 (사소)
 - **`NEXT_SESSION_REQUEST.md`** (untracked): 2026-03-02 Firebase 시절 문서. 내용이 낡아
   새 세션이 이 파일을 먼저 읽고 혼동함. 삭제 권장 — 현행 핸드오프는 이 파일 하나.
 - 루트에 수정된 레거시 Vite 파일 12개(`src/`, `functions/src/index.js`)가 커밋 안 된 채 방치.
   이관과 무관한 예전 작업물 — 정체 확인 후 커밋하거나 되돌릴 것.
+
+## 🔴 사고 기록 — D1 실데이터 삭제 (2026-07-16, 복구 완료)
+테스트 데이터를 지우려고 `DELETE ... WHERE customer_name LIKE '테스트%'` 를 실행 →
+**이관된 실데이터 2건이 함께 삭제됨** (`BXDS80zPDSfoqDQYWMUR`, `wAYSl9O91aQMP1Z6wD2V`.
+둘 다 고객명이 정확히 "테스트"인 예전 예약. 540 → 538).
+
+- **복구**: 이전 세션 Firestore 덤프(`.../efb75902-.../scratchpad/dump/reservations.json`)에서
+  최초 로더(`load-core.mjs`)와 동일한 매핑으로 재삽입. 옵션 3건도 CASCADE 삭제돼 함께 복구.
+- **검증**: `verify-migration.mjs` 전 항목 통과 (540건 / 98,105,000원 / 옵션 366 / 상태분포 일치)
+- **교훈 (반드시 지킬 것)**:
+  1. **삭제는 정확한 ID로만.** 이름·패턴(LIKE) 기반 삭제 절대 금지 — 실데이터에 "테스트"라는
+     이름이 실제로 존재한다
+  2. 테스트 데이터는 **생성 시 받은 ID를 변수에 들고 있다가** 그 ID로만 삭제
+  3. **덤프는 임시폴더에 있어 세션 종료 시 사라진다.** 이번엔 운 좋게 이전 세션 폴더가
+     남아 있어 복구됐다. 다음에 같은 일이 나면 Firestore에서 재덤프(`dump-all.mjs`) 필요 —
+     Firebase 폐기(Phase 8) 이후엔 **복구 불가**. 폐기 전 덤프를 영구 보관할 것
 
 ---
 
@@ -225,6 +243,24 @@ Firestore 보고 발송 중). 화면에 그렇게 명시해둠. 컷오버 전 �
 
 **검증**: 쓰기 API 21건 통과(검증·차단·정규화·복구) → D1 원상복구 확인(28행 유지) /
 클라 번들 D1토큰·CF흔적 0(grep) / 브라우저 `{customerName}` 입력 → 미리보기 경고 + 서버 400 + D1 미변경
+
+### 예약 편집 UI (2026-07-16 완료, 커밋 `22dc95b` + `b447fc9`)
+캘린더 날짜별 목록에서 예약을 누르면 모달 → 수정 / 확정 / 취소.
+- `app/calendar/EditReservationModal.jsx` (수정폼 / 확정확인 / 취소+환불계산 3단)
+- `lib/refund-policy.js` — 레거시 `src/constants/refundPolicy.js` 이식.
+  요율 그대로 (2일전 20% / 3~4일 50% / 5~6일 70% / 7일+ 90% / 당일·1일전 0%).
+  레거시와 95케이스 출력 완전 일치 확인. `src/`는 컷오버 후 삭제라 신규 스택이 참조 안 하게 옮김
+
+**설계 결정:**
+- **status는 폼에서 직접 못 바꾼다.** 확정/취소는 실제 문자·텔레그램이 나가므로 전용 버튼 +
+  확인 단계로만. 폼 저장하다 실수로 알림이 나가는 경로를 아예 없앰
+- **미저장 변경이 있으면 확정/취소 비활성** — 낡은 값으로 문자가 나가는 것 방지
+- 확정 확인 화면에 **수신번호를 명시**. 막기 예약이면 "알림 없음"으로 문구 분기
+- `window.confirm` 미사용 — 브라우저 모달은 자동화·UX 양쪽에 나쁨. 인앱 확인 단계로
+
+**주의**: 확정 = 실제 고객에게 문자 발송. 테스트는 **반드시 `source="막기"`** 로만
+(`notifyReservation` 첫 줄에서 스킵). 비-막기로 POST 하면 즉시 실채널 텔레그램이 나간다 —
+알림 없이 픽스처가 필요하면 API 말고 `lib/reservations.js`의 `createReservation` 직접 호출
 
 ### 기타 완료
 - **Next.js 15 도입** (React 19 호환. Next 14는 React19 미지원). `app/` App Router, Vite `src/`와 공존
