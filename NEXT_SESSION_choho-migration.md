@@ -4,9 +4,11 @@
 
 ## 복사용 요청문
 ```
-초호펜션 예약시스템 Firebase→Vercel+D1 이관 중. Phase 0~5 완료. 스토어 2/2 완료. 죽은코드 159개 정리(src/ 235→76).
-다음: settings/option_settings 미이관 갭 → rooms/options/pricing_rules 쓰기 API 신설 →
-      RoomManagement·OptionsSettings 이식(지금 읽기D1/쓰기Firestore 로 갈라져 있음).
+초호펜션 예약시스템 Firebase→Vercel+D1 이관 중. Phase 0~5 완료. 스토어 2/2. 죽은코드 159개 정리(src/ 235→76).
+option_settings 갭 복구 + rooms/options/pricing_rules 쓰기 API + RoomManagement·OptionsSettings 이식 완료
+(split-brain 해소). Firebase 직접사용 14개 → **12개**.
+다음: ReservationCalendar(읽기 3곳, 가장 쉬움) → NewReservationModal → useCustomers →
+      sensService/DataInitializer 삭제 → NotificationSettingsV2·SmsHistoryTable → App/LoginScreen 인증.
 F:\rv-chorigol.co.kr\NEXT_SESSION_choho-migration.md 전체 컨텍스트. 브랜치 migrate/nextjs-d1.
 최종 화면은 **Next 가 레거시 컴포넌트를 렌더**한다(사용자 확정). App.jsx·react-router·재작성본은 폐기 대상.
 도달성 판정은 grep 금지 → `node scripts/audit/reachability.mjs` (Dashboard.jsx 가 죽은 코드였다).
@@ -40,7 +42,8 @@ F:\rv-chorigol.co.kr\NEXT_SESSION_choho-migration.md 전체 컨텍스트. 브랜
 | — | 인프라봇 헬스체크 분리 | ✅ |
 | 5 | 인증 (Firebase Auth → JWT 쿠키) | ✅ (비번 설정만 남음) |
 | — | **재고 가드** (오버부킹 원자적 차단) + API 연결 | ✅ |
-| — | **레거시 화면 이식** (rv 모양 그대로) | 🔄 **스토어 2/2 ✅ · Firebase 직접사용 14개 남음** |
+| — | **레거시 화면 이식** (rv 모양 그대로) | 🔄 스토어 2/2 ✅ · **Firebase 직접사용 12개 남음** |
+| — | option_settings 갭 복구 + rooms/options/pricing_rules 쓰기 API + 두 화면 이식 | ✅ |
 | 6 | api.chorigol.co.kr Worker 보안 | ⬜ |
 | 7 | 컷오버 (rv CNAME) → 병렬운영 2주 | ⬜ |
 | 8 | Firebase·Airtable 폐기 | ⬜ |
@@ -62,9 +65,30 @@ node scripts/set-admin-password.mjs
 - **에이전트에게 비밀번호를 알려주지 말 것** — 채팅에 남으면 그 자체가 유출이다
 
 ## 다음 세션 첫 액션
-**`rooms` / `options` / `pricing_rules` 쓰기 API 신설 → RoomManagement·OptionsSettings 이식.**
-지금 이 둘은 **읽기는 D1, 쓰기는 옛 Firestore** 로 갈라져 있다(아래 "split-brain"). 가장 고장난 상태다.
-그 전에 **`settings/option_settings` 미이관 갭**부터 메워야 한다 — 데이터가 없으면 이식이 불가능하다.
+**`ReservationCalendar` 이식** (읽기 3곳뿐 — 가장 쉽다). `getDocs(rooms/options/reservations)` 를
+이미 D1 인 `useRooms()/useOptions()/useReservations()` 로 치환하면 끝. 자체 useState 로 같은 데이터를
+중복 fetch 하고 있을 뿐이라 모양이 안 바뀐다.
+
+그 다음 순서(쉬운 것부터): `NewReservationModal`(serverTimestamp import 1개만 정리) →
+`useCustomers`(단건 getDoc → `useFirebaseStore.customers` 로 흡수, `updateCustomer` 는 죽은 코드) →
+**`sensService` 삭제**(보안 — 아래) + **`DataInitializer` 삭제**(파괴 위험 — 아래) →
+`NotificationSettingsV2`(신규 `app/notifications` 와 중복 — 빠진 `autoSendDaily` 만) ·
+`SmsHistoryTable`(`notification_log` JOIN 으로 재작성) → `App.jsx`·`LoginScreen`(Firebase **Auth** →
+`lib/auth-jwt.js`) → `src/config/firebase.js` 제거.
+
+### ✅ 완료 — split-brain 해소 + option_settings 갭 (커밋 `4e5a1ee` `2730e27` `33665e6`)
+- **`settings/option_settings` 미이관 갭 복구**: D1 에 `settings` 테이블 자체가 없어
+  `late_checkout.roomStocks{Forest:1, Forest mini:2}` 와 `extra_person`(15,000원/인)이 유실돼 있었다.
+  이게 없으면 **예약화면에서 레이트체크아웃이 통째로 사라진다**(NewReservationModal:845 —
+  `isAvailableForRoom` 이 참일 때만 체크박스가 뜬다). `option_settings` 테이블 + `/api/option-settings`.
+  → `options` 테이블과 **합치지 않았다**: id(late_checkout)가 겹치고 **독자가 다르다**
+    (`options` → 옵션 목록 · `option_settings` → 노출 여부). 합치면 한쪽이 죽는다.
+- **쓰기 API 신설**: `/api/rooms` `/api/options` `/api/pricing-rules` (POST/PATCH/DELETE/GET)
+- **두 화면 이식**: RoomManagement(쓰기 8곳)·OptionsSettings(4곳) → Firestore 호출 0
+- **객실명 변경 차단** (사용자 결정): 폼 읽기전용 + 서버 400. 이름이 7곳의 사실상 FK 이고
+  레거시 연쇄는 어차피 깨져 있었다(예약 고아화 + 접두사 오염)
+- **`/api/getDoc` 이 없어서 죽어 있던 로드 경로**를 `/api/option-settings` 로 고쳤다
+  (OptionsSettings 는 저장된 기본옵션을 초기 커밋 이래 한 번도 못 불러왔다)
 
 ### 이식 대상 14개 (측정 확정 — `node scripts/audit/reachability.mjs`)
 죽은 코드 159개를 지운 뒤 `src/` 는 76개만 남았고, 그중 **Firebase 를 직접 쓰는 건 14개**다.
@@ -545,19 +569,17 @@ customers 402 / overrides 26 를 원본 Firestore 덤프와 **전필드 대조**
 
 ### 🚨 측정으로 드러난 것 (2026-07-16 · 전부 실측)
 
-**1. split-brain — 읽기 D1 / 쓰기 Firestore**
-`RoomManagement`·`OptionsSettings` 는 읽기를 이미 `useFirebaseStore`(D1)로 하는데 **쓰기는 옛
-Firestore 를 직접 친다**. 저장해도 화면에 안 나타난다. 이 브랜치 한정(운영 main 무관)이지만
-**이 상태로 컷오버하면 객실·옵션 관리가 조용히 죽는다.** `rooms`/`options`/`pricing_rules` API 가
-아예 없어서 단순 치환이 아니라 신규 설계다.
+**1. ~~split-brain~~ → ✅ 해소** (`33665e6`). RoomManagement·OptionsSettings 쓰기가 `/api/*` 로 갔다.
 
-**2. `settings/option_settings` 미이관 — 진짜 데이터 갭**
-D1 에 `settings` 테이블 자체가 없다. 덤프엔 있다:
-- `late_checkout.roomStocks = {Forest mini: 2, Forest: 1}` ← `NewReservationModal` 이 읽는 재고 제한
-- `extra_person` (인원 추가 15,000원 per_person) ← **options 컬렉션엔 아예 없는 항목**
-`options.late_checkout.room_stocks` 는 **NULL**. 이관 안 하면 레이트체크아웃 재고가 조용히 풀린다.
-※ Firestore 는 `options/late_checkout` 문서와 `settings/option_settings.late_checkout` **두 벌**을
-   갖고 있고 값도 다르다(설명·applicableRooms). 어느 쪽이 진실인지 정하고 이관할 것.
+**2. ~~`settings/option_settings` 미이관~~ → ✅ 복구** (`4e5a1ee`).
+"어느 쪽이 진실이냐"의 답: **둘 다 진실이고 독자가 다르다** — `options/late_checkout` 은 useOptions →
+옵션 목록(이름·가격), `option_settings/late_checkout` 은 useLateCheckoutSettings → **노출 여부**(roomStocks).
+합치면 한쪽이 죽고, id 가 같아 한 테이블에 넣을 수도 없다 → 별도 테이블로 미러.
+
+**2-1. 🐞 D1 이 JS `false` 를 문자열 "false" 로 저장한다** (`2730e27` 에서 수정)
+SQLite 는 동적 타입이라 INTEGER 컬럼에 그대로 들어간다 → `WHERE is_active=1` 은 안 걸리는데
+역매퍼 `!!"false"` = true → **"목록엔 없는데 화면엔 활성"** 인 유령 상태. `lib/d1.js` 바인딩 계층에서
+0/1 로 정규화했다. 기존 데이터 전수 검사 → 오염 0건. **새 코드에서 불리언을 넘길 때 주의.**
 
 **3. 보안 — `sensService.js` 가 SENS 키 원문을 브라우저로 내린다 (운영 중)**
 `settings/notifications_v2_*` 에서 `accessKey`/`secretKey` 를 클라이언트가 `getDoc` 으로 읽어
