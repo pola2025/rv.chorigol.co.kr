@@ -1,5 +1,8 @@
+"use client";
 // 공용 상단 네비 — 레거시 MainLayout 대체.
+// 로그인 화면에서는 숨긴다 (보호 페이지 링크를 눌러봐야 다시 로그인으로 튕기기만 함).
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const TABS = [
   { href: "/calendar", label: "예약 캘린더" },
@@ -10,6 +13,14 @@ const TABS = [
 ];
 
 export default function Nav() {
+  const pathname = usePathname();
+  if (pathname === "/login") return null;
+
+  async function logout() {
+    await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+    window.location.replace("/login");
+  }
+
   return (
     <header
       style={{
@@ -60,6 +71,23 @@ export default function Nav() {
             </Link>
           ))}
         </nav>
+        <button
+          onClick={logout}
+          style={{
+            marginLeft: "auto",
+            background: "#fff",
+            color: "#6a7a71",
+            border: "1px solid #dde3de",
+            borderRadius: 5,
+            padding: ".35rem .7rem",
+            fontSize: ".78rem",
+            cursor: "pointer",
+            fontFamily: "inherit",
+            whiteSpace: "nowrap",
+          }}
+        >
+          로그아웃
+        </button>
       </div>
     </header>
   );

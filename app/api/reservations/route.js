@@ -8,8 +8,12 @@ import {
   getById,
 } from "../../../lib/reservations.js";
 import { notifyReservation } from "../../../lib/reservation-notify.js";
+import { requireAuth } from "../../../lib/auth-jwt.js";
 
 export const dynamic = "force-dynamic";
+
+// 미들웨어와 이중 방어 — 예약 쓰기는 문자·텔레그램까지 나가므로 여기서도 막는다
+const deny = () => NextResponse.json({ error: "인증 필요" }, { status: 401 });
 
 // 필수 필드 검증
 function validate(d) {
@@ -25,6 +29,7 @@ function validate(d) {
 
 // POST — 예약 생성. status가 예약확정이면 확정 알림+문자, 아니면 신규 알림.
 export async function POST(request) {
+  if (!(await requireAuth(request))) return deny();
   let body;
   try {
     body = await request.json();
@@ -52,6 +57,7 @@ export async function POST(request) {
 
 // PATCH — 예약 수정. 상태/객실 변경을 감지해 해당 알림 발송.
 export async function PATCH(request) {
+  if (!(await requireAuth(request))) return deny();
   let body;
   try {
     body = await request.json();
@@ -102,6 +108,7 @@ export async function PATCH(request) {
 
 // GET — 단건 조회 (?id=)
 export async function GET(request) {
+  if (!(await requireAuth(request))) return deny();
   const id = new URL(request.url).searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id 필요" }, { status: 400 });
   const reservation = await getById(id);

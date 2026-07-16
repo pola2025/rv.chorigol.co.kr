@@ -7,12 +7,14 @@ import {
   updateSmsConfig,
   findUnknownVars,
 } from "../../../lib/notifications.js";
+import { requireAuth } from "../../../lib/auth-jwt.js";
 
 export const dynamic = "force-dynamic";
 
 const BUSINESSES = ["choho", "shelter"];
 
-const bad = (msg, status = 400) => NextResponse.json({ error: msg }, { status });
+const bad = (msg, status = 400) =>
+  NextResponse.json({ error: msg }, { status });
 
 // 템플릿 본문 저장 — 미지원 변수는 발송 시점이 아니라 여기서 막는다.
 async function saveTemplate({ id, content }) {
@@ -44,7 +46,8 @@ async function saveRoomFlags({ business, room_name, flags }) {
 
 // 업체 발신 설정 (발신번호·채널ID·발송 사용여부)
 async function saveSmsConfig(body) {
-  const { business, telegram_chat_id, use_reservation, use_cancellation } = body;
+  const { business, telegram_chat_id, use_reservation, use_cancellation } =
+    body;
   if (!BUSINESSES.includes(business)) return bad("업체 값 오류");
 
   const sms_from = String(body.sms_from ?? "").replace(/-/g, "");
@@ -64,6 +67,7 @@ async function saveSmsConfig(body) {
 }
 
 export async function PATCH(request) {
+  if (!(await requireAuth(request))) return bad("인증 필요", 401);
   let body;
   try {
     body = await request.json();
