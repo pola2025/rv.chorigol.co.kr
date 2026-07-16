@@ -129,6 +129,24 @@ node scripts/set-admin-password.mjs
 - 키: `~/.ssh/id_ed25519_chohopark`
 - config: `Host github.com-chohopark` → `git@github.com-chohopark:chohopark134-ctrl/chohopark.git`
 
+### 🎯 최종 주소 = `rv.chorigol.co.kr` (사용자 결정 2026-07-16)
+계획서대로 **rv 유지**. 새 Next+D1 앱이 최종적으로 `rv.chorigol.co.kr`을 차지한다.
+- `admin.chorigol.co.kr` = **병렬운영·검증용** (새 계정에 이미 연결됨). 컷오버 후 정리 여부는 추후
+- ⚠️ **컷오버 다운타임 리스크**: `rv`는 지금 **구 Vercel 계정** 소유다. 새 계정에 붙이려면
+  구 계정에서 먼저 떼야 하고, 그 사이 rv가 잠깐 끊긴다 → **심야 작업 필수**
+- 폴더명 `F:\rv-chorigol.co.kr`(하이픈)과 도메인 `rv.chorigol.co.kr`(서브도메인)은 다르다.
+  `rv-chorigol.co.kr`(하이픈)이라는 도메인은 존재하지 않음 — 폴더 이름일 뿐
+
+### DNS 실측 (2026-07-16 확인)
+| 도메인 | 상태 | 소유 |
+|---|---|---|
+| `rv.chorigol.co.kr` | **HTTP 200 · "펜션 관리자"** — 현재 라이브(Vite+Firebase) | 구 Vercel 계정 |
+| `admin.chorigol.co.kr` | **HTTP 404** — DNS·소유권 인증 완료, 앱 미배포 | 새 계정 chohopark134 |
+| `chorigol.co.kr` | HTTP 307 | — |
+| `www.chorigol.co.kr` | HTTP 200 | — |
+
+**신규 Next+D1 앱은 아직 어디에도 배포되지 않았다.**
+
 ### DNS (Cloudflare로 이전 완료)
 - NS: `donald.ns.cloudflare.com`, `poppy.ns.cloudflare.com` — **전파 완료, 존 active**
 - zone_id: `f872a5b1e99b41bc5af303a8b57bdeac`
