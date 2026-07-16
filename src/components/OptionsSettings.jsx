@@ -1,10 +1,37 @@
 // src/components/OptionsSettings.jsx
+// ⚠️ Firebase → D1 이관 (2026-07-17).
+//    읽기는 이미 D1(useOptions/useRooms)이었는데 **쓰기만 옛 Firestore** 로 가고 있었다
+//    → 저장해도 화면에 안 나타나는 split-brain.
+//
+//    로드 경로도 죽어 있었다: `fetch('/api/getDoc?path=settings/option_settings')` 인데
+//    그런 엔드포인트가 이 저장소에 없다(루트 api/ 엔 naver-keyword.js 뿐) → 항상 404 →
+//    `.catch(()=>null)` 로 삼켜져 **저장된 기본옵션 설정을 한 번도 못 불러왔다**
+//    (레이트체크아웃 재고가 늘 빈 값으로 보였다). `/api/option-settings` 로 고쳤다.
+//
+//    기본옵션(isDefault)은 `option_settings`, 사용자옵션은 `options` — 레거시와 같은 분리다.
+//    둘은 id 가 겹쳐서(late_checkout) 한 테이블에 못 합친다.
 import React, { useState, useEffect } from 'react';
 import { useOptions } from '../hooks/useOptions';
 import { useRooms } from '../hooks/useRooms';
-import { doc, updateDoc, addDoc, deleteDoc, collection, setDoc } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { toOptionWriteBody } from '../../lib/legacy-write-shape';
+import useFirebaseStore from '../stores/useFirebaseStore';
 import './OptionsSettings.css';
+
+/** 쓰기 API — 실패하면 서버 문구를 그대로 던진다 */
+async function api(path, { method = 'PATCH', body } = {}) {
+  const res = await fetch(path, {
+    method,
+    credentials: 'same-origin',
+    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || `요청 실패 (${res.status})`);
+  return json;
+}
+
+/** 쓰기 후 화면 갱신 (D1 엔 push 가 없다) */
+const refresh = () => useFirebaseStore.getState().refresh();
 
 const OptionsSettings = () => {
   const { data: options, isLoading: optionsLoading } = useOptions();
@@ -64,7 +91,7 @@ const OptionsSettings = () => {
       type: OPTION_TYPES.LATE_CHECKOUT,
       applicableRooms: 'individual',
       roomStocks: {},  // 초기값 빈 객체
-      description: '오후 2시 체크아웃',
+      description: '낮 12시 체크아웃',
       isDefault: true
     }
   ]);
@@ -77,28 +104,29 @@ const OptionsSettings = () => {
   // Firebase에서 저장된 설정 불러오기
   const loadSavedSettings = async () => {
     try {
-      const settingsRef = doc(db, 'settings', 'option_settings');
-      const response = await fetch(`/api/getDoc?path=settings/option_settings`).catch(() => null);
-      
-      if (response && response.ok) {
-        const data = await response.json();
+      // 레거시는 `/api/getDoc?path=settings/option_settings` 를 불렀는데 그런 엔드포인트가
+      // 없어서(404) 저장값을 한 번도 못 불러왔다. 적용 로직은 그대로 두고 출처만 고쳤다.
+      const res = await fetch('/api/option-settings', { credentials: 'same-origin' });
+
+      if (res.ok) {
+        const { settings: data } = await res.json();
         if (data) {
           setSavedSettings(data);
-          
+
           // 레이트 체크아웃 설정 적용
           if (data.late_checkout) {
-            setDefaultOptions(prev => prev.map(opt => 
-              opt.id === 'late_checkout' 
+            setDefaultOptions(prev => prev.map(opt =>
+              opt.id === 'late_checkout'
                 ? { ...opt, ...data.late_checkout }
                 : opt
             ));
           }
-          
+
           // 다른 기본 옵션 설정도 적용
           Object.keys(data).forEach(key => {
             if (key !== 'late_checkout') {
-              setDefaultOptions(prev => prev.map(opt => 
-                opt.id === key 
+              setDefaultOptions(prev => prev.map(opt =>
+                opt.id === key
                   ? { ...opt, ...data[key] }
                   : opt
               ));
@@ -115,39 +143,29 @@ const OptionsSettings = () => {
   const saveOption = async (optionData) => {
     try {
       if (optionData.isDefault) {
-        // 기본 옵션인 경우 settings 컬렉션에 저장
-        const settingsRef = doc(db, 'settings', 'option_settings');
-        const currentSettings = { ...savedSettings };
-        currentSettings[optionData.id] = optionData;
-        
-        await setDoc(settingsRef, currentSettings, { merge: true });
-        
+        // 기본 옵션 → option_settings (레거시도 settings 문서에 저장했다)
+        await api('/api/option-settings', { body: { id: optionData.id, data: optionData } });
+
         // 상태 업데이트
+        const currentSettings = { ...savedSettings, [optionData.id]: optionData };
         setSavedSettings(currentSettings);
-        setDefaultOptions(prev => prev.map(opt => 
+        setDefaultOptions(prev => prev.map(opt =>
           opt.id === optionData.id ? optionData : opt
         ));
-        
+
         alert('저장되었습니다.');
       } else if (optionData.id && !optionData.isDefault) {
         // 기존 사용자 정의 옵션 수정
-        const optionRef = doc(db, 'options', optionData.id);
-        const { id, ...dataToSave } = optionData;
-        await updateDoc(optionRef, {
-          ...dataToSave,
-          updatedAt: new Date().toISOString()
-        });
+        await api('/api/options', { body: { id: optionData.id, ...toOptionWriteBody(optionData) } });
+        await refresh();
         alert('저장되었습니다.');
       } else if (!optionData.isDefault) {
         // 새 사용자 정의 옵션 추가
-        await addDoc(collection(db, 'options'), {
-          ...optionData,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        });
+        await api('/api/options', { method: 'POST', body: toOptionWriteBody(optionData) });
+        await refresh();
         alert('저장되었습니다.');
       }
-      
+
       setEditingOption(null);
       setIsAddingNew(false);
     } catch (error) {
@@ -161,7 +179,8 @@ const OptionsSettings = () => {
     if (!window.confirm('정말 삭제하시겠습니까?')) return;
     
     try {
-      await deleteDoc(doc(db, 'options', optionId));
+      await api(`/api/options?id=${encodeURIComponent(optionId)}`, { method: 'DELETE' });
+      await refresh();
       alert('삭제되었습니다.');
     } catch (error) {
       console.error('옵션 삭제 오류:', error);
