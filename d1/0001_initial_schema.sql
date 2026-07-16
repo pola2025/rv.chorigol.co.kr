@@ -218,6 +218,23 @@ CREATE TABLE admins (
 );
 
 -- ─────────────────────────────────────────────
+-- 마케팅 통계 (Firestore: marketing_stats_v2, 월별) — 중첩 구조는 JSON 보존
+-- ─────────────────────────────────────────────
+CREATE TABLE marketing_stats (
+  id                TEXT PRIMARY KEY,
+  month             TEXT NOT NULL,
+  business_type     TEXT,
+  status            TEXT,
+  revenue_total     INTEGER DEFAULT 0,
+  reservation_count INTEGER DEFAULT 0,
+  website_visitors  INTEGER DEFAULT 0,
+  place_visits      INTEGER DEFAULT 0,
+  data              TEXT,                       -- JSON: visitors/revenue/advertising/goals 원본
+  updated_at        TEXT
+);
+CREATE INDEX idx_mkt_month ON marketing_stats(month);
+
+-- ─────────────────────────────────────────────
 -- 로그인 시도 추적 (Firestore: login_attempts) — IP 차단용
 -- ─────────────────────────────────────────────
 CREATE TABLE login_attempts (

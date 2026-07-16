@@ -3,7 +3,8 @@ import React, { Suspense, lazy, useState } from 'react';
 import useFirebaseStore from '../stores/useFirebaseStore';
 import {
   useUpdateReservation,
-  useCancelReservation
+  useCancelReservation,
+  useConfirmReservation
 } from '../hooks/useReservations';
 import BookingModal from '../components/BookingModal';
 import Skeleton, { CardSkeleton } from '../components/Skeleton';
@@ -28,6 +29,7 @@ function ReservationsPage() {
 
   const { mutateAsync: updateReservation } = useUpdateReservation();
   const { mutateAsync: cancelReservation } = useCancelReservation();
+  const { mutateAsync: confirmReservation } = useConfirmReservation();
 
   const handleUpdateReservation = async (id, data) => {
     try {
@@ -38,9 +40,24 @@ function ReservationsPage() {
     }
   };
 
-  const handleCancelReservation = async (reservation, cancelData) => {
+  // 예약 확정 (알림 발송 포함)
+  const handleConfirmReservation = async (reservationId, depositorName = '') => {
+    console.log('🟢 [ReservationsPage] 예약 확정 시작:', reservationId);
     try {
-      await cancelReservation({ ...reservation, ...cancelData });
+      await confirmReservation(reservationId, depositorName);
+      console.log('🟢 [ReservationsPage] 예약 확정 완료 (알림 발송 포함)');
+    } catch (error) {
+      console.error('예약 확정 실패:', error);
+      alert('예약 확정에 실패했습니다.');
+    }
+  };
+
+  const handleCancelReservation = async (reservation, cancelData) => {
+    console.log('🔴 [ReservationsPage] 예약 취소 시작:', reservation.id, cancelData);
+    try {
+      await cancelReservation(reservation.id, cancelData);
+      setSelectedBooking(null); // 모달 닫기
+      console.log('🔴 [ReservationsPage] 예약 취소 완료');
     } catch (error) {
       console.error('예약 취소 실패:', error);
       alert('예약 취소에 실패했습니다.');
@@ -53,6 +70,7 @@ function ReservationsPage() {
         <ReservationList
           reservations={reservations}
           onUpdateReservation={handleUpdateReservation}
+          onConfirmReservation={handleConfirmReservation}
           onCancelReservation={handleCancelReservation}
           onSelectReservation={setSelectedBooking}
         />

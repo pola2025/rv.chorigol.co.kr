@@ -19,3 +19,7 @@ functions/node_modules/
 
 #Ignore vscode AI rules
 .github\instructions\codacy.instructions.md
+
+# Next.js
+.next/
+next-env.d.ts
