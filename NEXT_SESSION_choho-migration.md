@@ -24,19 +24,29 @@ D1 쓰기테스트는 source="막기"로만. 삭제는 정확한 ID로만 (LIKE 
 | 3 | Next.js 15 + 화면 이식 **5/5** (캘린더·예약목록·객실·옵션·알림설정) | ✅ |
 | 4 | 쓰기 API + 알림 통합 (트리거 대체) | ✅ |
 | — | 인프라봇 헬스체크 분리 | ✅ |
-| 5 | 인증 (Firebase Auth → JWT 쿠키) | ⬜ |
+| 5 | 인증 (Firebase Auth → JWT 쿠키) | ✅ (비번 설정만 남음) |
 | 6 | api.chorigol.co.kr Worker 보안 | ⬜ |
 | 7 | 컷오버 (rv CNAME) → 병렬운영 2주 | ⬜ |
 | 8 | Firebase·Airtable 폐기 | ⬜ |
 
 **운영은 100% 기존 Firebase에서 가동 중.** 신규 스택(D1/Next)은 아직 아무도 안 씀.
 
+## 🔑 사장님이 직접 해야 할 일 (1분, 로그인 하려면 필수)
+```
+cd F:\rv-chorigol.co.kr
+node scripts/set-admin-password.mjs
+```
+`admins` 테이블이 아직 **0건**이라 아무도 로그인할 수 없다. 위 명령 실행 → 비밀번호 2번 입력하면
+`choho140@naver.com` 계정이 생성된다 (입력은 화면에 안 보이고, D1엔 scrypt 해시만 저장).
+- 비번을 바꿀 때도 같은 명령. 다른 계정은 `node scripts/set-admin-password.mjs 이메일@주소`
+- **에이전트에게 비밀번호를 알려주지 말 것** — 채팅에 남으면 그 자체가 유출이다
+
 ## 다음 세션 첫 액션
-1. **Phase 5 인증** — Firebase Auth → JWT admin_token 쿠키.
-   현재 신규 스택은 **인증이 아예 없다** — 컷오버 전 필수. 쿠키 규칙은 `web-architecture.md`
-   (Domain=admin 한정 / HttpOnly / Secure / SameSite=Strict. 부모도메인 쿠키 금지)
-2. 조회 계층 잔여: customers, inventory_overrides, marketing_stats, pricing
-3. 입실·퇴실 스케줄러 이관 (아래 미이관 항목)
+1. 조회 계층 잔여: customers, inventory_overrides, marketing_stats, pricing
+2. 입실·퇴실 스케줄러 이관 (아래 미이관 항목)
+3. **Phase 6** — api.chorigol.co.kr Worker 7-Layer 보안
+4. Vercel 배포 시 env 주입 필수: `JWT_SECRET`, `CLOUDFLARE_*`, `D1_DATABASE_ID`,
+   `SENS_*`, `TELEGRAM_*`, `CRON_SECRET` (로컬 `.env.local`이 단일 소스)
 
 ## ⚠️ 정리 필요 (사소)
 - **`NEXT_SESSION_REQUEST.md`** (untracked): 2026-03-02 Firebase 시절 문서. 내용이 낡아
@@ -266,6 +276,42 @@ Firestore 보고 발송 중). 화면에 그렇게 명시해둠. 컷오버 전 �
 - **Next.js 15 도입** (React 19 호환. Next 14는 React19 미지원). `app/` App Router, Vite `src/`와 공존
 - **src/pages → src/legacy-pages 이름변경**: Next가 레거시를 Pages Router로 오인하는 문제 해결
 - `next.config.mjs`: eslint.ignoreDuringBuilds (Vite eslint가 Next 서버코드와 충돌 — 컷오버 시 교체)
+
+## Phase 5 완료 — 인증 (2026-07-16, 커밋 `77ed3a4`)
+
+**결정 (사용자 지정)**: 관리자 `choho140@naver.com` 1개 · 세션 **30일** · 비번은 사장님이 직접 설정
+
+| 파일 | 역할 |
+|---|---|
+| `middleware.js` | 전 경로 차단. 공개는 `/login`, `/api/auth/*` 뿐. API는 리다이렉트 대신 **401** |
+| `lib/auth-jwt.js` | jose HS256 발급·검증 + `requireAuth`. **Edge 안전** |
+| `lib/auth.js` | scrypt 해싱·검증(timing-safe), 계정조회, 로그인시도, IP rate limit |
+| `app/api/auth/login` · `logout` | 로그인/로그아웃 (login은 `runtime="nodejs"` 고정) |
+| `app/login` · `app/nav.jsx` | 로그인 화면 / 로그아웃 버튼 (로그인 화면에선 nav 숨김) |
+| `scripts/set-admin-password.mjs` | **사장님 전용** 비번 설정 |
+
+### ⚠️ 런타임 경계 (반드시 지킬 것)
+**미들웨어는 Edge라 `node:crypto`가 없다.** 그래서 JWT(jose)와 비번(scrypt)을 파일로 갈랐다.
+- `middleware.js`는 **`lib/auth-jwt.js`만** import. `lib/auth.js`를 import하면 미들웨어가 통째로 깨진다
+- 비번을 다루는 라우트는 `export const runtime = "nodejs"` 필수
+
+### 쿠키 (web-architecture.md 준수 — 검증됨)
+`Domain 생략(호스트한정)` / `HttpOnly` / `SameSite=Strict` / `Secure는 운영에서만` / `Max-Age=2592000`
+- **부모도메인(.chorigol.co.kr) 쿠키 절대 금지** — 메인 XSS 1번에 admin 세션이 털린다
+- 로컬(http)에서 Secure 쿠키가 안 붙는 문제 때문에 `NODE_ENV==='production'` 조건부
+
+### 보안 처리
+- JWT_SECRET 없으면 **던진다** (조건부 인증 스킵 금지). 유출 시 교체하면 전 세션 무효화
+- alg 화이트리스트 `["HS256"]` — alg=none/RS256 혼동 공격 차단 (테스트로 확인)
+- 열거 방지: 계정없음/비번틀림 **같은 메시지** + 계정 없어도 비교 수행
+- rate limit: 같은 IP 15분내 실패 5회 → 429 (맞는 비번도 차단)
+- **쓰기 API는 미들웨어 + `requireAuth` 이중 방어** (security.md 2번)
+
+### 남은 것
+- **`admins` 0건 → 아무도 로그인 못 함.** 위 "사장님이 직접 해야 할 일" 참조
+- 레거시 `src/utils/authSecurity.js`의 `ALLOWED_ADMINS`는 플레이스홀더(`admin@choho-pension.com`)라
+  사실상 죽은 코드. 실제 관리자 목록은 `firestore.rules` 9-12행 (3개)
+- Firebase Auth 비번 해시는 이관 안 함 — 신규 스택은 새 비번 (스키마 주석대로)
 
 ## Phase 4 완료 — 예약 쓰기 API + 알림 통합 (트리거 대체)
 
