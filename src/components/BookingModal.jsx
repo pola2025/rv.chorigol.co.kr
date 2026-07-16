@@ -73,7 +73,7 @@ const BookingModal = ({ booking, onClose, onConfirm, onCancel, onUpdate }) => {
   const OPTION_INFO = {
     '캠핑버너&그릴': { icon: '🔥', price: '20,000원' },
     '숯불바베큐': { icon: '🍖', price: '30,000원 (현장결제)' },
-    '레이트 체크아웃': { icon: '⏰', price: '오후 2시' }
+    '레이트 체크아웃': { icon: '⏰', price: '낮 12시' }
   };
 
   // 🔄 MIGRATION: useEffect를 React Query로 교체

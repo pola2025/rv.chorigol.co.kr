@@ -5,7 +5,7 @@ import CancelReservationModal from './CancelReservationModal';
 import migrationDebugger, { DEBUG_LEVELS } from '../utils/migrationDebugger';
 import './ReservationList.css';
 
-const ReservationList = ({ reservations, onUpdateReservation, onCancelReservation, onSelectReservation }) => {
+const ReservationList = ({ reservations, onUpdateReservation, onConfirmReservation, onCancelReservation, onSelectReservation }) => {
   // 프로퍼티 확인
   console.log('🆗 [ReservationList Props]', {
     hasReservations: !!reservations,
@@ -265,11 +265,17 @@ const ReservationList = ({ reservations, onUpdateReservation, onCancelReservatio
 
   const handleStatusChange = (e, reservationId) => {
     e.stopPropagation();
-    migrationDebugger.log(DEBUG_LEVELS.INFO, 'ReservationList', 'Status change', { 
+    migrationDebugger.log(DEBUG_LEVELS.INFO, 'ReservationList', 'Status change', {
       reservationId,
-      newStatus: '예약확정' 
+      newStatus: '예약확정'
     });
-    onUpdateReservation(reservationId, { status: '예약확정' });
+    // confirmReservation 사용 (알림 발송 포함)
+    if (onConfirmReservation) {
+      onConfirmReservation(reservationId, '');
+    } else {
+      // fallback: 기존 방식 (알림 없음)
+      onUpdateReservation(reservationId, { status: '예약확정' });
+    }
   };
 
   const formatDate = (date) => {

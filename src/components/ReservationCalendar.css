@@ -85,8 +85,8 @@
   background: rgba(255,255,255,0.1);
 }
 
-/* 캡쳐 버튼 */
-.capture-btn {
+/* 텔레그램 전송 버튼 */
+.telegram-btn {
   width: 28px;
   height: 28px;
   display: flex;
@@ -101,16 +101,16 @@
   transition: all 0.2s;
 }
 
-.capture-btn:hover:not(:disabled) {
+.telegram-btn:hover:not(:disabled) {
   background: rgba(255,255,255,0.25);
   transform: scale(1.05);
 }
 
-.capture-btn:active:not(:disabled) {
+.telegram-btn:active:not(:disabled) {
   transform: scale(0.95);
 }
 
-.capture-btn:disabled {
+.telegram-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -625,5 +625,165 @@
 
   .loading-spinner {
     animation: none;
+  }
+}
+
+/* 텔레그램 전송 확인 모달 */
+.telegram-confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.telegram-confirm-modal {
+  background: #fff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  animation: modalSlideUp 0.2s ease-out;
+}
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.telegram-confirm-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.telegram-confirm-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.telegram-confirm-header .close-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: #6b7280;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.telegram-confirm-header .close-btn:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.telegram-confirm-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.telegram-confirm-message {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  color: #374151;
+}
+
+.telegram-preview {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.telegram-preview pre {
+  margin: 0;
+  font-family: 'Pretendard', -apple-system, system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #111827;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.telegram-confirm-footer {
+  display: flex;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+  border-radius: 0 0 12px 12px;
+}
+
+.telegram-confirm-footer .btn-cancel,
+.telegram-confirm-footer .btn-confirm {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.telegram-confirm-footer .btn-cancel {
+  background: #fff;
+  border: 1px solid #d1d5db;
+  color: #374151;
+}
+
+.telegram-confirm-footer .btn-cancel:hover:not(:disabled) {
+  background: #f3f4f6;
+}
+
+.telegram-confirm-footer .btn-confirm {
+  background: #2563eb;
+  border: 1px solid #2563eb;
+  color: #fff;
+}
+
+.telegram-confirm-footer .btn-confirm:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.telegram-confirm-footer .btn-cancel:disabled,
+.telegram-confirm-footer .btn-confirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 모바일 대응 */
+@media (max-width: 767px) {
+  .telegram-confirm-modal {
+    max-height: 90vh;
+  }
+
+  .telegram-preview {
+    max-height: 250px;
   }
 }
