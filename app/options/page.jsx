@@ -5,6 +5,14 @@ export const dynamic = "force-dynamic";
 
 const won = (n) => (n == null ? "-" : n.toLocaleString() + "원");
 
+// applicableRooms = 적용 모드 (객실 배열이 아니다)
+const APPLY_MODE = {
+  all: "모든 객실",
+  selected: "선택한 객실",
+  individual: "객실별 개별 설정",
+  shared: "공동 재고 관리",
+};
+
 export default async function OptionsPage() {
   const options = await listOptions({ activeOnly: false });
 
@@ -61,7 +69,8 @@ export default async function OptionsPage() {
                   {o.description}
                 </div>
               )}
-              {o.applicableRooms?.length > 0 && (
+              {/* applicableRooms 는 모드 문자열, 실제 목록은 selectedRooms */}
+              {(o.applicableRooms || o.selectedRooms?.length > 0) && (
                 <div
                   style={{
                     color: "#6a7a71",
@@ -69,7 +78,9 @@ export default async function OptionsPage() {
                     marginTop: ".35rem",
                   }}
                 >
-                  적용 객실: {o.applicableRooms.join(", ")}
+                  적용 객실: {APPLY_MODE[o.applicableRooms] ?? "전체"}
+                  {o.selectedRooms?.length > 0 &&
+                    ` · ${o.selectedRooms.join(", ")}`}
                 </div>
               )}
             </div>
