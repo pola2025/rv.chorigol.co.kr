@@ -7,7 +7,6 @@ import { auth } from "./config/firebase";
 import { FirebaseProvider } from "./providers/FirebaseProvider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import runDiagnostics from "./utils/diagnostics";
 import notificationScheduler from "./services/notificationScheduler";
 import "./App.css";
 
@@ -101,12 +100,6 @@ function App() {
 
   useEffect(() => {
     console.log("Setting up auth listener...");
-
-    // 개발 환경에서 진단 도구 활성화
-    if (process.env.NODE_ENV === "development") {
-      window.runDiagnostics = runDiagnostics;
-      console.log("💡 진단 도구가 활성화되었습니다.");
-    }
 
     const unsubscribe = onAuthStateChanged(
       auth,
