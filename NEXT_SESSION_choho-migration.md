@@ -4,11 +4,16 @@
 
 ## 복사용 요청문
 ```
-초호펜션 예약시스템 Firebase→Vercel+D1 이관 중. Phase 0~4 완료 + Phase3 화면 5/5 + 예약 편집UI 완료.
-다음: Phase 5 인증 (Firebase Auth → JWT admin_token 쿠키).
+초호펜션 예약시스템 Firebase→Vercel+D1 이관 중. Phase 0~5 완료.
+지금: rv 레거시 화면 "모양 그대로" 이식 중 (useFirebaseStore 완료, useReservationStore 남음).
+다음: useReservationStore 쓰기 7개 → API. 새 엔드포인트 2개 필요(inventory-override, customers).
 F:\rv-chorigol.co.kr\NEXT_SESSION_choho-migration.md 전체 컨텍스트. 브랜치 migrate/nextjs-d1.
+
+원칙: rv는 "기존 모습 그대로" 이관 — UI 임의변경 금지. 새 UI 아이디어는 admin(별개 통계앱)으로.
+      모양·기능이 같아야 하므로 **측정과 감사**가 핵심. 추측으로 이식 금지.
 테스트: 문자는 01098979834로만, 예약 알림봇 실채널 발송금지, 한글 payload curl금지(node).
-D1 쓰기테스트는 source="막기"로만. 삭제는 정확한 ID로만 (LIKE 패턴 금지 — 실데이터 삭제 사고 있었음).
+       삭제는 정확한 ID로만 (LIKE 패턴 금지 — 실데이터 삭제 사고 있었음).
+       재고가드 테스트는 source="막기" 쓰면 안 됨(막기는 검사를 건너뜀) → sms_config 잠시 끄고 非막기로.
 ```
 
 **계획서**: https://claude.ai/code/artifact/84c4a8c2-5770-4966-9404-aa70a3b82164
@@ -25,11 +30,17 @@ D1 쓰기테스트는 source="막기"로만. 삭제는 정확한 ID로만 (LIKE 
 | 4 | 쓰기 API + 알림 통합 (트리거 대체) | ✅ |
 | — | 인프라봇 헬스체크 분리 | ✅ |
 | 5 | 인증 (Firebase Auth → JWT 쿠키) | ✅ (비번 설정만 남음) |
+| — | **재고 가드** (오버부킹 원자적 차단) + API 연결 | ✅ |
+| — | **레거시 화면 이식** (rv 모양 그대로) | 🔄 **스토어 1/2** |
 | 6 | api.chorigol.co.kr Worker 보안 | ⬜ |
 | 7 | 컷오버 (rv CNAME) → 병렬운영 2주 | ⬜ |
 | 8 | Firebase·Airtable 폐기 | ⬜ |
 
 **운영은 100% 기존 Firebase에서 가동 중.** 신규 스택(D1/Next)은 아직 아무도 안 씀.
+
+> ⚠️ Phase 3 의 "화면 5/5"는 **전면 재작성본**이라 rv 모습과 다르다.
+> 사용자 결정(2026-07-16): **rv는 기존 모습 그대로 이관** → 레거시 화면을 그대로 옮기는 중.
+> 재작성본(app/calendar 등)은 컷오버 전 정리 대상.
 
 ## 🔑 사장님이 직접 해야 할 일 (1분, 로그인 하려면 필수)
 ```
@@ -41,12 +52,26 @@ node scripts/set-admin-password.mjs
 - 비번을 바꿀 때도 같은 명령. 다른 계정은 `node scripts/set-admin-password.mjs 이메일@주소`
 - **에이전트에게 비밀번호를 알려주지 말 것** — 채팅에 남으면 그 자체가 유출이다
 
-## 다음 세션 첫 액션
-1. 조회 계층 잔여: customers, inventory_overrides, marketing_stats, pricing
-2. 입실·퇴실 스케줄러 이관 (아래 미이관 항목)
-3. **Phase 6** — api.chorigol.co.kr Worker 7-Layer 보안
-4. Vercel 배포 시 env 주입 필수: `JWT_SECRET`, `CLOUDFLARE_*`, `D1_DATABASE_ID`,
-   `SENS_*`, `TELEGRAM_*`, `CRON_SECRET` (로컬 `.env.local`이 단일 소스)
+## 다음 세션 첫 액션 — `useReservationStore` 이식
+쓰기 7개 메서드만 API로 돌리면 된다. **순수함수 5개는 손댈 필요 없다**
+(`getAvailableStock` `getStatistics` `normalizePhone` `calculateCustomerGrade`
+ `checkAvailabilityForRange` — 스토어 상태만 D1로 바뀌면 그대로 동작).
+
+| 메서드 | 대응 |
+|---|---|
+| `addReservation` / `createReservationWithInventoryCheck` | `POST /api/reservations` (가드 연결됨) |
+| `updateReservation` / `confirmReservation` | `PATCH /api/reservations` |
+| `cancelReservation` | `PATCH { cancel: true }` |
+| `updateInventoryOverride` | **신규 엔드포인트 필요** |
+| `updateCustomerInfo` | **신규 엔드포인트 필요** (등급·방문횟수 계산 포함) |
+
+쓰기 후 `useFirebaseStore.getState().refresh()` 를 불러야 화면이 갱신된다
+(레거시는 Firestore 가 밀어줬지만 D1 엔 push 가 없다).
+
+그 다음: 직접 Firebase 쓰는 컴포넌트 교체 → 입실·퇴실 스케줄러 → Phase 6
+
+**Vercel 배포 시 주입할 env**: `JWT_SECRET`, `CLOUDFLARE_*`, `D1_DATABASE_ID`,
+`SENS_*`, `TELEGRAM_*`, `CRON_SECRET` (로컬 `.env.local`이 단일 소스)
 
 ## ⚠️ 정리 필요 (사소)
 - **`NEXT_SESSION_REQUEST.md`** (untracked): 2026-03-02 Firebase 시절 문서. 내용이 낡아
@@ -352,7 +377,63 @@ Firestore 보고 발송 중). 화면에 그렇게 명시해둠. 컷오버 전 �
   사실상 죽은 코드. 실제 관리자 목록은 `firestore.rules` 9-12행 (3개)
 - Firebase Auth 비번 해시는 이관 안 함 — 신규 스택은 새 비번 (스키마 주석대로)
 
-## 🔒 재고 가드 완료 (2026-07-16, 커밋 `c3d2257`) — `lib/inventory.js`
+## 🔄 레거시 화면 이식 (진행중) — "rv 모양 그대로"
+
+### 측정된 범위 (추측 아님 — 의존성 폐포 실측)
+5개 화면 + MainLayout 에서 도달하는 것: **41 파일** (컴포넌트 23 / 로직 18) · CSS 16
+**Firebase 접점은 14개뿐** → 나머지 27개는 손 안 대고 옮긴다.
+
+### 핵심 이음새: 컴포넌트는 Firestore 모양을 기대한다
+`useFirebaseStore` 가 7개 컬렉션을 실시간으로 받아 **모든 컴포넌트에 뿌리는 허브**다.
+컴포넌트들은 그 모양을 그대로 쓴다 — `rooms`는 **한글필드**(`객실명`·`재고`), `reservations`는
+**camelCase**(`roomName`·`checkIn`), `overrides`는 **doc.id 맵**.
+→ **스토어만 갈아끼우면 컴포넌트 23개는 무수정.** 이게 이식 전략의 전부다.
+
+### ✅ 완료
+| | 커밋 | 검증 |
+|---|---|---|
+| `lib/legacy-shape.js` — D1 → Firestore 역매퍼 | `1905864` | **18/18** 원본 덤프와 전건 대조 |
+| `/api/snapshot` + `/api/version` heartbeat | `3fd219b` | 10/10 |
+| `useFirebaseStore` — onSnapshot 7개 제거 | `18a629c` | **18/18** API 표면 동등성 |
+| 재고 가드 → 쓰기 API 연결 | `18a629c` | **19/19** 동시 8건→2건만 |
+
+**역매퍼 검증이 이식의 전제였다**: rooms 7 / reservations 540 / options 4 / pricingRules 4 /
+customers 402 / overrides 26 를 원본 Firestore 덤프와 **전필드 대조** + 레거시 orderBy 재현 확인.
+
+### 폴링을 "번역"하지 않고 없앴다 (실측 근거)
+```
+1초 폴링(매번 전부 읽기)  68,688,000 rows/일 → 무료한도(5M)의 1374% ❌
+스냅샷 + 30초 heartbeat        2,400 rows/일 →              0.05% ✅
+```
+**변경을 만드는 사람이 관리자 본인**이라 물어볼 이유가 거의 없다. 로드 1회 + 쓰기 후 `refresh()`.
+`idx_res_updated` 인덱스로 `MAX(updated_at)` **rows_read 540 → 1** (없으면 heartbeat 가 무의미).
+
+### 🐞 이 과정에서 발견·수정한 이관 버그 (전부 로더의 체계적 결함)
+| 버그 | 증상 | 수정 |
+|---|---|---|
+| `inventory_overrides.date/stock` 26건 NULL | **막아둔 날 19건이 통째로 무시** (9/1~9/3 전객실 차단이 안 먹힘) | ID에서 파싱 복원 (9/9) |
+| `options.applicable_rooms` 타입 혼동 | 로더가 `selectedRooms \|\| applicableRooms` 로 **모드+목록을 한 컬럼에 뭉갬** → OptionsSettings 화면이 깨짐 | `selected_rooms` 컬럼 추가 후 분리 (`f2cf246`) |
+| 예약 5건 옵션 유실 | 원본이 `["숯불바베큐"]` **문자열배열**인데 로더가 `if(!o.name) continue` 로 걸름 | 덤프에서 복구. **price=0** (레거시가 문자열을 0으로 읽음 — 표준가 넣으면 `{현장결제}` 금액이 달라짐) |
+| `customers.marketingConsent` | 원본 `false` → SQLite 에 `0` 저장 → 매퍼가 그대로 반환 | `!!` 변환 |
+| `customers.reservations` 미이관 | 예약ID 배열. 읽는 화면은 없으나 `useReservationStore` 가 append 함 | 컬럼 추가 + 402건 백필 |
+
+### ⚠️ 무해 확인된 유실 (복구 불필요 — 근거 있음)
+- `selectedOptions` → 모달이 `options` 에서 **역산**한다(NewReservationModal:170-183). `options` 가 있으면 DB값을 덮어씀
+- `dailyPrices` → 모달이 **로컬 계산**하는 출력값. initialData 에서 읽지 않음
+- `confirmedAt` → **쓰기 전용**, 읽는 곳 없음
+
+### 남은 것
+1. `useReservationStore` 쓰기 7개 (위 "다음 세션 첫 액션")
+2. 직접 Firebase 쓰는 컴포넌트: NewReservationModal, OptionsSettings, ReservationCalendar,
+   RoomManagement, NotificationSettingsV2, SmsHistoryTable, DataInitializer, useCustomers,
+   useOptionSettings, sensService, reservationDebugger
+3. `src/config/firebase.js` 제거 → Vite 의존 정리
+
+## 🔒 재고 가드 완료 (2026-07-16, 커밋 `c3d2257` + API연결 `18a629c`) — `lib/inventory.js`
+
+> ⚠️ **가드는 만드는 것보다 모든 쓰기 경로에 꿰는 것이 핵심.** 처음엔 `lib/inventory.js` 를
+> 만들어놓고 API 는 무가드 `createReservation` 을 쓰고 있어서 **화면에서 예약하면 오버부킹이 났다**.
+> 새 쓰기 경로를 추가할 때마다 가드를 탔는지 확인할 것.
 
 ### 발견: 현행(Firestore)은 오버부킹을 못 막고 있다
 `useReservationStore.js:509-518`이 예약목록을 `runTransaction` **밖**에서 `getDocs`로 읽고,
