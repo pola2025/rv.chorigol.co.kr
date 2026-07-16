@@ -27,3 +27,4 @@ next-env.d.ts
 # reachability.mjs 생성물
 scripts/audit/.dead-files.txt
 scripts/migration/.notification-gap-before.json
+scripts/audit/.notification-doc-before.json
