@@ -170,12 +170,31 @@ Firestore 접근: firebase-tools refresh_token (`C:/Users/flame/.config/configst
 - `.env.local`에 `D1_DATABASE_ID=d9bf20dc-68cf-4077-b238-f1efc7e0ab3b` 추가
 - 검증: 실제 이관 데이터 읽기·옵션/현장결제 구분·범위 106건 정상
 
+### 완료 추가 (2026-07-16 이어서)
+- **marketing_stats_v2 이관 완료** → D1 marketing_stats 4건. **Firestore 12컬렉션 전량 이관 끝**
+- **Next.js 15 도입** (React 19 호환. Next 14는 React19 미지원이라 15 사용). `app/` App Router, Vite `src/`와 공존
+- **조회 계층 추가**: `lib/rooms.js`(listRooms/getRoomByName/businessOf/listOptions), `lib/notifications.js`(getSmsConfig/getTemplate/renderTemplate)
+  - `renderTemplate()`: 한글 변수 치환 **단일 소스** + 미치환 검사 내장 (오늘 버그 근본해결)
+- **app/reservations/page.jsx**: D1 서버 컴포넌트 예약목록. `next build` 성공 + `next start` 실데이터 렌더 HTTP 200 검증
+- **src/pages → src/legacy-pages 이름변경**: Next가 레거시를 Pages Router로 오인하는 문제 해결 (VITE_ env 참조로 빌드 실패했었음)
+- `next.config.mjs`: eslint.ignoreDuringBuilds (Vite eslint 설정이 Next 서버코드와 충돌 — 컷오버 시 Next용으로 교체)
+- 커밋: `5629f77` (브랜치 migrate/nextjs-d1)
+
+### 검증 스크립트 (scratchpad, 세션종료 시 삭제됨)
+- verify-d1lib.mjs, verify-notif.mjs, load-marketing.mjs — 재실행 시 dump 먼저 필요(dump-all.mjs)
+
 ### 다음 액션 (Phase 3 이어서)
-1. Next.js 14 App Router 스캐폴딩 (이 repo 내). D1 접근은 `lib/` 재사용
-2. D1 접근 방식: 현재 HTTP API 직접. Phase 6에서 api.chorigol.co.kr Worker 프록시로 승격 검토
-3. 화면 이식: 캘린더/예약/객실/옵션/알림 (기존 src/pages/*.jsx 참고)
+1. 나머지 화면 이식: 캘린더(FullCalendar)/객실/옵션/알림 (기존 src/legacy-pages/*.jsx 참고)
+2. 나머지 조회 계층: customers, inventory_overrides, marketing_stats, pricing
+3. **쓰기 경로**: 예약 생성/수정/취소 API Route (`app/api/reservations`) — D1 INSERT/UPDATE + 알림 발송 통합 (Phase 4의 핵심, 트리거 대체)
 4. 리스너 7곳(onSnapshot) → 폴링/revalidate, Airtable 제거
-5. 나머지 조회 계층 작성: rooms/customers/options/templates
+5. 인증: Firebase Auth → JWT admin_token 쿠키 (Phase 5)
+6. Vite→Next 완전 전환 후 eslint를 Next용으로 교체, Vite 스크립트/의존성 제거
+
+### D1 접근 참고
+- `lib/d1.js` 인증: CLOUDFLARE_D1_TOKEN(Bearer) 우선 → 없으면 GLOBAL_API_KEY+EMAIL
+- 스코프 토큰 발급되면 `.env.local`에 `CLOUDFLARE_D1_TOKEN=` 추가만 하면 자동 전환
+- 로컬 Next 실행: `set -a && source .env.local && set +a && npx next start` (또는 next dev)
 
 ## 이후 Phase (계획서 참조)
 - Phase 3(계속): Vite→Next.js 화면 이식, 리스너→폴링, Airtable 제거
