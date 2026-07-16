@@ -5,15 +5,20 @@
 ## 복사용 요청문
 ```
 초호펜션 예약시스템 Firebase→Vercel+D1 이관 중. Phase 0~5 완료.
-지금: rv 레거시 화면 "모양 그대로" 이식 중 (useFirebaseStore 완료, useReservationStore 남음).
-다음: useReservationStore 쓰기 7개 → API. 새 엔드포인트 2개 필요(inventory-override, customers).
+지금: rv 레거시 화면 "모양 그대로" 이식 중 — **스토어 2/2 완료**(useFirebaseStore·useReservationStore).
+다음: 직접 Firebase 쓰는 컴포넌트 9개 교체 → 입실·퇴실 스케줄러 → Phase 6.
 F:\rv-chorigol.co.kr\NEXT_SESSION_choho-migration.md 전체 컨텍스트. 브랜치 migrate/nextjs-d1.
 
 원칙: rv는 "기존 모습 그대로" 이관 — UI 임의변경 금지. 새 UI 아이디어는 admin(별개 통계앱)으로.
       모양·기능이 같아야 하므로 **측정과 감사**가 핵심. 추측으로 이식 금지.
 테스트: 문자는 01098979834로만, 예약 알림봇 실채널 발송금지, 한글 payload curl금지(node).
        삭제는 정확한 ID로만 (LIKE 패턴 금지 — 실데이터 삭제 사고 있었음).
+       **01098979834 에는 실고객(이재호·방문37회)이 있다.** 행 수만 비교하면 "수정"을 못 되돌린다
+       → 고객 행은 원본 전체를 캡처해 복구할 것 (2026-07-16 오염 사고, 아래 참조).
        재고가드 테스트는 source="막기" 쓰면 안 됨(막기는 검사를 건너뜀) → sms_config 잠시 끄고 非막기로.
+감사: `node scripts/audit/<이름>.mjs` — 임시폴더에서 **repo 로 옮겨 영구 보관**했다.
+      verify-snapshot(역매퍼 18) · audit-override(드리프트 25) · audit-store-port(이식 49) ·
+      verify-migration(이관 정합성) · audit-inventory · audit-api-guard
 ```
 
 **계획서**: https://claude.ai/code/artifact/84c4a8c2-5770-4966-9404-aa70a3b82164
@@ -31,7 +36,7 @@ F:\rv-chorigol.co.kr\NEXT_SESSION_choho-migration.md 전체 컨텍스트. 브랜
 | — | 인프라봇 헬스체크 분리 | ✅ |
 | 5 | 인증 (Firebase Auth → JWT 쿠키) | ✅ (비번 설정만 남음) |
 | — | **재고 가드** (오버부킹 원자적 차단) + API 연결 | ✅ |
-| — | **레거시 화면 이식** (rv 모양 그대로) | 🔄 **스토어 1/2** |
+| — | **레거시 화면 이식** (rv 모양 그대로) | 🔄 **스토어 2/2 ✅ · 컴포넌트 9개 남음** |
 | 6 | api.chorigol.co.kr Worker 보안 | ⬜ |
 | 7 | 컷오버 (rv CNAME) → 병렬운영 2주 | ⬜ |
 | 8 | Firebase·Airtable 폐기 | ⬜ |
@@ -53,36 +58,57 @@ node scripts/set-admin-password.mjs
 - **에이전트에게 비밀번호를 알려주지 말 것** — 채팅에 남으면 그 자체가 유출이다
 
 ## 다음 세션 첫 액션
-0. **🚨 inventory_overrides 드리프트 먼저 정리** (아래 "레거시 화면 이식" 절 참조).
-   재고 override 를 가드는 `stock` 컬럼에서, 스토어는 `data.available` 에서 읽는다.
-   지금은 우연히 일치하지만 `updateInventoryOverride` 이식하면 어긋난다.
+**직접 Firebase 를 쓰는 컴포넌트 9개 교체** (스토어 2/2 는 끝났다 — 아래 "레거시 화면 이식" 참조).
+`src/config/firebase.js` 를 지우려면 이게 마지막 관문이다.
 
-## `useReservationStore` 이식
-쓰기 7개 메서드만 API로 돌리면 된다. **순수함수 5개는 손댈 필요 없다**
-(`getAvailableStock` `getStatistics` `normalizePhone` `calculateCustomerGrade`
- `checkAvailabilityForRange` — 스토어 상태만 D1로 바뀌면 그대로 동작).
+| 컴포넌트 | 비고 |
+|---|---|
+| NewReservationModal · OptionsSettings · ReservationCalendar · RoomManagement | 화면 4개 |
+| NotificationSettingsV2 · SmsHistoryTable · DataInitializer | 설정·로그 |
+| useCustomers · useOptionSettings | 훅 2개 (읽기 위주 → `/api/snapshot` 으로 흡수 가능한지 먼저 볼 것) |
+| sensService · reservationDebugger | 서비스 (sensService 는 서버 `lib/sms.js` 와 중복 — 삭제 후보) |
+
+- **ReservationModal.jsx 는 죽은 코드다** (import 하는 곳 0 — Dashboard 의 주석만 남아 혼동을 준다).
+  무제한 `deleteDoc` 이 들어 있으니 이식하지 말고 **삭제**할 것. 살아있는 모달은 `BookingModal`.
+- 이식 순서는 스토어와 같다: **컴포넌트가 기대하는 모양을 먼저 측정** → 역매퍼(`legacy-shape.js`)에
+  이미 있으면 그대로, 없으면 추가. 쓰기는 반드시 `/api/*` 경유 (D1 토큰이 번들에 들어가면 끝)
+
+### ✅ `useReservationStore` 이식 완료 (커밋 `b638879`)
+쓰기 7개 → API. **API 표면 14/14 동일**(HEAD 대조) → Dashboard·useReservations 등 호출부 무수정.
+순수함수 5개(`getAvailableStock` `getStatistics` `normalizePhone` `calculateCustomerGrade`
+`checkAvailabilityForRange`)는 예고대로 **손대지 않았다**.
 
 | 메서드 | 대응 |
 |---|---|
 | `addReservation` / `createReservationWithInventoryCheck` | `POST /api/reservations` (가드 연결됨) |
 | `updateReservation` / `confirmReservation` | `PATCH /api/reservations` |
-| `cancelReservation` | `PATCH { cancel: true }` |
-| `updateInventoryOverride` | **신규 엔드포인트 필요** |
-| `updateCustomerInfo` | **신규 엔드포인트 필요** (등급·방문횟수 계산 포함) |
+| `cancelReservation` | `PATCH { cancel:true }` · **막기면 `DELETE ?id=`** |
+| `updateInventoryOverride` | `PATCH /api/inventory-override` (신규) |
+| `updateCustomerInfo` | `PATCH /api/customers { op:"visit"\|"cancel" }` (신규) |
 
-쓰기 후 `useFirebaseStore.getState().refresh()` 를 불러야 화면이 갱신된다
-(레거시는 Firestore 가 밀어줬지만 D1 엔 push 가 없다).
+- 쓰기 후 `refresh()` 를 **await** 한 뒤 로딩을 푼다 — 방금 넣은 예약이 안 보이면 관리자가 다시 넣는다
+- **`lib/legacy-write-shape.js` 신규**: Firestore camelCase → API snake_case. 순수 모듈(D1 의존 0).
+  `legacy-shape.js` 의 반대 방향인데 그건 `d1.js` 를 물어 클라 번들에 못 넣는다(template-vars 와 같은 이유).
+  모르는 키는 **경고 후 버린다** — 조용한 유실이 이관 버그의 주범이었다
+- **`lib/customers.js` 신규**: 방문·등급 계산을 서버로. 레거시는 브라우저에서 계산했고
+  `addReservation` 에 같은 코드가 복제돼 있었다 → 등급 기준 단일 소스
 
-그 다음: 직접 Firebase 쓰는 컴포넌트 교체 → 입실·퇴실 스케줄러 → Phase 6
+**⚠️ 의도적 동작 변경 1건 (유일)**: `addReservation` 의 **클라이언트 재고 선검사를 뺐다.**
+레거시는 onSnapshot 으로 항상 최신이라 브라우저 검사가 맞았지만, D1 스냅샷은 최대 30초 낡아
+**빈 방을 거절**할 수 있다. 서버 가드는 단일 문장이라 낡지 않고 막힌 날짜까지 짚어준다.
+→ 거절 문구가 `선택한 날짜에…` → `{날짜}에 예약 가능한 객실이 없습니다…` 로 바뀐다
+(둘 다 레거시에 있던 문구 — 후자가 트랜잭션 경로 문구였다).
 
 **Vercel 배포 시 주입할 env**: `JWT_SECRET`, `CLOUDFLARE_*`, `D1_DATABASE_ID`,
 `SENS_*`, `TELEGRAM_*`, `CRON_SECRET` (로컬 `.env.local`이 단일 소스)
 
 ## ⚠️ 정리 필요 (사소)
-- **`NEXT_SESSION_REQUEST.md`** (untracked): 2026-03-02 Firebase 시절 문서. 내용이 낡아
-  새 세션이 이 파일을 먼저 읽고 혼동함. 삭제 권장 — 현행 핸드오프는 이 파일 하나.
-- 루트에 수정된 레거시 Vite 파일 12개(`src/`, `functions/src/index.js`)가 커밋 안 된 채 방치.
-  이관과 무관한 예전 작업물 — 정체 확인 후 커밋하거나 되돌릴 것.
+- ~~`NEXT_SESSION_REQUEST.md`~~ **삭제 완료** (2026-07-16). 예상대로 새 세션이 그걸 먼저 읽고
+  3월 Firebase 컨텍스트로 출발했다 — 현행 핸드오프는 **이 파일 하나**.
+- 루트에 수정된 레거시 Vite 파일 **11개**(`src/components/*`, `src/services/*`, `functions/src/index.js`)가
+  커밋 안 된 채 방치. **이번 세션도 손대지 않았다**(내 작업과 무관해 섞으면 리뷰가 불가능해진다).
+  `functions/src/index.js` 만 1,197줄 변경 — 정체 확인 후 커밋하거나 되돌릴 것.
+  ⚠️ 단 `src/stores/useReservationStore.js` 는 이번에 전면 이식하며 함께 커밋됐다.
 
 ## 🔴 사고 기록 — D1 실데이터 삭제 (2026-07-16, 복구 완료)
 테스트 데이터를 지우려고 `DELETE ... WHERE customer_name LIKE '테스트%'` 를 실행 →
@@ -96,9 +122,25 @@ node scripts/set-admin-password.mjs
   1. **삭제는 정확한 ID로만.** 이름·패턴(LIKE) 기반 삭제 절대 금지 — 실데이터에 "테스트"라는
      이름이 실제로 존재한다
   2. 테스트 데이터는 **생성 시 받은 ID를 변수에 들고 있다가** 그 ID로만 삭제
-  3. **덤프는 임시폴더에 있어 세션 종료 시 사라진다.** 이번엔 운 좋게 이전 세션 폴더가
-     남아 있어 복구됐다. 다음에 같은 일이 나면 Firestore에서 재덤프(`dump-all.mjs`) 필요 —
-     Firebase 폐기(Phase 8) 이후엔 **복구 불가**. 폐기 전 덤프를 영구 보관할 것
+  3. ~~덤프는 임시폴더에 있어 세션 종료 시 사라진다~~ → **영구 보관 완료 (2026-07-16)**:
+     `F:\backup\choho-firestore-dump-20260716\` (12컬렉션 1.6MB).
+     **repo 밖**에 둔 이유 = 고객 실명·전화번호가 들어 있어 커밋되면 그 자체가 유출.
+     Firebase 폐기(Phase 8) 이후엔 재덤프가 **불가능**하니 이 폴더를 지우지 말 것.
+     감사 스크립트도 `scripts/audit/` 로 옮겨 이 경로를 보도록 고쳤다.
+
+## 🔴 사고 기록 — 실고객 행 오염 (2026-07-16, 복구 완료)
+`audit-store-port.mjs` 가 테스트 번호 **01098979834** 로 고객 API 를 검증했는데, 그 번호엔
+**실고객(이재호·방문 37회·누적 814만원)** 이 이미 있었다. 정리 로직이 "행 수가 늘었으면 삭제"
+라서 **기존 행을 수정한 경우**를 되돌리지 못했다 → 이름이 `테스트예약` 으로 덮이고
+방문 37→38 · 누적 +18만원 · 취소 36→37 · 예약배열에 테스트 ID 가 남았다.
+
+- **복구**: 위 영구 덤프에서 전필드 복원 후 매퍼 출력과 **9필드 대조 전건 일치** 확인.
+  덮어쓰기 전에 "현재 배열 − 테스트ID == 덤프" 를 먼저 검사해 **내 감사 외 변경이 없음**을
+  확인하고 진행했다(아니면 중단하도록 짜뒀다)
+- **교훈**: `COUNT(*)` 복구검증은 **생성만** 잡고 **수정을 못 잡는다.**
+  D1 쓰기 테스트는 건드릴 행의 **원본 전체를 캡처 → 테스트 → 행 단위 복구 → 복구검증**.
+  테스트 전용 번호라도 **실데이터가 있다고 가정**할 것 (이번이 정확히 그 경우였다)
+- 감사 스크립트는 이 방식으로 고쳐 커밋됨 (`cust0Row` 캡처 → finally 복구 → 복구 검증 통과)
 
 ---
 
@@ -271,8 +313,13 @@ Firestore 접근: firebase-tools refresh_token (`C:/Users/flame/.config/configst
 | sms_config | 2 (발신번호·채널ID만, 시크릿 컬럼 NULL 확인됨) |
 | marketing_stats | 4 |
 - **Firestore 12컬렉션 전량 이관 완료**
-- 덤프 위치(임시): `scratchpad/dump/*.json` (세션 종료 시 삭제됨 — 재덤프는 `dump-all.mjs`)
-- 로더 스크립트: `scratchpad/load-core.mjs`, `load-logs.mjs`, `extract-secrets.mjs`, `verify-migration.mjs`
+- **덤프 위치(영구)**: `F:\backup\choho-firestore-dump-20260716\*.json` — 12컬렉션 1.6MB.
+  **repo 밖**이다(고객 실명·전화번호 = PII. 커밋되면 그 자체가 유출).
+  Firebase 폐기 후엔 재덤프 불가 → **이 폴더를 지우지 말 것**
+- 로더/복구 스크립트: `scripts/migration/` (load-core·load-logs·dump-all·restore-deleted·fix-overrides).
+  전부 위 영구 덤프 경로를 보도록 고쳐 두었다 — 실데이터 삭제 사고 때 복구에 쓴 것들이다
+- 감사 스크립트: `scripts/audit/` (verify-snapshot·verify-migration·audit-override·audit-store-port·
+  audit-inventory·audit-api-guard)
 
 ### 시크릿 (.env.local, D1 미저장)
 - SENS: choho/shelter **동일 계정 chohopark**, 발신번호만 다름 (choho 01079320029 / shelter 01058710038)
@@ -401,6 +448,8 @@ Firestore 보고 발송 중). 화면에 그렇게 명시해둠. 컷오버 전 �
 | `/api/snapshot` + `/api/version` heartbeat | `3fd219b` | 10/10 |
 | `useFirebaseStore` — onSnapshot 7개 제거 | `18a629c` | **18/18** API 표면 동등성 |
 | 재고 가드 → 쓰기 API 연결 | `18a629c` | **19/19** 동시 8건→2건만 |
+| override 드리프트 차단 (`stock` 단일 소스) | `b638879` | **25/25** 쓰기 후 가드==매퍼 |
+| `useReservationStore` — 쓰기 7개 → API | `b638879` | **49/49** + API 표면 14/14 |
 
 **역매퍼 검증이 이식의 전제였다**: rooms 7 / reservations 540 / options 4 / pricingRules 4 /
 customers 402 / overrides 26 를 원본 Firestore 덤프와 **전필드 대조** + 레거시 orderBy 재현 확인.
@@ -427,31 +476,26 @@ customers 402 / overrides 26 를 원본 Firestore 덤프와 **전필드 대조**
 - `dailyPrices` → 모달이 **로컬 계산**하는 출력값. initialData 에서 읽지 않음
 - `confirmedAt` → **쓰기 전용**, 읽는 곳 없음
 
-### 🚨 다음 세션이 **가장 먼저** 처리할 것 — inventory_overrides 드리프트 위험
-`updateInventoryOverride` 를 이식하기 **전에** 반드시 정리할 것. 지금 재고 override 를 읽는 곳이 **두 군데**다:
+### ✅ inventory_overrides 드리프트 해소 (커밋 `b638879`) — `stock` 이 단일 소스
+재고 override 를 읽는 곳이 **두 군데**였다(가드는 `stock` 컬럼, 매퍼는 `data.available`).
+백필 덕에 우연히 일치할 뿐이라 `updateInventoryOverride` 를 그대로 이식하면 어긋날 상황이었다.
 
-| 읽는 곳 | 출처 |
-|---|---|
-| 재고 가드 `lib/inventory.js` | `inventory_overrides.stock` **컬럼** |
-| 스토어 매퍼 `lib/legacy-shape.js` (loadSnapshot) | `data` JSON 의 **`available`** |
+**측정 결과** — 키형식 23행은 이미 `stock == data.available`(드리프트 0), 불일치 3건은 전부
+`stock`=NULL 인 **랜덤 id 죽은 행**뿐이었다 → 폴백만 남기면 출력이 한 값도 안 변한다.
 
-지금은 `stock` 을 `data.available` 에서 백필해 **우연히 일치**할 뿐이다.
-`updateInventoryOverride`(레거시는 `setDoc({available,...},{merge:true})`)를 그대로 이식해
-한쪽만 갱신하면 **화면과 재고검사가 어긋난다** — 화면엔 여유가 보이는데 예약이 거절되거나, 그 반대.
+- 매퍼: `SELECT id, stock, data` → `o.stock ?? data.available` (폴백 = 랜덤 id 3건 전용)
+- 쓰기(`setOverride`): `stock`+`date`+`room_name`+`data` **동시 갱신**. data 는 `json_patch` 머지
+  (레거시 `setDoc(...,{merge:true})` 동등 — createdAt 등 보존)
+- **증명**: `audit-override.mjs` 25/25 — 쓰기 후 **가드 == 매퍼** 대조. 갱신·삭제·머지 전부.
+  역매퍼 18/18 유지 확인
 
-**정리 방향**: `stock` 컬럼을 단일 소스로.
-- 매퍼: `SELECT id, stock, data ...` → `o.stock ?? parseJson(o.data)?.available`
-  (폴백은 **랜덤 id 3건 전용** — 그 행들은 stock 이 NULL 이고 레거시도 `${date}_${room}` 로만 조회해 안 읽힘.
-   이 폴백이 있어야 스토어 맵이 레거시와 완전히 같아진다)
-- 신규 쓰기 엔드포인트: `stock` + `date` + `room_name` 을 채우고 `data` 도 함께 갱신
-- 고친 뒤 `scratchpad/verify-snapshot.mjs` 재실행해 18/18 유지 확인
+> `date`·`room_name` 을 반드시 채울 것. 비면 가드가 `WHERE room_name=? AND date=?` 로 못 찾아
+> **막아둔 날이 통째로 무시**된다 (이관 버그가 정확히 그거였다).
 
 ### 남은 것
-1. `useReservationStore` 쓰기 7개 (위 "다음 세션 첫 액션")
-2. 직접 Firebase 쓰는 컴포넌트: NewReservationModal, OptionsSettings, ReservationCalendar,
-   RoomManagement, NotificationSettingsV2, SmsHistoryTable, DataInitializer, useCustomers,
-   useOptionSettings, sensService, reservationDebugger
-3. `src/config/firebase.js` 제거 → Vite 의존 정리
+1. 직접 Firebase 쓰는 컴포넌트 9개 (위 "다음 세션 첫 액션" 표)
+2. `src/config/firebase.js` 제거 → Vite 의존 정리
+3. 입실·퇴실 스케줄러 이관 (신규 스택에 없어 **아직 아무 동작도 안 한다**)
 
 ## 🔒 재고 가드 완료 (2026-07-16, 커밋 `c3d2257` + API연결 `18a629c`) — `lib/inventory.js`
 
@@ -495,7 +539,7 @@ D1엔 대화형 트랜잭션이 없지만 **한 문장은 원자적**이고, D1�
 - **레거시는 override를 문서 ID로 조회**하므로 **ID가 진실**. json.roomName은 낡을 수 있음(단체예약→단체-워크샵)
 - 랜덤 id 3건은 레거시가 `doc(id)`로 못 읽는 **죽은 데이터** → NULL 유지해 동일하게 무시
 
-### 감사 (23건 통과) — `scratchpad/audit-inventory.mjs`
+### 감사 (23건 통과) — `scripts/audit/audit-inventory.mjs`
 - 동등성 **2,940건 대조**(5객실×420일) — 가드SQL == 확정규칙 불일치 0
 - **동시 8건 → 정확히 2건만 성공, 실점유 2, 오버부킹 0** ← 레거시가 못 하던 것
 - 없는 객실 거절 / 막기 통과 / 진단 날짜특정 / UPDATE 자기제외 / D1 원상복구
@@ -527,6 +571,12 @@ D1엔 대화형 트랜잭션이 없지만 **한 문장은 원자적**이고, D1�
 | 입실·퇴실 문자 | `checkin_enabled`/`checkout_enabled` — **신규 스택 미동작** (스케줄러 미이관) |
 | 취소 문자 | 없음 — **의도적 미발송** (정책) |
 | 막기(`source="막기"`) | 전부 스킵 |
+| **이미 취소된 예약 재취소** | 스킵 (`{skipped:"already_cancelled"}`) — 아래 참조 |
+
+> 🐞 **취소 알림 중복 (2026-07-16 수정, `b638879`)**: PATCH 가 `status='예약취소'` 를 보기만 하면
+> 무조건 취소 텔레그램을 보냈다 → 중복 클릭·재시도 시 고객에게 **두 번** 나간다.
+> 레거시 트리거는 `statusChanged && after.status==='예약취소'` 로 **상태 전환에만** 반응했다
+> (`reservationTriggers.js:627`) → 동일하게 `before.status` 를 보고 스킵하도록 고침.
 
 ## 텔레그램 봇 2개 — 용도 분리
 
@@ -562,7 +612,19 @@ D1엔 대화형 트랜잭션이 없지만 **한 문장은 원자적**이고, D1�
 - `rooms.js`(listRooms/getRoomByName/businessOf/listOptions)
 - `notifications.js` — 설정·템플릿 조회/쓰기 + template-vars 재수출
 - `sms.js`, `telegram.js`, `messages.js`, `reservation-notify.js`, `infra-alert.js`
-- `app/api/`: reservations(POST/PATCH/GET), notifications(PATCH), health(GET)
+- `inventory.js` — 재고 가드(insert/updateGuarded·diagnose·availableStock) + **override 쓰기**(setOverride/deleteOverride)
+- `customers.js` — 방문·등급·취소 카운트 (**등급 기준 단일 소스**)
+- `legacy-shape.js` — D1 → Firestore 원형 (읽기, 서버 전용)
+- `legacy-write-shape.js` — Firestore 원형 → API (쓰기, **순수 모듈** — 스토어가 브라우저에서 쓴다)
+- `app/api/`: reservations(POST/PATCH/GET/**DELETE**), notifications(PATCH), health(GET),
+  snapshot·version(GET), **inventory-override(PATCH)**, **customers(PATCH)**
+
+### DELETE 는 막기 전용 (의도된 제약)
+레거시 `cancelReservation` 은 `source='막기'` 만 완전 삭제하고 일반 예약은 취소 상태로 남긴다
+(매출·환불 이력이 사라지면 안 되므로). 그 규칙을 **서버에서 강제**한다 — 클라 버그가 실예약을
+지우는 경로 자체를 없앴다. 일반 예약 DELETE 는 400.
+- 레거시에서 무제한 `deleteDoc` 을 하던 `ReservationModal.jsx` 는 **import 하는 곳이 0인 죽은 코드**라
+  이 제약으로 잃는 기능이 없다 (확인함). 살아있는 모달은 `BookingModal`
 
 ### 로컬 실행/빌드
 - 빌드: `set -a && source .env.local && set +a && npx next build`
