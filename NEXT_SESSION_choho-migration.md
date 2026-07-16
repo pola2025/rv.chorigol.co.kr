@@ -52,7 +52,12 @@ node scripts/set-admin-password.mjs
 - 비번을 바꿀 때도 같은 명령. 다른 계정은 `node scripts/set-admin-password.mjs 이메일@주소`
 - **에이전트에게 비밀번호를 알려주지 말 것** — 채팅에 남으면 그 자체가 유출이다
 
-## 다음 세션 첫 액션 — `useReservationStore` 이식
+## 다음 세션 첫 액션
+0. **🚨 inventory_overrides 드리프트 먼저 정리** (아래 "레거시 화면 이식" 절 참조).
+   재고 override 를 가드는 `stock` 컬럼에서, 스토어는 `data.available` 에서 읽는다.
+   지금은 우연히 일치하지만 `updateInventoryOverride` 이식하면 어긋난다.
+
+## `useReservationStore` 이식
 쓰기 7개 메서드만 API로 돌리면 된다. **순수함수 5개는 손댈 필요 없다**
 (`getAvailableStock` `getStatistics` `normalizePhone` `calculateCustomerGrade`
  `checkAvailabilityForRange` — 스토어 상태만 D1로 바뀌면 그대로 동작).
@@ -421,6 +426,25 @@ customers 402 / overrides 26 를 원본 Firestore 덤프와 **전필드 대조**
 - `selectedOptions` → 모달이 `options` 에서 **역산**한다(NewReservationModal:170-183). `options` 가 있으면 DB값을 덮어씀
 - `dailyPrices` → 모달이 **로컬 계산**하는 출력값. initialData 에서 읽지 않음
 - `confirmedAt` → **쓰기 전용**, 읽는 곳 없음
+
+### 🚨 다음 세션이 **가장 먼저** 처리할 것 — inventory_overrides 드리프트 위험
+`updateInventoryOverride` 를 이식하기 **전에** 반드시 정리할 것. 지금 재고 override 를 읽는 곳이 **두 군데**다:
+
+| 읽는 곳 | 출처 |
+|---|---|
+| 재고 가드 `lib/inventory.js` | `inventory_overrides.stock` **컬럼** |
+| 스토어 매퍼 `lib/legacy-shape.js` (loadSnapshot) | `data` JSON 의 **`available`** |
+
+지금은 `stock` 을 `data.available` 에서 백필해 **우연히 일치**할 뿐이다.
+`updateInventoryOverride`(레거시는 `setDoc({available,...},{merge:true})`)를 그대로 이식해
+한쪽만 갱신하면 **화면과 재고검사가 어긋난다** — 화면엔 여유가 보이는데 예약이 거절되거나, 그 반대.
+
+**정리 방향**: `stock` 컬럼을 단일 소스로.
+- 매퍼: `SELECT id, stock, data ...` → `o.stock ?? parseJson(o.data)?.available`
+  (폴백은 **랜덤 id 3건 전용** — 그 행들은 stock 이 NULL 이고 레거시도 `${date}_${room}` 로만 조회해 안 읽힘.
+   이 폴백이 있어야 스토어 맵이 레거시와 완전히 같아진다)
+- 신규 쓰기 엔드포인트: `stock` + `date` + `room_name` 을 채우고 `data` 도 함께 갱신
+- 고친 뒤 `scratchpad/verify-snapshot.mjs` 재실행해 18/18 유지 확인
 
 ### 남은 것
 1. `useReservationStore` 쓰기 7개 (위 "다음 세션 첫 액션")
