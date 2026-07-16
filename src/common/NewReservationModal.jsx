@@ -856,7 +856,7 @@ const NewReservationModal = ({
                     }}
                     disabled={isSubmitting}
                   />
-                  <span>레이트 체크아웃 (14:00)</span>
+                  <span>레이트 체크아웃 (12:00)</span>
                   <small className="option-note">재고 확인 필요</small>
                 </label>
               )}
