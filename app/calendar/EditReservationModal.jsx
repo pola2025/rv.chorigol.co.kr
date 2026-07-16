@@ -37,7 +37,12 @@ async function patchReservation(body) {
   return j;
 }
 
-export default function EditReservationModal({ reservation: r, rooms, onClose, onDone }) {
+export default function EditReservationModal({
+  reservation: r,
+  rooms,
+  onClose,
+  onDone,
+}) {
   const [mode, setMode] = useState("edit"); // edit | confirm | cancel
   const [f, setF] = useState(() =>
     Object.fromEntries(FIELDS.map((k) => [k, r[k] ?? ""])),
@@ -76,32 +81,115 @@ export default function EditReservationModal({ reservation: r, rooms, onClose, o
     <>
       <div onClick={onClose} style={backdrop} />
       <div style={modal}>
-        <div style={{ display: "flex", alignItems: "center", marginBottom: ".85rem" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            marginBottom: ".85rem",
+          }}
+        >
           <strong style={{ fontSize: "1.05rem" }}>예약 상세</strong>
-          <span style={{ ...badge, marginLeft: ".5rem", color: STATUS_COLOR[r.status] }}>{r.status}</span>
-          {isBlocked && <span style={{ ...badge, marginLeft: ".35rem", color: "#6a7a71" }}>막기 · 알림없음</span>}
-          <button onClick={onClose} style={{ ...ghostBtn, marginLeft: "auto" }}>✕</button>
+          <span
+            style={{
+              ...badge,
+              marginLeft: ".5rem",
+              color: STATUS_COLOR[r.status],
+            }}
+          >
+            {r.status}
+          </span>
+          {isBlocked && (
+            <span style={{ ...badge, marginLeft: ".35rem", color: "#6a7a71" }}>
+              막기 · 알림없음
+            </span>
+          )}
+          <button onClick={onClose} style={{ ...ghostBtn, marginLeft: "auto" }}>
+            ✕
+          </button>
         </div>
 
         {mode === "edit" && (
           <>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: ".5rem" }}>
-              <label style={lbl}>고객명<input style={inp} value={f.customer_name} onChange={set("customer_name")} /></label>
-              <label style={lbl}>연락처<input style={inp} value={f.phone} onChange={set("phone")} /></label>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: ".5rem",
+              }}
+            >
+              <label style={lbl}>
+                고객명
+                <input
+                  style={inp}
+                  value={f.customer_name}
+                  onChange={set("customer_name")}
+                />
+              </label>
+              <label style={lbl}>
+                연락처
+                <input style={inp} value={f.phone} onChange={set("phone")} />
+              </label>
               <label style={lbl}>
                 객실
-                <select style={inp} value={f.room_name} onChange={set("room_name")}>
+                <select
+                  style={inp}
+                  value={f.room_name}
+                  onChange={set("room_name")}
+                >
                   {rooms.map((room) => (
-                    <option key={room.id} value={room.name}>{room.name}</option>
+                    <option key={room.id} value={room.name}>
+                      {room.name}
+                    </option>
                   ))}
-                  {!rooms.some((room) => room.name === f.room_name) && <option value={f.room_name}>{f.room_name}</option>}
+                  {!rooms.some((room) => room.name === f.room_name) && (
+                    <option value={f.room_name}>{f.room_name}</option>
+                  )}
                 </select>
               </label>
-              <label style={lbl}>인원<input style={inp} type="number" value={f.guests} onChange={set("guests")} /></label>
-              <label style={lbl}>체크인<input style={inp} type="date" value={f.check_in} onChange={set("check_in")} /></label>
-              <label style={lbl}>체크아웃<input style={inp} type="date" value={f.check_out} onChange={set("check_out")} /></label>
-              <label style={lbl}>금액<input style={inp} type="number" value={f.total_price} onChange={set("total_price")} /></label>
-              <label style={lbl}>입금자명<input style={inp} value={f.depositor_name} onChange={set("depositor_name")} /></label>
+              <label style={lbl}>
+                인원
+                <input
+                  style={inp}
+                  type="number"
+                  value={f.guests}
+                  onChange={set("guests")}
+                />
+              </label>
+              <label style={lbl}>
+                체크인
+                <input
+                  style={inp}
+                  type="date"
+                  value={f.check_in}
+                  onChange={set("check_in")}
+                />
+              </label>
+              <label style={lbl}>
+                체크아웃
+                <input
+                  style={inp}
+                  type="date"
+                  value={f.check_out}
+                  onChange={set("check_out")}
+                />
+              </label>
+              <label style={lbl}>
+                금액
+                <input
+                  style={inp}
+                  type="number"
+                  value={f.total_price}
+                  onChange={set("total_price")}
+                />
+              </label>
+              <label style={lbl}>
+                입금자명
+                <input
+                  style={inp}
+                  value={f.depositor_name}
+                  onChange={set("depositor_name")}
+                />
+              </label>
               <label style={lbl}>
                 출처
                 <select style={inp} value={f.source} onChange={set("source")}>
@@ -113,22 +201,41 @@ export default function EditReservationModal({ reservation: r, rooms, onClose, o
                   <option value="막기">막기</option>
                 </select>
               </label>
-              <label style={lbl}>메모<input style={inp} value={f.memo} onChange={set("memo")} /></label>
+              <label style={lbl}>
+                메모
+                <input style={inp} value={f.memo} onChange={set("memo")} />
+              </label>
             </div>
 
             {r.options?.length > 0 && (
               <div style={{ ...hint, marginTop: ".5rem" }}>
-                옵션: {r.options.map((o) => `${o.name}${o.price ? ` ${won(o.price)}원` : ""}`).join(" · ")}
+                옵션:{" "}
+                {r.options
+                  .map((o) => `${o.name}${o.price ? ` ${won(o.price)}원` : ""}`)
+                  .join(" · ")}
               </div>
             )}
 
             {roomChanged && !isBlocked && (
-              <div style={warnBox}>객실을 바꿔 저장하면 텔레그램으로 객실변경 알림이 전송됩니다.</div>
+              <div style={warnBox}>
+                객실을 바꿔 저장하면 텔레그램으로 객실변경 알림이 전송됩니다.
+              </div>
             )}
             {err && <div style={errBox}>{err}</div>}
 
-            <div style={{ display: "flex", gap: ".4rem", marginTop: ".9rem", alignItems: "center" }}>
-              <button onClick={save} disabled={busy || !dirty} style={{ ...primaryBtn, opacity: busy || !dirty ? 0.5 : 1 }}>
+            <div
+              style={{
+                display: "flex",
+                gap: ".4rem",
+                marginTop: ".9rem",
+                alignItems: "center",
+              }}
+            >
+              <button
+                onClick={save}
+                disabled={busy || !dirty}
+                style={{ ...primaryBtn, opacity: busy || !dirty ? 0.5 : 1 }}
+              >
                 {busy ? "저장 중..." : "저장"}
               </button>
               {!confirmed && !canceled && (
@@ -150,7 +257,9 @@ export default function EditReservationModal({ reservation: r, rooms, onClose, o
                 </button>
               )}
               {dirty && !canceled && (
-                <span style={hint}>확정·취소하려면 변경사항을 먼저 저장하세요</span>
+                <span style={hint}>
+                  확정·취소하려면 변경사항을 먼저 저장하세요
+                </span>
               )}
             </div>
           </>
@@ -158,16 +267,24 @@ export default function EditReservationModal({ reservation: r, rooms, onClose, o
 
         {mode === "confirm" && (
           <div>
-            <div style={{ fontWeight: 700, marginBottom: ".5rem" }}>예약을 확정할까요?</div>
+            <div style={{ fontWeight: 700, marginBottom: ".5rem" }}>
+              예약을 확정할까요?
+            </div>
             <div style={infoBox}>
-              {r.customer_name} · {r.room_name} · {r.check_in}~{r.check_out} · {won(r.total_price)}원
+              {r.customer_name} · {r.room_name} · {r.check_in}~{r.check_out} ·{" "}
+              {won(r.total_price)}원
             </div>
             {isBlocked ? (
-              <div style={{ ...hint, marginTop: ".6rem" }}>막기 예약이라 알림은 발송되지 않습니다.</div>
+              <div style={{ ...hint, marginTop: ".6rem" }}>
+                막기 예약이라 알림은 발송되지 않습니다.
+              </div>
             ) : (
               <div style={warnBox}>
-                확정하면 <strong>{r.phone}</strong> 으로 예약확정 문자가 발송되고, 텔레그램 알림이 전송됩니다.
-                <div style={{ ...hint, marginTop: ".25rem" }}>알림 설정에서 꺼둔 항목은 발송되지 않습니다.</div>
+                확정하면 예약확정 문자가 <strong>{r.phone}</strong> 번호로
+                발송되고, 텔레그램 알림이 전송됩니다.
+                <div style={{ ...hint, marginTop: ".25rem" }}>
+                  알림 설정에서 꺼둔 항목은 발송되지 않습니다.
+                </div>
               </div>
             )}
             {err && <div style={errBox}>{err}</div>}
@@ -179,7 +296,13 @@ export default function EditReservationModal({ reservation: r, rooms, onClose, o
               >
                 {busy ? "처리 중..." : isBlocked ? "확정" : "확정하고 발송"}
               </button>
-              <button onClick={() => setMode("edit")} disabled={busy} style={ghostBtn}>돌아가기</button>
+              <button
+                onClick={() => setMode("edit")}
+                disabled={busy}
+                style={ghostBtn}
+              >
+                돌아가기
+              </button>
             </div>
           </div>
         )}
@@ -206,7 +329,9 @@ function CancelPanel({ r, busy, err, isBlocked, onBack, onCancel }) {
   const [amount, setAmount] = useState(String(autoRefund));
   const [reason, setReason] = useState("");
 
-  const refund = manual ? Number(String(amount).replace(/[^0-9]/g, "")) || 0 : autoRefund;
+  const refund = manual
+    ? Number(String(amount).replace(/[^0-9]/g, "")) || 0
+    : autoRefund;
   const fee = (r.total_price || 0) - refund;
   const finalRate = manual
     ? Math.round((refund / (r.total_price || 1)) * 100)
@@ -219,11 +344,26 @@ function CancelPanel({ r, busy, err, isBlocked, onBack, onCancel }) {
         {r.customer_name} · {r.room_name} · {r.check_in}~{r.check_out}
       </div>
 
-      <div style={{ ...hint, margin: ".6rem 0 .35rem" }}>{getRefundPolicyText(r.check_in)}</div>
+      <div style={{ ...hint, margin: ".6rem 0 .35rem" }}>
+        {getRefundPolicyText(r.check_in)}
+      </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: ".75rem", alignItems: "start" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: ".75rem",
+          alignItems: "start",
+        }}
+      >
         <div>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: ".72rem" }}>
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              fontSize: ".72rem",
+            }}
+          >
             <thead>
               <tr>
                 <th style={th}>취소 시점</th>
@@ -232,10 +372,23 @@ function CancelPanel({ r, busy, err, isBlocked, onBack, onCancel }) {
             </thead>
             <tbody>
               {REFUND_POLICY.map((p) => {
-                const cur = !manual && p.daysBeforeCheckIn === daysUntilCheckIn(r.check_in);
+                const cur =
+                  !manual &&
+                  p.daysBeforeCheckIn === daysUntilCheckIn(r.check_in);
                 return (
-                  <tr key={p.daysBeforeCheckIn} style={cur ? { background: "#eef2ee", fontWeight: 700 } : undefined}>
-                    <td style={td}>{p.daysBeforeCheckIn === 0 ? "당일" : `${p.daysBeforeCheckIn}일 전`}</td>
+                  <tr
+                    key={p.daysBeforeCheckIn}
+                    style={
+                      cur
+                        ? { background: "#eef2ee", fontWeight: 700 }
+                        : undefined
+                    }
+                  >
+                    <td style={td}>
+                      {p.daysBeforeCheckIn === 0
+                        ? "당일"
+                        : `${p.daysBeforeCheckIn}일 전`}
+                    </td>
                     <td style={td}>{p.refundRate}%</td>
                   </tr>
                 );
@@ -245,32 +398,73 @@ function CancelPanel({ r, busy, err, isBlocked, onBack, onCancel }) {
         </div>
 
         <div>
-          <label style={{ ...lbl, flexDirection: "row", alignItems: "center", gap: ".35rem", marginBottom: ".4rem" }}>
-            <input type="checkbox" checked={manual} onChange={(e) => setManual(e.target.checked)} />
+          <label
+            style={{
+              ...lbl,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: ".35rem",
+              marginBottom: ".4rem",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={manual}
+              onChange={(e) => setManual(e.target.checked)}
+            />
             환불금액 수동 지정
           </label>
-          <div style={calcRow}><span>결제 금액</span><strong>{won(r.total_price)}원</strong></div>
-          <div style={calcRow}><span>환불율</span><strong>{finalRate}%</strong></div>
+          <div style={calcRow}>
+            <span>결제 금액</span>
+            <strong>{won(r.total_price)}원</strong>
+          </div>
+          <div style={calcRow}>
+            <span>환불율</span>
+            <strong>{finalRate}%</strong>
+          </div>
           {manual && (
             <label style={{ ...lbl, marginTop: ".3rem" }}>
               환불 금액
-              <input style={inp} value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^0-9]/g, ""))} />
+              <input
+                style={inp}
+                value={amount}
+                onChange={(e) =>
+                  setAmount(e.target.value.replace(/[^0-9]/g, ""))
+                }
+              />
             </label>
           )}
-          <div style={calcRow}><span>취소 수수료</span><strong style={{ color: "#a8422f" }}>-{won(fee)}원</strong></div>
-          <div style={{ ...calcRow, borderTop: "1px solid #dde3de", paddingTop: ".3rem", marginTop: ".3rem" }}>
-            <span>환불 예정</span><strong style={{ color: "#2f6b4f" }}>{won(refund)}원</strong>
+          <div style={calcRow}>
+            <span>취소 수수료</span>
+            <strong style={{ color: "#a8422f" }}>-{won(fee)}원</strong>
+          </div>
+          <div
+            style={{
+              ...calcRow,
+              borderTop: "1px solid #dde3de",
+              paddingTop: ".3rem",
+              marginTop: ".3rem",
+            }}
+          >
+            <span>환불 예정</span>
+            <strong style={{ color: "#2f6b4f" }}>{won(refund)}원</strong>
           </div>
         </div>
       </div>
 
       <label style={{ ...lbl, marginTop: ".6rem" }}>
         취소 사유 (선택)
-        <input style={inp} value={reason} onChange={(e) => setReason(e.target.value)} />
+        <input
+          style={inp}
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+        />
       </label>
 
       {rate === 0 && !manual && (
-        <div style={warnBox}>당일·1일 전 취소로 환불이 불가능합니다 (환불액 0원).</div>
+        <div style={warnBox}>
+          당일·1일 전 취소로 환불이 불가능합니다 (환불액 0원).
+        </div>
       )}
       <div style={{ ...hint, marginTop: ".5rem" }}>
         {isBlocked
@@ -294,13 +488,19 @@ function CancelPanel({ r, busy, err, isBlocked, onBack, onCancel }) {
         >
           {busy ? "처리 중..." : "예약 취소 확인"}
         </button>
-        <button onClick={onBack} disabled={busy} style={ghostBtn}>돌아가기</button>
+        <button onClick={onBack} disabled={busy} style={ghostBtn}>
+          돌아가기
+        </button>
       </div>
     </div>
   );
 }
 
-const STATUS_COLOR = { 예약확정: "#2f6b4f", 입금대기: "#8a6318", 예약취소: "#a8422f" };
+const STATUS_COLOR = {
+  예약확정: "#2f6b4f",
+  입금대기: "#8a6318",
+  예약취소: "#a8422f",
+};
 const backdrop = {
   position: "fixed",
   inset: 0,
@@ -339,8 +539,18 @@ const warnBox = {
   color: "#7a5a1e",
   marginTop: ".6rem",
 };
-const calcRow = { display: "flex", justifyContent: "space-between", fontSize: ".78rem", padding: ".15rem 0" };
-const th = { textAlign: "left", padding: ".2rem .3rem", background: "#eef2ee", fontWeight: 700 };
+const calcRow = {
+  display: "flex",
+  justifyContent: "space-between",
+  fontSize: ".78rem",
+  padding: ".15rem 0",
+};
+const th = {
+  textAlign: "left",
+  padding: ".2rem .3rem",
+  background: "#eef2ee",
+  fontWeight: 700,
+};
 const td = { padding: ".2rem .3rem", borderTop: "1px solid #ebefeb" };
 const primaryBtn = {
   background: "#2f6b4f",
@@ -362,7 +572,13 @@ const ghostBtn = {
   fontSize: ".82rem",
   cursor: "pointer",
 };
-const lbl = { display: "flex", flexDirection: "column", fontSize: ".72rem", color: "#6a7a71", gap: ".2rem" };
+const lbl = {
+  display: "flex",
+  flexDirection: "column",
+  fontSize: ".72rem",
+  color: "#6a7a71",
+  gap: ".2rem",
+};
 const inp = {
   padding: ".4rem .5rem",
   border: "1px solid #dde3de",
