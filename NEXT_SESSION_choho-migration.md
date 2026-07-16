@@ -40,7 +40,7 @@ F:\rv-chorigol.co.kr\NEXT_SESSION_choho-migration.md 전체 컨텍스트. 브랜
 | — | 인프라봇 헬스체크 분리 | ✅ |
 | 5 | 인증 (Firebase Auth → JWT 쿠키) | ✅ (비번 설정만 남음) |
 | — | **재고 가드** (오버부킹 원자적 차단) + API 연결 | ✅ |
-| — | **레거시 화면 이식** (rv 모양 그대로) | 🔄 **스토어 2/2 ✅ · 컴포넌트 9개 남음** |
+| — | **레거시 화면 이식** (rv 모양 그대로) | 🔄 **스토어 2/2 ✅ · Firebase 직접사용 14개 남음** |
 | 6 | api.chorigol.co.kr Worker 보안 | ⬜ |
 | 7 | 컷오버 (rv CNAME) → 병렬운영 2주 | ⬜ |
 | 8 | Firebase·Airtable 폐기 | ⬜ |
