@@ -199,13 +199,32 @@ Firestore 접근: firebase-tools refresh_token (`C:/Users/flame/.config/configst
 - **한글 payload는 curl 금지** (Windows 콘솔 UTF-8 깨짐 → source="막기" 깨져 스킵 실패한 사고). node로 테스트
 - 텔레그램 봇: 양쪽 업체 동일 `@mkt251102_bot`, chatId만 다름 (choho -1002484830636 / shelter -1002863320782)
 
-### 다음 액션 (Phase 3 화면 이식 이어서)
-1. 컴포넌트 전면 재작성 (결정됨): 캘린더/객실/옵션/알림 → Next 서버컴포넌트 + API Route
-   - 쓰기는 전부 `fetch('/api/...')` → API Route → lib/ (Firestore 직접쓰기 145곳 대체)
-2. 나머지 조회 계층: customers, inventory_overrides, marketing_stats, pricing
-3. 리스너 7곳(onSnapshot) → 폴링/revalidate, Airtable 제거
+## Phase 3 화면 이식 — 4/5 완료 (전면 재작성)
+
+**완료 화면** (전부 D1 서버컴포넌트, 빌드+실데이터 렌더 HTTP 200 검증):
+- `app/calendar` — 월 그리드 + 날짜별 예약 + **신규예약 생성**(fetch→/api/reservations). CalendarClient.jsx(클라이언트) + BookingForm
+- `app/reservations` — 예약목록 + 상태요약
+- `app/rooms` — 객실관리 (업체/요금/재고)
+- `app/options` — 옵션설정
+- `app/nav.jsx` 공용네비 (layout 적용), `app/page.jsx` / → /calendar 리다이렉트
+- 검증: 캘린더 생성흐름 e2e(막기 알림스킵) + 정리 통과. 쓰기 API 실동작 확인
+
+**남은 화면/작업**:
+1. **알림 설정 화면** (5번째, 마지막) — room_templates·sms_config 편집. lib에 조회는 있음(getTemplate/getSmsConfig), 쓰기 API + UI 필요
+2. **예약 편집 UI** — 캘린더에서 조회는 되나 수정/확정/취소 모달 미구현 (API PATCH는 준비됨). 확정 버튼→ PATCH status=예약확정, 취소버튼→ cancel
+3. 조회 계층 추가: customers, inventory_overrides, marketing_stats, pricing
 4. 인증: Firebase Auth → JWT admin_token 쿠키 (Phase 5)
-5. Vite→Next 완전 전환 후 eslint를 Next용으로 교체, Vite 스크립트/의존성 제거
+5. Vite→Next 완전 전환 후 eslint Next용 교체, Vite 스크립트/의존성 제거
+
+### lib/ 계층 현황 (완성)
+- d1.js, reservations.js(조회+쓰기 create/update/cancel/delete), rooms.js(listRooms/listOptions/businessOf)
+- notifications.js(getSmsConfig/getTemplate/renderTemplate), sms.js, telegram.js, messages.js, reservation-notify.js
+- app/api/reservations/route.js: POST/PATCH/GET (트리거 대체, 알림 통합)
+
+### 로컬 실행/빌드
+- 빌드: `set -a && source .env.local && set +a && npx next build`
+- 실행: `PORT=3900 npx next start` (또는 next dev). 정리: `pkill -f "next start"`
+- eslint는 빌드 중 비활성(next.config.mjs) — Vite eslint와 충돌. 컷오버 시 교체
 
 ### D1 접근 참고
 - `lib/d1.js` 인증: CLOUDFLARE_D1_TOKEN(Bearer) 우선 → 없으면 GLOBAL_API_KEY+EMAIL
