@@ -165,13 +165,60 @@ node scripts/set-admin-password.mjs
 **Vercel 배포 시 주입할 env**: `JWT_SECRET`, `CLOUDFLARE_*`, `D1_DATABASE_ID`,
 `SENS_*`, `TELEGRAM_*`, `CRON_SECRET` (로컬 `.env.local`이 단일 소스)
 
+## 📌 이번 세션 요약 (2026-07-16 밤 ~ 07-17)
+
+**한 줄**: 0순위 드리프트 → 스토어 이식 → 죽은 코드 정리 → 측정 → 갭 복구 → 쓰기 API → 화면 5개 이식.
+그 과정에서 **운영 버그 1건을 발견·배포**했고, **핸드오프의 전제 몇 개가 틀렸다는 것**을 밝혔다.
+
+### 끝낸 것
+| | 커밋 |
+|---|---|
+| inventory_overrides 드리프트 차단 (`stock` 단일 소스) + `useReservationStore` 쓰기 7개 이식 | `b638879` |
+| 덤프·감사 스크립트 **영구 보관** (임시폴더 소실 위험 제거) | `a783377` |
+| **죽은 코드 159개 삭제** (src/ 235 → 74) + `App.jsx` 깨진 import 수정 | `eb87704` |
+| **운영 핫픽스 배포** — 예약목록 수정 저장 불가 | `96af26b` (main) |
+| `settings/option_settings` 미이관 갭 복구 | `4e5a1ee` |
+| rooms/options/pricing_rules 쓰기 API + **D1 불리언 버그** 수정 | `2730e27` |
+| RoomManagement·OptionsSettings 이식 (**split-brain 해소**) | `33665e6` |
+| 이전 세션 미커밋 WIP 보존 + functions 포맷 분리 | `a501178` `fe2c343` |
+| ReservationCalendar · NewReservationModal · useCustomers 이식 | `bf2b132` `e713a1e` |
+| **DataInitializer 삭제** (운영 데이터 파손 경로) | `8bf57f7` |
+
+→ **Firebase 소비자 14 → 8** · src/ 235 → 74 · 감사 9종 전부 통과
+
+### 틀렸던 전제 (다음 세션도 조심)
+- **`Dashboard.jsx` 가 죽은 코드였다.** 이전 세션들이 이걸 살아있는 화면으로 알고 분석했다.
+  실제 화면은 `App.jsx → legacy-pages` 5개 라우트다. **grep 으로 도달성을 세면 안 된다**
+  (죽은 뿌리가 서브트리를 살려 보이게 한다) → `node scripts/audit/reachability.mjs`
+- **이식 대상 "9개"가 아니라 14개**였고, 대신 **죽은 코드가 159개**였다
+- 이 브랜치의 `vite build` 가 **아예 깨져 있었다** (`./pages` → `legacy-pages` rename 누락)
+- `AI_COMPONENTS_GUIDE.md` 는 **30개 중 20개가 삭제된 파일** — 경고 헤더를 붙였다
+
+### 이 세션에서 발견한 버그 (전부 레거시 기존 문제)
+1. **예약목록 수정 저장 불가** — 호출부는 객체 1개, 훅은 인자 2개. **운영 배포로 수정 완료**
+2. **취소 알림 중복** — 이미 취소된 예약 재취소 시 텔레그램 2번 (레거시 트리거는 전환에만 반응)
+3. **객실명 변경 연쇄가 전부 깨짐** — 예약이 안 따라가 고아 + 부분일치로 다른 객실 오염 → **차단**
+4. **객실 삭제 가드 무력** — `r.room`(없는 필드) → 예약 84건짜리도 삭제됐다 → 서버가 막는다
+5. **OptionsSettings 로드가 404** — `/api/getDoc` 이 없어 저장값을 한 번도 못 불러왔다
+6. **DataInitializer** — snapshot 1회 실패 → 초기화 버튼 노출 → 요금표 파손 경로
+7. **D1 이 `false` 를 문자열 "false" 로 저장** — 유령 상태 유발. 바인딩 계층에서 정규화
+
+### 내가 낸 사고 (복구 완료)
+테스트 번호에 **실고객(이재호)** 이 있었는데 감사가 그 행을 덮어썼다. 덤프에서 9필드 전건 복원.
+→ **`COUNT(*)` 복구검증은 "생성"만 잡고 "수정"을 못 잡는다.** 행 원본 캡처 후 행 단위 복구할 것.
+
 ## ⚠️ 정리 필요 (사소)
 - ~~`NEXT_SESSION_REQUEST.md`~~ **삭제 완료** (2026-07-16). 예상대로 새 세션이 그걸 먼저 읽고
   3월 Firebase 컨텍스트로 출발했다 — 현행 핸드오프는 **이 파일 하나**.
-- 루트에 수정된 레거시 Vite 파일 **11개**(`src/components/*`, `src/services/*`, `functions/src/index.js`)가
-  커밋 안 된 채 방치. **이번 세션도 손대지 않았다**(내 작업과 무관해 섞으면 리뷰가 불가능해진다).
-  `functions/src/index.js` 만 1,197줄 변경 — 정체 확인 후 커밋하거나 되돌릴 것.
-  ⚠️ 단 `src/stores/useReservationStore.js` 는 이번에 전면 이식하며 함께 커밋됐다.
+- ~~레거시 Vite 파일 11개 미커밋 방치~~ **해소 (2026-07-17)**. 정체를 확인하고 셋으로 갈라 커밋:
+  - `a501178` **취소모달+수동환불+텔레그램** (8파일 526줄) — 이전 세션의 **실제 기능 작업**이었다.
+    운영(main)엔 없는 WIP. 되돌리면 영구 소실이라 사용자 결정으로 **있는 그대로 보존 커밋**.
+    ⚠️ 내가 쓴 코드가 아니라 **동작 미검증**(컴파일만 확인). `telegramService` 경유 발송은
+    신규 스택(서버 발송)과 충돌하므로 재작업 대상
+  - `fe2c343` `functions/src/index.js` — **의미 변경 0의 prettier 재포맷**임을 검증하고 분리 커밋
+    (따옴표·공백·화살표 괄호 정규화 후 대조 → 차이 70구간 전부 공백/괄호)
+  - `src/services/notificationService.js` — **죽은 코드인데 미커밋 수정 101줄**. 내가 만든 게 아니고
+    효과도 0(아무도 import 안 함)이라 **유일하게 남겨뒀다**. 지울지 커밋할지만 정하면 된다
 
 ## 🔴 사고 기록 — D1 실데이터 삭제 (2026-07-16, 복구 완료)
 테스트 데이터를 지우려고 `DELETE ... WHERE customer_name LIKE '테스트%'` 를 실행 →
@@ -207,7 +254,7 @@ node scripts/set-admin-password.mjs
 
 ---
 
-## 오늘 세션 요약 (2026-07-16)
+## 세션 기록 — 문자 버그·SENS 계정 혼선 (2026-07-16 오전, 이전 세션)
 
 원래 "문자 자동발송이 왜 안되나"로 시작 → **문자는 정상 발송 중이었고, 콘솔을 다른 SENS 계정으로 보고 있었음**을
 밝혀냄. 진짜 버그는 따로 있었고(예약확정 문자 템플릿 깨짐) 수정·배포 완료. 이후 인프라 개편으로 확장.
@@ -615,13 +662,14 @@ SQLite 는 동적 타입이라 INTEGER 컬럼에 그대로 들어간다 → `WHE
 경고 헤더를 붙여뒀다. **살아있음의 근거는 `node scripts/audit/reachability.mjs` 뿐이다.**
 
 ### 남은 것
-1. `settings/option_settings` 갭 메우기 → `rooms`/`options`/`pricing_rules` API → 두 화면 이식
-2. 나머지 Firebase 직접 사용 파일 (위 표)
-3. `src/config/firebase.js` 제거 → Vite 의존 정리
-4. 입실·퇴실 스케줄러 이관 (신규 스택에 없어 **아직 아무 동작도 안 한다**)
+1. ~~option_settings 갭 → 쓰기 API → 두 화면 이식~~ ✅ 완료
+2. **Firebase 소비자 8개** — 전부 판단이 필요하다 (맨 위 "다음 세션 첫 액션" 표 참조)
+3. `src/config/firebase.js` 제거 → Vite 의존 정리 (위 8개가 다 빠진 뒤)
+4. 입실·퇴실 스케줄러 — 신규 스택엔 없다. 단 `notificationScheduler.js`(브라우저)와
+   `functions/src/smsScheduler.js`(Cloud Function, **실제 발송 중**)가 중복인지 먼저 확인할 것
 5. `src/scripts/*` 4개 — Firebase 폐기(Phase 8) 때 함께 정리
-6. 미커밋 10개(`functions/src/index.js` 1,197줄 등) 정체 확인. `notificationService.js` 는
-   **죽은 코드인데 미커밋 수정 101줄**이 있어 남겨뒀다 (효과 0 — 아무도 import 안 함)
+6. `notificationService.js` 미커밋 101줄 처리 (죽은 코드 · 효과 0)
+7. 재작성본 `app/calendar` 등 정리 — 레거시 화면을 Next 로 올릴 때 대체된다
 
 ## 🧹 죽은 코드 159개 삭제 완료 (커밋 `eb87704`) — src/ 235 → 76
 
