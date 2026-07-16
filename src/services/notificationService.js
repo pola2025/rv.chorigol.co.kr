@@ -55,8 +55,26 @@ class NotificationService {
         this.settings.shelter = shelterDoc.data();
         console.log('📬 [REFRESH] 초호쉼터 설정 로드됨');
         console.log('📬 [REFRESH] shelter roomSettings 키:', Object.keys(this.settings.shelter?.roomSettings || {}));
+
+        // globalSettings.telegram이 없으면 기본값 설정
+        if (!this.settings.shelter.globalSettings) {
+          this.settings.shelter.globalSettings = {};
+        }
+        if (!this.settings.shelter.globalSettings.telegram) {
+          this.settings.shelter.globalSettings.telegram = {
+            useReservation: true,
+            useCancellation: true
+          };
+          console.log('📬 [REFRESH] shelter telegram 기본값 설정됨');
+        }
       } else {
         console.warn('📬 [REFRESH] ⚠️ notifications_v2_shelter 문서가 없습니다!');
+        this.settings.shelter = {
+          globalSettings: {
+            telegram: { useReservation: true, useCancellation: true }
+          },
+          roomSettings: {}
+        };
       }
 
       console.log('📬 [REFRESH] 설정 새로고침 완료');
@@ -101,6 +119,26 @@ class NotificationService {
       const shelterDoc = await getDoc(doc(db, 'settings', 'notifications_v2_shelter'));
       if (shelterDoc.exists()) {
         this.settings.shelter = shelterDoc.data();
+        // globalSettings.telegram이 없으면 기본값 설정
+        if (!this.settings.shelter.globalSettings) {
+          this.settings.shelter.globalSettings = {};
+        }
+        if (!this.settings.shelter.globalSettings.telegram) {
+          this.settings.shelter.globalSettings.telegram = {
+            useReservation: true,
+            useCancellation: true
+          };
+          console.log('📬 [INIT] shelter telegram 기본값 설정됨');
+        }
+      } else {
+        // Firestore에 설정이 없으면 기본값 사용
+        console.warn('📬 [INIT] notifications_v2_shelter 문서가 없습니다.');
+        this.settings.shelter = {
+          globalSettings: {
+            telegram: { useReservation: true, useCancellation: true }
+          },
+          roomSettings: {}
+        };
       }
 
       this.initialized = true;
@@ -517,27 +555,28 @@ class NotificationService {
       await this.refreshSettings();
     }
     
-    // 알림 발송 전 검증
+    // 알림 발송 전 검증 (SMS용)
     const validation = await notificationValidator.preValidate(reservation, 'cancellation');
     console.log('❌ [VALIDATION] 예약 취소 알림 검증 결과:', validation);
-    
-    if (!validation.canSend) {
-      console.warn('❌ [VALIDATION] 알림 발송 불가:', validation.reason);
-      return {
-        sms: { skipped: true, reason: validation.reason },
-        telegram: null
-      };
+
+    // SMS 검증 실패해도 조기 리턴하지 않음 (텔레그램은 별도 처리)
+    const smsValidationFailed = !validation.canSend;
+    if (smsValidationFailed) {
+      console.warn('❌ [VALIDATION] SMS 발송 불가:', validation.reason);
     }
 
     const roomName = reservation.roomName || reservation.room;
     console.log('❌ [CANCEL DEBUG] 객실명:', roomName);
-    
+
     const settings = this.getSettingsForRoom(roomName);
     console.log('❌ [CANCEL DEBUG] 설정 정보:', JSON.stringify(settings, null, 2));
-    
+
     if (!settings) {
       console.error('❌ [CANCEL DEBUG] No notification settings found for room:', roomName);
-      return;
+      return {
+        sms: { skipped: true, reason: '설정 없음' },
+        telegram: null
+      };
     }
 
     const results = {
@@ -545,56 +584,66 @@ class NotificationService {
       telegram: null
     };
 
-    // SMS 발송 조건: 명시적으로 활성화된 경우에만 발송
-    const roomEnabledCancel = settings.room?.enabled !== false;
-    const cancellationEnabled = settings.room?.autoSend?.cancellationEnabled === true;
-    const shouldSendCancelSms = roomEnabledCancel && cancellationEnabled;
+    // SMS 검증이 실패했으면 스킵
+    if (smsValidationFailed) {
+      results.sms = { skipped: true, reason: validation.reason };
+    } else {
+      // SMS 발송 조건: 명시적으로 활성화된 경우에만 발송
+      const roomEnabledCancel = settings.room?.enabled !== false;
+      const cancellationEnabled = settings.room?.autoSend?.cancellationEnabled === true;
+      const shouldSendCancelSms = roomEnabledCancel && cancellationEnabled;
 
-    console.log('❌ [CANCEL DEBUG] SMS 발송 조건 체크:', {
-      roomEnabled: roomEnabledCancel,
-      cancellationEnabled: cancellationEnabled,
-      shouldSendSms: shouldSendCancelSms
-    });
+      console.log('❌ [CANCEL DEBUG] SMS 발송 조건 체크:', {
+        roomEnabled: roomEnabledCancel,
+        cancellationEnabled: cancellationEnabled,
+        shouldSendSms: shouldSendCancelSms
+      });
 
-    // SMS 발송 (명시적으로 활성화된 경우에만)
-    if (shouldSendCancelSms) {
-      try {
-        const template = settings.room?.templates?.cancellation || 
-                        await sensService.getTemplate('cancellation', roomName);
-        
-        const message = sensService.generateMessage(template.content || template, {
-          customerName: reservation.customerName,
-          roomName: roomName,
-          checkIn: reservation.checkIn,
-          checkOut: reservation.checkOut,
-          guests: reservation.guests,
-          totalPrice: reservation.totalPrice,
-          pensionPhone: '010-7932-0029',
-          pensionAddress: '경기도 파주시 법원읍 초리골길 134'
-        });
+      // SMS 발송 (명시적으로 활성화된 경우에만)
+      if (shouldSendCancelSms) {
+        try {
+          const template = settings.room?.templates?.cancellation ||
+                          await sensService.getTemplate('cancellation', roomName);
 
-        results.sms = await sensService.sendSMS(
-          reservation.phone,
-          message,
-          reservation.id,
-          reservation  // 업체 구분을 위해 reservation 객체 전달
-        );
-        console.log('📬 [CANCEL] SMS sent successfully:', results.sms);
-      } catch (error) {
-        console.error('SMS 발송 실패:', error);
-        results.sms = { error: error.message };
+          const message = sensService.generateMessage(template.content || template, {
+            customerName: reservation.customerName,
+            roomName: roomName,
+            checkIn: reservation.checkIn,
+            checkOut: reservation.checkOut,
+            guests: reservation.guests,
+            totalPrice: reservation.totalPrice,
+            pensionPhone: '010-7932-0029',
+            pensionAddress: '경기도 파주시 법원읍 초리골길 134'
+          });
+
+          results.sms = await sensService.sendSMS(
+            reservation.phone,
+            message,
+            reservation.id,
+            reservation  // 업체 구분을 위해 reservation 객체 전달
+          );
+          console.log('📬 [CANCEL] SMS sent successfully:', results.sms);
+        } catch (error) {
+          console.error('SMS 발송 실패:', error);
+          results.sms = { error: error.message };
+        }
       }
     }
 
     // 텔레그램 알림 (관리자용)
+    // useCancellation이 명시적으로 false가 아니면 발송 (useReservation이 true면 취소도 발송)
+    const shouldSendTelegram = settings.global?.telegram?.useCancellation !== false &&
+                               (settings.global?.telegram?.useCancellation === true ||
+                                settings.global?.telegram?.useReservation === true);
+
     console.log('❌ [CANCEL DEBUG] 텔레그램 발송 조건:', {
       hasTelegram: !!settings.global?.telegram,
       useCancellation: settings.global?.telegram?.useCancellation,
-      botToken: !!settings.global?.telegram?.botToken,
-      chatId: !!settings.global?.telegram?.chatId
+      useReservation: settings.global?.telegram?.useReservation,
+      shouldSendTelegram: shouldSendTelegram
     });
-    
-    if (settings.global?.telegram?.useCancellation) {
+
+    if (shouldSendTelegram) {
       try {
         console.log('❌ [CANCEL DEBUG] 텔레그램 취소 알림 발송');
         
@@ -705,7 +754,7 @@ class NotificationService {
       return name && name.includes('레이트 체크아웃');
     });
     if (hasLateCheckout) {
-      message += `├ 레이트 체크아웃: 오후 2시\n`;
+      message += `├ 레이트 체크아웃: 낮 12시\n`;
     }
     
     // 총 금액
