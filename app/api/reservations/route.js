@@ -3,6 +3,7 @@
 import { NextResponse } from "next/server";
 import {
   cancelReservation,
+  deleteReservation,
   getById,
   newReservationId,
   replaceReservationOptions,
@@ -111,12 +112,18 @@ export async function PATCH(request) {
   try {
     // 취소는 재고를 **푸는** 방향이라 가드가 필요 없다
     if (cancel || patch.status === "예약취소") {
-      const { after } = await cancelReservation(id, patch);
+      const { before: prev, after } = await cancelReservation(id, patch);
       if (!after)
         return NextResponse.json({ error: "예약 없음" }, { status: 404 });
-      const notify = await notifyReservation("cancelled", after).catch((e) => ({
-        error: e.message,
-      }));
+      // 이미 취소된 예약을 다시 취소하면 알림을 보내지 않는다.
+      // 레거시 트리거도 **상태 전환**에만 반응했다(`statusChanged && after.status === '예약취소'`)
+      // — 이 조건이 없으면 취소 재시도·중복 클릭이 고객에게 취소 텔레그램을 두 번 보낸다.
+      const notify =
+        prev.status === "예약취소"
+          ? { skipped: "already_cancelled" }
+          : await notifyReservation("cancelled", after).catch((e) => ({
+              error: e.message,
+            }));
       return NextResponse.json({ reservation: after, notify });
     }
 
@@ -176,4 +183,36 @@ export async function GET(request) {
   if (!reservation)
     return NextResponse.json({ error: "예약 없음" }, { status: 404 });
   return NextResponse.json({ reservation });
+}
+
+/**
+ * DELETE — 관리자 '막기' 예약만 완전 삭제 (?id=).
+ *
+ * 레거시 cancelReservation 은 source='막기' 일 때만 deleteDoc 하고, 일반 예약은 취소 상태로 남긴다
+ * (매출·환불 이력이 사라지면 안 되므로). 그 규칙을 **서버에서 강제**한다 —
+ * 클라이언트 버그나 잘못된 호출이 실예약을 지우는 경로를 아예 없앤다
+ * (2026-07-16 D1 실데이터 삭제 사고 이후 방침: 삭제는 좁고 명시적으로).
+ */
+export async function DELETE(request) {
+  if (!(await requireAuth(request))) return deny();
+  const id = new URL(request.url).searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "id 필요" }, { status: 400 });
+
+  try {
+    const r = await getById(id);
+    if (!r) return NextResponse.json({ error: "예약 없음" }, { status: 404 });
+    if (r.source !== "막기")
+      return NextResponse.json(
+        { error: "막기 예약만 삭제할 수 있습니다. 일반 예약은 취소해 주세요." },
+        { status: 400 },
+      );
+
+    await deleteReservation(id); // 옵션은 CASCADE
+    return NextResponse.json({ ok: true, id });
+  } catch (e) {
+    return NextResponse.json(
+      { error: "예약 삭제 실패", detail: e.message },
+      { status: 500 },
+    );
+  }
 }
