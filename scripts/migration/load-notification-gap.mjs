@@ -35,6 +35,8 @@ const ADDS = [
   ["room_templates", "cancellation_enabled", "INTEGER NOT NULL DEFAULT 0"],
   ["room_templates", "checkin_hours_before", "INTEGER NOT NULL DEFAULT 3"],
   ["room_templates", "checkout_hours_before", "INTEGER NOT NULL DEFAULT 1"],
+  // 0003 — kind 단위 필드다 (아래 백필도 4행 복제가 아니라 행별로 쓴다)
+  ["room_templates", "title", "TEXT"],
 ];
 
 for (const [table, col, decl] of ADDS) {
@@ -91,6 +93,29 @@ for (const business of BUSINESSES) {
   }
 }
 console.log(`\n총 ${touched}행 갱신`);
+
+// ── 3-2. 백필: room_templates.title (kind 단위 — 4행 복제 아님) ──
+console.log("\n[백필] room_templates.title — kind 단위로 행별 갱신");
+let titled = 0;
+for (const business of BUSINESSES) {
+  const doc = getDoc(`notifications_v2_${business}`);
+  for (const [roomName, rs] of Object.entries(doc.roomSettings || {})) {
+    for (const [kind, tpl] of Object.entries(rs?.templates || {})) {
+      const title = typeof tpl === "object" ? (tpl.title ?? null) : null;
+      if (title === null) continue;
+      const r = await query(
+        `UPDATE room_templates SET title = ?
+         WHERE business = ? AND room_name = ? AND kind = ?`,
+        [title, business, roomName, kind],
+      );
+      const n = r.meta?.changes ?? 0;
+      titled += n;
+      if (n !== 1)
+        console.warn(`  ⚠️ [${business}/${roomName}/${kind}] ${n}행 (1행이어야 함)`);
+    }
+  }
+}
+console.log(`  title ${titled}행 갱신`);
 
 // ── 4. 검증 ──
 console.log("\n[검증] 기존 컬럼이 안 변했는가 (원본 대조)");
