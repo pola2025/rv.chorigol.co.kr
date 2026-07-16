@@ -1,14 +1,13 @@
 // useCustomers.js
-import { useState, useEffect } from 'react';
-import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  updateDoc,
-  serverTimestamp
-} from 'firebase/firestore';
-import { db } from '../config/firebase';
-import { CustomerGrades } from '../models/Customer';
+//
+// ⚠️ Firebase → D1 이관 (2026-07-17). **훅 바깥 API 무변경.**
+//    useCustomers / useCustomerStats 는 원래부터 useFirebaseStore 를 읽고 있었고,
+//    남아 있던 Firestore 접점은 두 개뿐이었다:
+//      · useCustomer(phone) — 단건 getDoc → 스토어가 이미 402건 전부 들고 있어 **흡수**했다
+//        (같은 camelCase 모양이라 컴포넌트 무수정. BookingModal:56 이 유일한 사용처)
+//      · updateCustomer — **호출부 0인 죽은 코드**. 게다가 등급 계산이 브라우저에 있었다.
+//        lib/customers.js + /api/customers 가 서버에서 대체하므로 제거한다
+import { useMemo } from 'react';
 import useFirebaseStore from '../stores/useFirebaseStore';
 
 // 전화번호 정규화 (하이픈 제거)
@@ -16,85 +15,21 @@ const normalizePhone = (phone) => {
   return phone.replace(/[^0-9]/g, '');
 };
 
-// 고객 등급 계산
-const calculateCustomerGrade = (visitCount, totalSpent) => {
-  if (visitCount >= CustomerGrades.VVIP.minVisits && totalSpent >= CustomerGrades.VVIP.minSpent) {
-    return 'VVIP';
-  }
-  if (visitCount >= CustomerGrades.VIP.minVisits && totalSpent >= CustomerGrades.VIP.minSpent) {
-    return 'VIP';
-  }
-  return 'NORMAL';
-};
-
-// 고객 조회 또는 생성
+// 고객 조회 (없으면 null — 자동 생성은 예약 생성 시에만, 레거시 동일)
 export const useCustomer = (phone, customerName = '') => {
-  const [customer, setCustomer] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  
+  const customers = useFirebaseStore((state) => state.customers);
+  const isLoading = useFirebaseStore((state) => state.loading.customers);
+  const error = useFirebaseStore((state) => state.errors.customers);
+
   const customerId = phone ? normalizePhone(phone) : null;
 
-  useEffect(() => {
-    if (!customerId) {
-      setCustomer(null);
-      return;
-    }
+  // 레거시는 doc(customers/{정규화전화번호}) 로 단건을 읽었다 — id 규칙이 같아 스토어에서 찾으면 된다
+  const data = useMemo(
+    () => (customerId ? customers.find((c) => c.id === customerId) || null : null),
+    [customerId, customers],
+  );
 
-    const fetchCustomer = async () => {
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        const customerRef = doc(db, 'customers', customerId);
-        const customerDoc = await getDoc(customerRef);
-        
-        if (customerDoc.exists()) {
-          setCustomer({ id: customerDoc.id, ...customerDoc.data() });
-        } else {
-          // 고객이 없으면 null 반환 (자동 생성은 예약 생성 시에만)
-          setCustomer(null);
-        }
-      } catch (err) {
-        console.error('고객 정보 조회 오류:', err);
-        setError(err.message);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchCustomer();
-  }, [customerId]);
-
-  return { data: customer, isLoading, error };
-};
-
-// 고객 정보 업데이트
-export const updateCustomer = async ({ customerId, updates }) => {
-  try {
-    const customerRef = doc(db, 'customers', customerId);
-    
-    // 등급 자동 계산
-    if (updates.visitCount !== undefined || updates.totalSpent !== undefined) {
-      const customerDoc = await getDoc(customerRef);
-      if (customerDoc.exists()) {
-        const currentData = customerDoc.data();
-        const newVisitCount = updates.visitCount ?? currentData.visitCount;
-        const newTotalSpent = updates.totalSpent ?? currentData.totalSpent;
-        updates.customerGrade = calculateCustomerGrade(newVisitCount, newTotalSpent);
-      }
-    }
-    
-    await updateDoc(customerRef, {
-      ...updates,
-      updatedAt: serverTimestamp()
-    });
-    
-    return { success: true };
-  } catch (error) {
-    console.error('고객 정보 업데이트 오류:', error);
-    return { success: false, error: error.message };
-  }
+  return { data, isLoading, error };
 };
 
 // 전체 고객 목록 (Firebase Store에서 가져오기)

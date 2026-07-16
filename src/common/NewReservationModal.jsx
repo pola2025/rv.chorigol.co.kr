@@ -1,6 +1,5 @@
 // src/common/NewReservationModal.jsx
 import React, { useState, useMemo } from 'react';
-import { serverTimestamp } from "firebase/firestore";
 import { useWindowWidth, getNextDateStr, getKSTDateString, getKSTToday } from '../utils';
 import { usePricingRules } from '../hooks/useOptions';
 import { useLateCheckoutSettings } from '../hooks/useOptionSettings';
@@ -463,14 +462,9 @@ const NewReservationModal = ({
       // 수정 모드일 때 예약 ID 포함
       if (isEditMode) {
         reservationData.id = safeInitialData.id;
-        // 수정 모드에서는 createdAt 유지
-        if (safeInitialData.createdAt) {
-          reservationData.createdAt = safeInitialData.createdAt;
-        }
-      } else {
-        // 새 예약일 때만 createdAt 추가
-        reservationData.createdAt = serverTimestamp();
       }
+      // createdAt 은 **서버가 찍는다**. 레거시는 여기서 serverTimestamp() 를 넣었지만
+      // 신규 스택에선 toWriteBody 가 버리고(클라 시계를 믿지 않는다) lib/reservations 가 채운다.
 
       reservationDebugger.logAddReservation(isEditMode ? '예약 수정 데이터 준비' : '예약 데이터 준비 완료', reservationData);
 
