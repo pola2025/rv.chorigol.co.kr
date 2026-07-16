@@ -4,6 +4,8 @@ export const metadata = {
   robots: { index: false, follow: false }, // admin — 검색 색인 차단
 };
 
+import Nav from "./nav.jsx";
+
 export default function RootLayout({ children }) {
   return (
     <html lang="ko">
@@ -16,6 +18,7 @@ export default function RootLayout({ children }) {
           color: "#12211c",
         }}
       >
+        <Nav />
         {children}
       </body>
     </html>
