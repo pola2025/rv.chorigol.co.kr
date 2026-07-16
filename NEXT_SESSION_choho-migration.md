@@ -4,8 +4,8 @@
 
 ## 복사용 요청문
 ```
-초호펜션 예약시스템 Firebase→Vercel+D1 이관 중. Phase 0~4 완료 + Phase3 화면 4/5.
-다음: 알림설정 화면(마지막) → 예약 편집UI → 인증(Phase5).
+초호펜션 예약시스템 Firebase→Vercel+D1 이관 중. Phase 0~4 완료 + Phase3 화면 5/5 완료.
+다음: 예약 편집UI(캘린더 수정/확정/취소 모달) → 인증(Phase5).
 F:\rv-chorigol.co.kr\NEXT_SESSION_choho-migration.md 전체 컨텍스트. 브랜치 migrate/nextjs-d1.
 테스트: 문자는 01098979834로만, 예약 알림봇 실채널 발송금지, 한글 payload curl금지(node).
 ```
@@ -20,7 +20,7 @@ F:\rv-chorigol.co.kr\NEXT_SESSION_choho-migration.md 전체 컨텍스트. 브랜
 | 0 | 계정·SSH·DNS(Cloudflare)·admin 도메인 | ✅ |
 | 1 | D1 생성 + 스키마 13테이블 | ✅ |
 | 2 | 데이터 2,067건 전량 이관 + 검증 + 시크릿 env 분리 | ✅ |
-| 3 | Next.js 15 + 화면 이식 **4/5** (캘린더·예약목록·객실·옵션) | 🔄 |
+| 3 | Next.js 15 + 화면 이식 **5/5** (캘린더·예약목록·객실·옵션·알림설정) | ✅ |
 | 4 | 쓰기 API + 알림 통합 (트리거 대체) | ✅ |
 | — | 인프라봇 헬스체크 분리 | ✅ |
 | 5 | 인증 (Firebase Auth → JWT 쿠키) | ⬜ |
@@ -28,12 +28,19 @@ F:\rv-chorigol.co.kr\NEXT_SESSION_choho-migration.md 전체 컨텍스트. 브랜
 | 7 | 컷오버 (rv CNAME) → 병렬운영 2주 | ⬜ |
 | 8 | Firebase·Airtable 폐기 | ⬜ |
 
-**운영은 100% 기존 Firebase에서 가동 중.** 오늘 배포한 것은 문자버그 수정(main `9ece739`)뿐.
+**운영은 100% 기존 Firebase에서 가동 중.** 신규 스택(D1/Next)은 아직 아무도 안 씀.
 
 ## 다음 세션 첫 액션
-1. **알림 설정 화면** (Phase3 마지막) — room_templates/sms_config 편집 UI + 쓰기 API
-2. **예약 편집 UI** — 캘린더에 수정/확정/취소 모달 (API PATCH는 이미 준비됨)
-3. Phase 5 인증
+1. **예약 편집 UI** — 캘린더에 수정/확정/취소 모달 (API PATCH는 이미 준비됨).
+   확정 버튼 → PATCH status=예약확정 (→ 문자+텔레그램), 취소 버튼 → cancel (→ 텔레그램만)
+2. **Phase 5 인증** — Firebase Auth → JWT admin_token 쿠키
+3. 조회 계층 잔여: customers, inventory_overrides, marketing_stats, pricing
+
+## ⚠️ 정리 필요 (사소)
+- **`NEXT_SESSION_REQUEST.md`** (untracked): 2026-03-02 Firebase 시절 문서. 내용이 낡아
+  새 세션이 이 파일을 먼저 읽고 혼동함. 삭제 권장 — 현행 핸드오프는 이 파일 하나.
+- 루트에 수정된 레거시 Vite 파일 12개(`src/`, `functions/src/index.js`)가 커밋 안 된 채 방치.
+  이관과 무관한 예전 작업물 — 정체 확인 후 커밋하거나 되돌릴 것.
 
 ---
 
@@ -42,13 +49,13 @@ F:\rv-chorigol.co.kr\NEXT_SESSION_choho-migration.md 전체 컨텍스트. 브랜
 원래 "문자 자동발송이 왜 안되나"로 시작 → **문자는 정상 발송 중이었고, 콘솔을 다른 SENS 계정으로 보고 있었음**을
 밝혀냄. 진짜 버그는 따로 있었고(예약확정 문자 템플릿 깨짐) 수정·배포 완료. 이후 인프라 개편으로 확장.
 
-### A. 문자 버그 (해결 완료)
+### A. 문자 버그 (해결 완료 · 커밋됨 `9ece739`)
 - **증상**: 예약확정 문자가 `{고객명}님, 예약이 확정되었습니다` 처럼 변수 미치환 상태로 발송됨 (2026-03-02 트리거 배포 이후 ~116건)
 - **원인**: `functions/src/reservationTriggers.js`가 영문 변수(`{customerName}`)로 치환 시도. 실제 템플릿은 전부 **한글 변수**(`{고객명}`, `{체크인}`, `{인원}`, `{금액}`, `{주소}`)
 - **수정**: `reservationTriggers.js`에 `applyTemplateVars()` 추가 (한글 치환 + 미치환 검사). 배포 완료
 - **주소 통일**: `smsScheduler.js`의 입실안내 주소 `138-17` → `경기도 파주시 법원읍 초리골길 134` 수정·배포 완료
 - **김태연님**: 정상 문자 재발송 완료 (7/17 체크인 Forest)
-- 커밋 안 함 (working tree에 수정만 존재) — **커밋 필요**
+- ✅ 커밋 확인됨 (`9ece739`) — 이전 핸드오프의 "커밋 필요" 메모는 해소됨
 
 ### B. SENS 계정 혼선 (해결 — 착오였음)
 - 앱은 `ncp:sms:kr:358452632058:chohopark` 사용 (정상 발송 중)
@@ -122,6 +129,7 @@ curl -s "${CF[@]}" -X POST \
   "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database/d9bf20dc-68cf-4077-b238-f1efc7e0ab3b/query" \
   --data '{"sql":"SELECT ..."}'
 ```
+※ 한글이 들어가는 쿼리는 curl 금지 (Windows 콘솔 UTF-8 깨짐) → node로 `lib/d1.js` import
 
 ---
 
@@ -137,7 +145,7 @@ curl -s "${CF[@]}" -X POST \
 | rooms | 7 | rooms |
 | options | 4 | options |
 | pricing_rules | 4 | pricing_rules |
-| marketing_stats_v2 | 4 | (보류 — 마케팅 통계, 우선순위 낮음) |
+| marketing_stats_v2 | 4 | marketing_stats (이관 완료) |
 | message_templates | 2 | room_templates (레거시, 확인) |
 | login_attempts | 2 | login_attempts |
 
@@ -164,7 +172,8 @@ Firestore 접근: firebase-tools refresh_token (`C:/Users/flame/.config/configst
 | inventory_overrides | 26 |
 | room_templates | 28 |
 | sms_config | 2 (발신번호·채널ID만, 시크릿 컬럼 NULL 확인됨) |
-- **marketing_stats_v2 4건**: 우선순위 낮아 보류 (마케팅 통계, 필요 시 이관)
+| marketing_stats | 4 |
+- **Firestore 12컬렉션 전량 이관 완료**
 - 덤프 위치(임시): `scratchpad/dump/*.json` (세션 종료 시 삭제됨 — 재덤프는 `dump-all.mjs`)
 - 로더 스크립트: `scratchpad/load-core.mjs`, `load-logs.mjs`, `extract-secrets.mjs`, `verify-migration.mjs`
 
@@ -173,12 +182,9 @@ Firestore 접근: firebase-tools refresh_token (`C:/Users/flame/.config/configst
 - 텔레그램 봇토큰 양쪽 동일, chatId만 다름 (choho -1002484830636 / shelter -1002863320782)
 - `.env.local`은 gitignore 적용됨. Vercel/Worker에도 동일 env 주입 필요 (컷오버 전)
 
-### 다음 액션 (Phase 3 시작 전 확인)
-- marketing_stats_v2 이관 여부 결정
-
 ---
 
-## Phase 3 진행 중 — Next.js + D1 (브랜치: migrate/nextjs-d1)
+## Phase 3 완료 — Next.js + D1 화면 이식 5/5 (브랜치: migrate/nextjs-d1)
 
 ### 프로젝트 경로 정리 (중요 — 혼동 주의)
 - **F:\rv-chorigol.co.kr** = 예약시스템 (이식 대상, 지금 여기). Next.js 앱을 **이 repo 안에** 신규 구축
@@ -187,30 +193,45 @@ Firestore 접근: firebase-tools refresh_token (`C:/Users/flame/.config/configst
 - admin = 기존 경로 없음 → 이 repo에서 신규 생성. admin.chorigol.co.kr (새 계정 chohopark134에 연결됨)
 - 라이브 Vite 앱은 main 브랜치 유지. Next.js 작업은 migrate/nextjs-d1 브랜치에 격리
 
-### 완료 (검증됨)
-- **D1 접근 계층**: `lib/d1.js` (HTTP API 클라이언트, 파라미터 바인딩, 서버 전용 — 토큰 클라이언트 노출 0)
-  - 인증 우선순위: CLOUDFLARE_D1_TOKEN(Bearer) → GLOBAL_API_KEY+EMAIL(X-Auth)
-- **예약 조회 계층**: `lib/reservations.js` — listByCheckIn/listByRange/listByStatus/getById/statusSummary
-  - 옵션 join은 IN 절 청크(90개)로 D1 변수한도(100) 회피 — 검증 중 발견·수정
-- `.env.local`에 `D1_DATABASE_ID=d9bf20dc-68cf-4077-b238-f1efc7e0ab3b` 추가
-- 검증: 실제 이관 데이터 읽기·옵션/현장결제 구분·범위 106건 정상
+### 완료 화면 (전부 D1 서버컴포넌트, 빌드+실데이터 렌더 HTTP 200 검증)
+- `app/calendar` — 월 그리드 + 날짜별 예약 + **신규예약 생성**(fetch→/api/reservations). CalendarClient.jsx + BookingForm
+- `app/reservations` — 예약목록 + 상태요약
+- `app/rooms` — 객실관리 (업체/요금/재고)
+- `app/options` — 옵션설정
+- `app/notifications` — **알림설정** (아래 상세)
+- `app/nav.jsx` 공용네비 (layout 적용), `app/page.jsx` / → /calendar 리다이렉트
 
-### 완료 추가 (2026-07-16 이어서)
-- **marketing_stats_v2 이관 완료** → D1 marketing_stats 4건. **Firestore 12컬렉션 전량 이관 끝**
-- **Next.js 15 도입** (React 19 호환. Next 14는 React19 미지원이라 15 사용). `app/` App Router, Vite `src/`와 공존
-- **조회 계층 추가**: `lib/rooms.js`(listRooms/getRoomByName/businessOf/listOptions), `lib/notifications.js`(getSmsConfig/getTemplate/renderTemplate)
-  - `renderTemplate()`: 한글 변수 치환 **단일 소스** + 미치환 검사 내장 (오늘 버그 근본해결)
-- **app/reservations/page.jsx**: D1 서버 컴포넌트 예약목록. `next build` 성공 + `next start` 실데이터 렌더 HTTP 200 검증
-- **src/pages → src/legacy-pages 이름변경**: Next가 레거시를 Pages Router로 오인하는 문제 해결 (VITE_ env 참조로 빌드 실패했었음)
-- `next.config.mjs`: eslint.ignoreDuringBuilds (Vite eslint 설정이 Next 서버코드와 충돌 — 컷오버 시 Next용으로 교체)
-- 커밋: `5629f77` (브랜치 migrate/nextjs-d1)
+### 알림 설정 화면 (2026-07-16 완료, 커밋 `a3e82e1`)
+- `app/notifications/page.jsx` + `NotificationsClient.jsx` — 업체 발신설정 2 + 객실별 템플릿 7
+- `app/api/notifications/route.js` — PATCH `template` | `roomFlags` | `smsConfig`
+- `lib/notifications.js` — listSmsConfigs/listTemplates/updateTemplateContent/setRoomFlags/updateSmsConfig 추가
 
-### 검증 스크립트 (scratchpad, 세션종료 시 삭제됨)
-- verify-d1lib.mjs, verify-notif.mjs, load-marketing.mjs — 재실행 시 dump 먼저 필요(dump-all.mjs)
+**설계 결정 3가지 (다음 세션이 알아야 할 것):**
+1. **`lib/template-vars.js` 신규 분리** — 치환 로직만 떼어낸 순수 모듈(D1 의존 0).
+   발송부와 편집화면이 **같은 renderTemplate()** 을 써야 미리보기가 의미 있는데,
+   `notifications.js`는 `d1.js`를 물고 있어 클라이언트 번들에 못 넣는다. 그래서 분리.
+   `TEMPLATE_VARS`도 치환 맵에서 파생 → 지원변수 목록이 두 벌이 될 수 없음.
+   기존 import(`from "./notifications.js"`)는 재수출로 그대로 동작 — reservation-notify.js 무수정.
+2. **저장 시점 미지원 변수 차단** (`findUnknownVars`) — 3월 사고는 **발송 시점** 검사만 있어
+   4개월간 안 잡혔다. 편집 시점에 막으면 애초에 DB에 안 들어간다. UI도 미리보기에 즉시 경고.
+3. **객실 플래그는 4개 kind 행에 함께 적용** — 플래그(enabled/confirmation_enabled/
+   checkin_enabled/checkout_enabled)는 의미상 **객실 단위**인데 이관 때 kind 행마다 복제됐다
+   (28행 전부 값 일치 확인). 행별로 따로 쓰면 발송부가 읽는 confirmation 행만 우연히 맞는
+   상태가 되므로 `setRoomFlags`가 4행을 함께 갱신. UI는 confirmation 행 값을 기준 표시.
+
+**⚠️ 미이관 — 입실·퇴실 안내 스케줄러**: `checkin_enabled`/`checkout_enabled` 플래그는 저장되지만
+신규 스택엔 스케줄러가 없어 **아직 아무 동작도 안 한다** (레거시 `functions/src/smsScheduler.js`가
+Firestore 보고 발송 중). 화면에 그렇게 명시해둠. 컷오버 전 이관 필요.
+
+**검증**: 쓰기 API 21건 통과(검증·차단·정규화·복구) → D1 원상복구 확인(28행 유지) /
+클라 번들 D1토큰·CF흔적 0(grep) / 브라우저 `{customerName}` 입력 → 미리보기 경고 + 서버 400 + D1 미변경
+
+### 기타 완료
+- **Next.js 15 도입** (React 19 호환. Next 14는 React19 미지원). `app/` App Router, Vite `src/`와 공존
+- **src/pages → src/legacy-pages 이름변경**: Next가 레거시를 Pages Router로 오인하는 문제 해결
+- `next.config.mjs`: eslint.ignoreDuringBuilds (Vite eslint가 Next 서버코드와 충돌 — 컷오버 시 교체)
 
 ## Phase 4 완료 — 예약 쓰기 API + 알림 통합 (트리거 대체)
-
-**커밋**: 브랜치 migrate/nextjs-d1 (쓰기 API)
 
 - `app/api/reservations/route.js`: POST(생성)/PATCH(수정·취소)/GET. 상태전환·객실변경 감지 → 알림
 - `lib/reservations.js`: create/update/cancel/delete + Firestore스타일 ID + 옵션 replace
@@ -218,7 +239,17 @@ Firestore 접근: firebase-tools refresh_token (`C:/Users/flame/.config/configst
 - `lib/sms.js`(SENS, env시크릿) / `lib/telegram.js`(env봇토큰, 업체별채널) / `lib/messages.js`(TG 포맷터)
 - 검증: CRUD·SMS실발송(테스트번호)·봇토큰·막기스킵 전부 통과. D1 원상복구(540건)
 
-## 텔레그램 봇 2개 — 용도 분리 (2026-07-16 추가)
+### 발송 게이트 (헷갈리기 쉬움 — 정리)
+| 무엇 | 게이트 |
+|---|---|
+| 신규·확정 **텔레그램** | `sms_config.use_reservation` |
+| 취소 **텔레그램** | `sms_config.use_cancellation` |
+| 확정 **문자(SMS)** | `room_templates.enabled` **AND** `confirmation_enabled` (confirmation 행) |
+| 입실·퇴실 문자 | `checkin_enabled`/`checkout_enabled` — **신규 스택 미동작** (스케줄러 미이관) |
+| 취소 문자 | 없음 — **의도적 미발송** (정책) |
+| 막기(`source="막기"`) | 전부 스킵 |
+
+## 텔레그램 봇 2개 — 용도 분리
 
 | 봇 | 용도 | chat_id | 토큰 env |
 |---|---|---|---|
@@ -235,43 +266,35 @@ Firestore 접근: firebase-tools refresh_token (`C:/Users/flame/.config/configst
 - **테스트 문자는 01098979834 번호로만** (사용자 지정)
 - **실제 텔레그램 채널로 테스트 발송 금지** — 봇토큰 getMe로 유효성만 확인. 스팸되면 deleteMessage로 삭제
 - **한글 payload는 curl 금지** (Windows 콘솔 UTF-8 깨짐 → source="막기" 깨져 스킵 실패한 사고). node로 테스트
-- 텔레그램 봇: 양쪽 업체 동일 `@mkt251102_bot`, chatId만 다름 (choho -1002484830636 / shelter -1002863320782)
+- **D1 쓰기 테스트는 원본 캡처 → 테스트 → 복구 → 복구검증** 순으로 (운영 데이터임)
 
-## Phase 3 화면 이식 — 4/5 완료 (전면 재작성)
+### ⚠️ 편집 규칙 (2026-07-16 사고)
+- **한글 포함 파일은 Write 도구만 사용.** Edit로 `lib/notifications.js` 수정 중 파일이 0바이트로
+  잘림 (git에 있어 `git checkout --`로 복구). CLAUDE.md 규칙대로 Write 쓸 것
 
-**완료 화면** (전부 D1 서버컴포넌트, 빌드+실데이터 렌더 HTTP 200 검증):
-- `app/calendar` — 월 그리드 + 날짜별 예약 + **신규예약 생성**(fetch→/api/reservations). CalendarClient.jsx(클라이언트) + BookingForm
-- `app/reservations` — 예약목록 + 상태요약
-- `app/rooms` — 객실관리 (업체/요금/재고)
-- `app/options` — 옵션설정
-- `app/nav.jsx` 공용네비 (layout 적용), `app/page.jsx` / → /calendar 리다이렉트
-- 검증: 캘린더 생성흐름 e2e(막기 알림스킵) + 정리 통과. 쓰기 API 실동작 확인
-
-**남은 화면/작업**:
-1. **알림 설정 화면** (5번째, 마지막) — room_templates·sms_config 편집. lib에 조회는 있음(getTemplate/getSmsConfig), 쓰기 API + UI 필요
-2. **예약 편집 UI** — 캘린더에서 조회는 되나 수정/확정/취소 모달 미구현 (API PATCH는 준비됨). 확정 버튼→ PATCH status=예약확정, 취소버튼→ cancel
-3. 조회 계층 추가: customers, inventory_overrides, marketing_stats, pricing
-4. 인증: Firebase Auth → JWT admin_token 쿠키 (Phase 5)
-5. Vite→Next 완전 전환 후 eslint Next용 교체, Vite 스크립트/의존성 제거
-
-### lib/ 계층 현황 (완성)
-- d1.js, reservations.js(조회+쓰기 create/update/cancel/delete), rooms.js(listRooms/listOptions/businessOf)
-- notifications.js(getSmsConfig/getTemplate/renderTemplate), sms.js, telegram.js, messages.js, reservation-notify.js
-- app/api/reservations/route.js: POST/PATCH/GET (트리거 대체, 알림 통합)
+### lib/ 계층 현황
+- `d1.js` — HTTP API 클라이언트, 파라미터 바인딩, **서버 전용** (토큰 클라 노출 0)
+  - 인증 우선순위: CLOUDFLARE_D1_TOKEN(Bearer) → GLOBAL_API_KEY+EMAIL(X-Auth)
+  - 스코프 토큰 발급되면 `.env.local`에 `CLOUDFLARE_D1_TOKEN=` 추가만 하면 자동 전환
+- `template-vars.js` — **순수 모듈(D1 의존 0)**. renderTemplate/TEMPLATE_VARS/findUnknownVars.
+  서버·클라 공용. 여기가 지원변수 단일 소스
+- `reservations.js` — 조회(listByCheckIn/listByRange/listByStatus/getById/statusSummary) + 쓰기(create/update/cancel/delete)
+  - 옵션 join은 IN 절 청크(90개)로 D1 변수한도(100) 회피
+- `rooms.js`(listRooms/getRoomByName/businessOf/listOptions)
+- `notifications.js` — 설정·템플릿 조회/쓰기 + template-vars 재수출
+- `sms.js`, `telegram.js`, `messages.js`, `reservation-notify.js`, `infra-alert.js`
+- `app/api/`: reservations(POST/PATCH/GET), notifications(PATCH), health(GET)
 
 ### 로컬 실행/빌드
 - 빌드: `set -a && source .env.local && set +a && npx next build`
-- 실행: `PORT=3900 npx next start` (또는 next dev). 정리: `pkill -f "next start"`
+- 실행: `PORT=3900 npx next start` (또는 next dev)
+- 정리: Git Bash에 `pkill` 없음 → PowerShell
+  `Get-NetTCPConnection -LocalPort 3900 -State Listen | %{ Stop-Process -Id $_.OwningProcess -Force }`
 - eslint는 빌드 중 비활성(next.config.mjs) — Vite eslint와 충돌. 컷오버 시 교체
 
-### D1 접근 참고
-- `lib/d1.js` 인증: CLOUDFLARE_D1_TOKEN(Bearer) 우선 → 없으면 GLOBAL_API_KEY+EMAIL
-- 스코프 토큰 발급되면 `.env.local`에 `CLOUDFLARE_D1_TOKEN=` 추가만 하면 자동 전환
-- 로컬 Next 실행: `set -a && source .env.local && set +a && npx next start` (또는 next dev)
-
 ## 이후 Phase (계획서 참조)
-- Phase 3(계속): Vite→Next.js 화면 이식, 리스너→폴링, Airtable 제거
-- Phase 4: 알림 트리거 2개 → API Route 쓰기 경로 통합 (최대 난관, D1엔 트리거 없음)
 - Phase 5: Firebase Auth → JWT admin_token 쿠키
 - Phase 6: api.chorigol.co.kr Worker 7-Layer 보안
 - Phase 7: 검증 + 컷오버 (심야, rv CNAME 교체, Firebase 2주 보존)
+- Phase 8: Firebase·Airtable 폐기
+- 잔여: 입실·퇴실 스케줄러 이관, Vite→Next 완전 전환 후 Vite 스크립트/의존성 제거
