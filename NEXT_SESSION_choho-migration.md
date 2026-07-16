@@ -183,13 +183,29 @@ Firestore 접근: firebase-tools refresh_token (`C:/Users/flame/.config/configst
 ### 검증 스크립트 (scratchpad, 세션종료 시 삭제됨)
 - verify-d1lib.mjs, verify-notif.mjs, load-marketing.mjs — 재실행 시 dump 먼저 필요(dump-all.mjs)
 
-### 다음 액션 (Phase 3 이어서)
-1. 나머지 화면 이식: 캘린더(FullCalendar)/객실/옵션/알림 (기존 src/legacy-pages/*.jsx 참고)
+## Phase 4 완료 — 예약 쓰기 API + 알림 통합 (트리거 대체)
+
+**커밋**: 브랜치 migrate/nextjs-d1 (쓰기 API)
+
+- `app/api/reservations/route.js`: POST(생성)/PATCH(수정·취소)/GET. 상태전환·객실변경 감지 → 알림
+- `lib/reservations.js`: create/update/cancel/delete + Firestore스타일 ID + 옵션 replace
+- `lib/reservation-notify.js`: 알림 오케스트레이션 (막기 스킵, 취소는 텔레그램만, 미치환 차단, notification_log 기록)
+- `lib/sms.js`(SENS, env시크릿) / `lib/telegram.js`(env봇토큰, 업체별채널) / `lib/messages.js`(TG 포맷터)
+- 검증: CRUD·SMS실발송(테스트번호)·봇토큰·막기스킵 전부 통과. D1 원상복구(540건)
+
+### ⚠️ 테스트 규칙 (중요)
+- **테스트 문자는 01098979834 번호로만** (사용자 지정)
+- **실제 텔레그램 채널로 테스트 발송 금지** — 봇토큰 getMe로 유효성만 확인. 스팸되면 deleteMessage로 삭제
+- **한글 payload는 curl 금지** (Windows 콘솔 UTF-8 깨짐 → source="막기" 깨져 스킵 실패한 사고). node로 테스트
+- 텔레그램 봇: 양쪽 업체 동일 `@mkt251102_bot`, chatId만 다름 (choho -1002484830636 / shelter -1002863320782)
+
+### 다음 액션 (Phase 3 화면 이식 이어서)
+1. 컴포넌트 전면 재작성 (결정됨): 캘린더/객실/옵션/알림 → Next 서버컴포넌트 + API Route
+   - 쓰기는 전부 `fetch('/api/...')` → API Route → lib/ (Firestore 직접쓰기 145곳 대체)
 2. 나머지 조회 계층: customers, inventory_overrides, marketing_stats, pricing
-3. **쓰기 경로**: 예약 생성/수정/취소 API Route (`app/api/reservations`) — D1 INSERT/UPDATE + 알림 발송 통합 (Phase 4의 핵심, 트리거 대체)
-4. 리스너 7곳(onSnapshot) → 폴링/revalidate, Airtable 제거
-5. 인증: Firebase Auth → JWT admin_token 쿠키 (Phase 5)
-6. Vite→Next 완전 전환 후 eslint를 Next용으로 교체, Vite 스크립트/의존성 제거
+3. 리스너 7곳(onSnapshot) → 폴링/revalidate, Airtable 제거
+4. 인증: Firebase Auth → JWT admin_token 쿠키 (Phase 5)
+5. Vite→Next 완전 전환 후 eslint를 Next용으로 교체, Vite 스크립트/의존성 제거
 
 ### D1 접근 참고
 - `lib/d1.js` 인증: CLOUDFLARE_D1_TOKEN(Bearer) 우선 → 없으면 GLOBAL_API_KEY+EMAIL
