@@ -129,11 +129,32 @@ node scripts/set-admin-password.mjs
 - 키: `~/.ssh/id_ed25519_chohopark`
 - config: `Host github.com-chohopark` → `git@github.com-chohopark:chohopark134-ctrl/chohopark.git`
 
-### 🎯 최종 주소 = `rv.chorigol.co.kr` (사용자 결정 2026-07-16)
-계획서대로 **rv 유지**. 새 Next+D1 앱이 최종적으로 `rv.chorigol.co.kr`을 차지한다.
-- `admin.chorigol.co.kr` = **병렬운영·검증용** (새 계정에 이미 연결됨). 컷오버 후 정리 여부는 추후
+### 🎯 도메인 역할 확정 (사용자 결정 2026-07-16)
+| 도메인 | 역할 |
+|---|---|
+| `rv.chorigol.co.kr` | **예약시스템 = 이 repo의 Next+D1 앱**. 계속 사용, 최종 주소 |
+| `admin.chorigol.co.kr` | **별개 관리자 대시보드 (통계 담당)** — 다른 앱, 추후 구축. 이 앱 아님 |
+
+⚠️ 이전 핸드오프가 "admin에 이 앱을 올린다"고 적었던 건 **오해**였다. admin은 통계 전용 별도 앱.
+
+### 🚨 .vercel 링크가 구 계정을 가리킨다 (사고 위험)
+`.vercel/project.json` = `team_Gwjg6taUVyH9b1X1ZZ3ozWX9` / `rv-chorigol-co-kr`
+→ **핸드오프의 새 계정(`team_dRQbvedrBJ4kxHtMAg59xpZo`)이 아니라, 지금 rv 라이브를 돌리는 구 계정 프로젝트다.**
+
+**이 폴더에서 `vercel --prod` 치면 라이브 rv가 즉시 새 앱으로 덮인다.** 컷오버 전까지 절대 금지.
+- 새 계정에 배포하려면 먼저 `vercel link`로 새 프로젝트에 연결하고
+  `.env.local`의 `VERCEL_TOKEN`을 `--token`으로 명시 전달 (defaults.md 규칙)
 - ⚠️ **컷오버 다운타임 리스크**: `rv`는 지금 **구 Vercel 계정** 소유다. 새 계정에 붙이려면
   구 계정에서 먼저 떼야 하고, 그 사이 rv가 잠깐 끊긴다 → **심야 작업 필수**
+
+### 컷오버 순서 (이 순서 아니면 사고)
+1. **비번 설정** — `node scripts/set-admin-password.mjs` (안 하면 새 앱에 아무도 못 들어감)
+2. **새 계정에 새 프로젝트로 배포** → `*.vercel.app` 임시 URL에서 검증 (rv 무영향)
+3. env 주입 + 로그인·캘린더·알림 실동작 확인 → 며칠 병렬 운영
+4. **심야에** rv 도메인 구 계정에서 떼고 새 계정에 붙이기 (5~10분 중단)
+5. Firebase 2주 보존 후 폐기
+
+**2번 전에 rv를 떼면 대체할 게 없어 예약시스템이 그냥 중단된다.**
 - 폴더명 `F:\rv-chorigol.co.kr`(하이픈)과 도메인 `rv.chorigol.co.kr`(서브도메인)은 다르다.
   `rv-chorigol.co.kr`(하이픈)이라는 도메인은 존재하지 않음 — 폴더 이름일 뿐
 
