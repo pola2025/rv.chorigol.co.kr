@@ -1,20 +1,24 @@
 # 초호펜션 예약관리시스템 — Firebase·Airtable → Vercel + Cloudflare D1 마이그레이션
 
-> 세션 핸드오프 · 최종 갱신 2026-07-16
+> 세션 핸드오프 · 최종 갱신 2026-07-17
 
 ## 복사용 요청문
 ```
-초호펜션 예약시스템 Firebase→Vercel+D1 이관 중. Phase 0~5 완료. 스토어 2/2. 죽은코드 161개 정리(src/ 235→74).
-option_settings 갭 복구 + rooms/options/pricing_rules 쓰기 API + 화면 5개 이식 완료(split-brain 해소).
-**Firebase 직접 사용 소비자 14 → 8.**
-다음: 남은 8개는 전부 "판단이 필요한 것"이다 — 아래 표 참조. sensService(보안) 가 0순위인데
-      NotificationSettingsV2·notificationScheduler 가 물고 있어 그 둘 처리가 선행돼야 한다.
+초호펜션 예약시스템 Firebase→Vercel+D1 이관 중. Phase 0~5 완료.
+**Firebase 직접 사용 소비자 8 → 4** (App · LoginScreen · SmsHistoryTable · notificationScheduler)
+**보안 0순위 해소**: sensService 삭제 완료 (SENS 키 브라우저 노출 경로 제거).
+알림설정(NotificationSettingsV2) D1 이관 완료 — 서버계층 감사 124/124. **브라우저 실동작만 미확인.**
+다음: ① 알림설정 화면 브라우저 검증 → ② SmsHistoryTable(JOIN 재작성) → ③ App/LoginScreen 인증
+      → ④ src/config/firebase.js 제거 → ⑤ 컷오버 전 크론 이관(아래 🔴 블로커)
 F:\rv-chorigol.co.kr\NEXT_SESSION_choho-migration.md 전체 컨텍스트. 브랜치 migrate/nextjs-d1.
 최종 화면은 **Next 가 레거시 컴포넌트를 렌더**한다(사용자 확정). App.jsx·react-router·재작성본은 폐기 대상.
+  → 이 확정이 핸드오프 표("NotificationSettingsV2 폐기")와 충돌했다. **확정이 이긴다**(사용자 재확인 7/17).
+     app/notifications·app/calendar 등 재작성본이 폐기 대상이다. 표를 근거로 레거시를 지우지 말 것.
 도달성 판정은 grep 금지 → `node scripts/audit/reachability.mjs` (Dashboard.jsx 가 죽은 코드였다).
 
 원칙: rv는 "기존 모습 그대로" 이관 — UI 임의변경 금지. 새 UI 아이디어는 admin(별개 통계앱)으로.
       모양·기능이 같아야 하므로 **측정과 감사**가 핵심. 추측으로 이식 금지.
+      단 **시크릿 UI 는 예외**(사용자 확정 7/17): 보안과 양립 불가라 "서버에서 관리" 표시로 대체했다.
 테스트: 문자는 01098979834로만, 예약 알림봇 실채널 발송금지, 한글 payload curl금지(node).
        삭제는 정확한 ID로만 (LIKE 패턴 금지 — 실데이터 삭제 사고 있었음).
        **01098979834 에는 실고객(이재호·방문37회)이 있다.** 행 수만 비교하면 "수정"을 못 되돌린다
@@ -22,7 +26,9 @@ F:\rv-chorigol.co.kr\NEXT_SESSION_choho-migration.md 전체 컨텍스트. 브랜
        재고가드 테스트는 source="막기" 쓰면 안 됨(막기는 검사를 건너뜀) → sms_config 잠시 끄고 非막기로.
 감사: `node scripts/audit/<이름>.mjs` — 임시폴더에서 **repo 로 옮겨 영구 보관**했다.
       verify-snapshot(역매퍼 18) · audit-override(드리프트 25) · audit-store-port(이식 49) ·
-      verify-migration(이관 정합성) · audit-inventory · audit-api-guard
+      **audit-notification-doc(알림설정 역·정매퍼 124)** · verify-migration · audit-inventory · audit-api-guard
+포매터 훅 주의: Edit/Write 는 파일 전체를 재포맷한다(1글자 고쳐도 400줄 diff).
+      최소 diff 가 필요하면 **bash 의 python 으로 패치**하면 훅이 안 돈다.
 ```
 
 **계획서**: https://claude.ai/code/artifact/84c4a8c2-5770-4966-9404-aa70a3b82164
@@ -42,8 +48,11 @@ F:\rv-chorigol.co.kr\NEXT_SESSION_choho-migration.md 전체 컨텍스트. 브랜
 | — | 인프라봇 헬스체크 분리 | ✅ |
 | 5 | 인증 (Firebase Auth → JWT 쿠키) | ✅ (비번 설정만 남음) |
 | — | **재고 가드** (오버부킹 원자적 차단) + API 연결 | ✅ |
-| — | **레거시 화면 이식** (rv 모양 그대로) | 🔄 스토어 2/2 ✅ · **Firebase 소비자 8개 남음** |
+| — | **레거시 화면 이식** (rv 모양 그대로) | 🔄 스토어 2/2 ✅ · **Firebase 소비자 4개 남음** |
 | — | option_settings 갭 복구 + rooms/options/pricing_rules 쓰기 API + 두 화면 이식 | ✅ |
+| — | **알림설정 갭 5개 복구 + 역·정매퍼 + NotificationSettingsV2 이식** (감사 124/124) | ✅ (브라우저 검증만 남음) |
+| — | **🔒 보안 0순위 — sensService 삭제** (SENS 키 브라우저 노출 제거) | ✅ |
+| — | 크론 이관 (9시 리포트 + 입실·퇴실 안내) → **컷오버 블로커** | ⬜ |
 | 6 | api.chorigol.co.kr Worker 보안 | ⬜ |
 | 7 | 컷오버 (rv CNAME) → 병렬운영 2주 | ⬜ |
 | 8 | Firebase·Airtable 폐기 | ⬜ |
@@ -65,31 +74,88 @@ node scripts/set-admin-password.mjs
 - **에이전트에게 비밀번호를 알려주지 말 것** — 채팅에 남으면 그 자체가 유출이다
 
 ## 다음 세션 첫 액션
-**쉬운 이식은 다 끝났다.** 남은 8개는 전부 **판단이 필요한 것**들이다.
 
-| 남은 파일 | 성격 | 판단 |
+### 0) 🔴 먼저 — 알림설정 화면을 브라우저로 열어볼 것 (이번 세션이 못 한 유일한 것)
+서버 계층은 감사 124/124 로 검증했지만 **화면 실동작은 확인 못 했다**. 확인할 것:
+- 두 탭(초호펜션/초호쉼터) 로드 → 객실 카드 값이 예전과 같은가
+- 템플릿 저장 → 새로고침 → 값이 유지되는가 (**갭 5개 복구의 진짜 검증**)
+- SENS 섹션에 🔒 "서버에서 관리" 안내가 뜨고 발신번호만 편집되는가
+- `{customerName}` 같은 미지원 변수 입력 → 서버 400 문구가 alert 에 뜨는가
+- shelter/**단체예약** 카드 저장 → D1 에 행이 없는 객실이라 **upsert 경로**를 탄다 (유일한 미검증 분기)
+
+### 1) 남은 Firebase 소비자 4개
+| 파일 | 성격 | 판단 |
 |---|---|---|
-| `sensService.js` | SENS 키 원문을 브라우저로 내린다 (**보안 0순위**) | **삭제**. `lib/sms.js` 가 서버에서 완전 대체. **단 아래 2개가 물고 있어 선행 필요** |
-| `notificationScheduler.js` | 입실·퇴실 스케줄러. `App.jsx:11` 이 로드 | 브라우저에서 도는 스케줄러다 — **탭이 열려 있어야 동작**. 진짜 발송은 Cloud Function(`functions/src/smsScheduler.js`)이 한다. **중복인지 확인 후 삭제 or 서버 이관** |
-| `NotificationSettingsV2.jsx` | settings 읽기·쓰기 + sensService 테스트발송 | 신규 `app/notifications` 와 **기능 중복**. 빠진 건 `autoSendDaily` 뿐 → 이식 말고 **그것만 추가**하고 폐기 |
-| `SmsHistoryTable.jsx` | 예약별 `smsStatus` 맵을 읽는다 | D1 엔 그 필드가 **없다**(→ `notification_log` 1,086건으로 정규화). 컴포넌트 이식이 아니라 **JOIN 쿼리로 재작성** |
+| `SmsHistoryTable.jsx` | 예약별 `smsStatus` 맵을 읽는다 | D1 엔 그 필드가 **없다**(→ `notification_log` 1,086건으로 정규화). 이식이 아니라 **JOIN 쿼리로 재작성** |
 | `App.jsx` · `LoginScreen.jsx` | Firebase **Auth** (Firestore 아님) | 신규 JWT(`lib/auth-jwt.js` + `/api/auth/*`)로 교체. **`admins` 0건이라 먼저 비번 설정 필요** |
-| `diagnostics.js` · `reservationDebugger.js` | 진단용 reservations 1건 조회 | 디버그 도구 — **폐기** (D1 체제에서 무의미) |
+| `notificationScheduler.js` | 9시 일일현황 텔레그램 **하나만** 남았다 | 아래 🔴 크론 블로커와 함께 처리 |
 | `src/config/firebase.js` | 위가 다 빠지면 마지막 | 제거 → Vite/Firebase 의존 정리 |
 
-> 순서 제안: `diagnostics`·`reservationDebugger` 폐기(쉬움) → `notificationScheduler` 정체 확인
-> → `NotificationSettingsV2` + `SmsHistoryTable` → **`sensService` 삭제** → `App`/`LoginScreen` 인증
-> → `config/firebase.js` 제거
+### 2) 🔴 컷오버 블로커 — 크론 이관 (지금은 안 깨지지만 컷오버 순간 조용히 사라진다)
+**9시 일일현황 텔레그램을 띄우는 건 `App.jsx` 다.** 그런데 App.jsx 는 폐기 대상이다
+→ 컷오버하면 사장님이 매일 받던 리포트가 **말없이 없어진다**.
 
-### ✅ 이번에 끝낸 이식 (커밋 `bf2b132` `e713a1e` `8bf57f7`)
-- **ReservationCalendar** — rooms/options/reservations 를 자체 useState 로 **중복 fetch** 하던 걸
-  훅으로 치환. 쓰기는 원래 props 위임이라 손댈 게 없었다.
-  ⚠️ 날짜별 목록 `.sort()` 가 객실명 순으로만 정렬해 **같은 객실·같은 날짜는 동점** → 입력 순서가
-  드러난다. 입력 순서가 문서ID순 → check_in DESC 로 바뀌었다(해당 케이스 5건, 예: 호수뷰객실
-  2025-08-14 에 6건). **양쪽 다 임의 순서**라 정렬 로직은 안 건드렸다
-- **NewReservationModal** — `serverTimestamp` 하나뿐이었다. createdAt 은 서버가 찍는다
-- **useCustomers** — 단건 getDoc → 스토어 흡수(402건 이미 보유). `updateCustomer` 는 죽은 코드라 제거
-- **DataInitializer 삭제** — 아래 "파괴 경로" 참조. 빈 상태는 "불러오지 못했습니다 + 다시 불러오기"로
+- 지금 발송자는 **브라우저 뿐**이다. CF 구현이 두 벌(`telegram-scheduler.js`,
+  `notifications.js` 의 V2) 있으나 **둘 다 index.js 가 export 를 안 해 미배포**다
+  (`npx firebase-tools functions:list --project choho-pension` 로 확인).
+- **CF 로 배포하지 말 것** — Phase 8 에서 폐기할 시스템이다. 게다가 `telegram-scheduler.js` 는
+  구 `settings/notifications` 를 읽어 **봇토큰이 다르다**(`7947112373…` vs 운영 `8053531001…`).
+- **제자리는 Vercel Cron → `/api/cron/*` → D1 → `lib/telegram.js`** 다. 근거: env 목록에 이미
+  `CRON_SECRET` 이 있고(원래 크론을 전제한 설계), `lib/telegram.js`·`lib/reservation-notify.js` 가
+  서버 전용 시크릿으로 완성돼 있다.
+- **입실·퇴실 안내도 같은 크론이 필요하다**(신규 스택엔 스케줄러가 없다) → **한 번에 같이 태울 것**.
+  `checkin_hours_before`·`checkout_hours_before` 는 이번에 D1 에 넣어뒀다(독자가 이 크론이 된다).
+
+### 3) 그 외
+- 재작성본 `app/notifications`·`app/calendar` 등 폐기 (레거시를 Next 로 올릴 때)
+- `src/scripts/` 4개 — Firebase 폐기(Phase 8) 때 함께 정리
+
+---
+
+## 📌 이번 세션 요약 (2026-07-17)
+
+**한 줄**: 핸드오프 첫 액션을 그대로 진행했는데, **핸드오프의 판단이 4곳에서 틀렸다**.
+전부 측정으로 잡아 고쳤고, **보안 0순위가 해소**됐다. Firebase 소비자 **8 → 4**.
+
+| 커밋 | 내용 |
+|---|---|
+| `ec38455` | diagnostics 폐기 + reservationDebugger Firebase 접점 제거 (소비자 8 → 6) |
+| `e79dd3b` | notificationScheduler 죽은 입실/퇴실 경로 제거 + 일일현황 중복가드 |
+| `80ecfc2` `70add23` | notificationService WIP 101줄 **보존 커밋** 후 죽은 파일 삭제 |
+| `9e22f28` | 레이트 체크아웃 표기 14:00 → **12:00** (사용자 확인) |
+| `d6fab5b` `0a836f2` | 알림설정 갭 **5개** D1 복구 + 덤프 실값 백필 |
+| `e4c1bdc` | 알림설정 역매퍼·정매퍼 + GET/PATCH API (**감사 124/124**) |
+| `fcd5337` | **NotificationSettingsV2 D1 이관** + 시크릿 브라우저 노출 차단 |
+| `11f06d7` | **sensService.js 삭제 — 보안 0순위 해소** |
+
+### 🔴 핸드오프가 틀렸던 것 4가지 (다음 세션도 표를 곧이곧대로 믿지 말 것)
+1. **"diagnostics·reservationDebugger 둘 다 폐기"** → reservationDebugger 를 지우면 **예약 생성이 깨진다**.
+   NewReservationModal:472 가 `validateReservationData()` 로 제출을 막고 `analyzeError()` 가
+   사용자에게 보이는 에러 문구를 만든다. Firebase 접점(2개 메서드)만 제거했다.
+2. **"notificationScheduler 가 CF 와 중복"** → **절반만 맞았다**. 입실/퇴실 문자는 코드상 중복이지만
+   **실제 발송 0건**이었다(Firestore `!=` 쿼리가 필드 없는 문서를 제외 → 영원히 빈 집합.
+   실측: 예약 540건 중 마커 0건 / smsStatus 255건). 반대로 **9시 일일현황은 브라우저가 유일한 발송자**였다.
+3. **"NotificationSettingsV2 폐기하고 재작성본 사용"** → **아키텍처 확정과 정면 충돌**이었다.
+   확정은 "재작성본이 폐기 대상". 사용자 재확인 → **이식**으로 진행.
+4. **"빠진 건 autoSendDaily 뿐"** → **5개**였다 (autoSendDaily, cancellationEnabled,
+   checkInHoursBefore, checkOutHoursBefore, **title**). 재작성본이 이 필드들을 **안 쓰는 화면**이라
+   재작성본 기준으로 보면 갭이 없어 보였던 것이다.
+
+### 측정이 구해낸 값
+- **Forest 패밀리의 checkInHoursBefore = 2** (나머지는 3) — 기본값으로 채웠으면 조용히 3이 됐다
+- **템플릿 title 28개** — 컬럼 자체가 없어 저장이 유실될 뻔했다
+
+### 알아둘 사실
+- **SENS `testConnection()` 은 위약이었다** — 필드가 비었는지만 보고 true 를 반환한다. 문자도 안 보낸다.
+  그래서 버튼을 지워도 잃는 게 없었다 (sensService.js:259-286, 삭제됨).
+- **telegramService 는 봇토큰이 필요 없다** — CF 에 `{businessType}` 만 보내고 토큰은 서버가 쥔다.
+  `initialize()` 는 no-op. Firebase import 0. 그래서 텔레그램 연결 테스트 버튼은 살아남았다.
+- **레이트 체크아웃은 12시다** (사용자 확인). 고객 문자는 무사했다 — 배포된 CF 는 시각을 코드로
+  계산하지 않고 템플릿을 쓰는데, 퇴실 템플릿 8종이 전부 "11시"였다.
+  ⚠️ **별건**: 퇴실 템플릿이 레이트 체크아웃 여부로 분기하지 않는다 → 12시 결제 고객도
+  "퇴실시간 오전 11시" 문자를 받는다. 기존 동작이라 손대지 않았다. **판단 필요.**
+- **"알림 2번" 은 중복이 아니었다** — 신규예약·신규등록 **서로 다른 메시지 2개**였고
+  사장님이 인프라봇 채널로 분리해 해결했다("신규등록"은 이 repo 에 없다 = 다른 시스템).
 
 ### ✅ 완료 — split-brain 해소 + option_settings 갭 (커밋 `4e5a1ee` `2730e27` `33665e6`)
 - **`settings/option_settings` 미이관 갭 복구**: D1 에 `settings` 테이블 자체가 없어
@@ -105,30 +171,11 @@ node scripts/set-admin-password.mjs
 - **`/api/getDoc` 이 없어서 죽어 있던 로드 경로**를 `/api/option-settings` 로 고쳤다
   (OptionsSettings 는 저장된 기본옵션을 초기 커밋 이래 한 번도 못 불러왔다)
 
-### 이식 대상 14개 (측정 확정 — `node scripts/audit/reachability.mjs`)
-죽은 코드 159개를 지운 뒤 `src/` 는 76개만 남았고, 그중 **Firebase 를 직접 쓰는 건 14개**다.
-
-| 파일 | 성격 | 판정 |
-|---|---|---|
-| `RoomManagement` | 쓰기 8곳 + writeBatch 2 (rooms·reservations·pricing_rules·inventory_overrides) | **가장 큼. API 신설 필요** |
-| `OptionsSettings` | 쓰기 4곳 (options·settings/option_settings) | API 신설 필요 |
-| `ReservationCalendar` | 읽기 3곳(getDocs rooms/options/reservations) | **가장 쉬움** — `useRooms()/useOptions()/useReservations()` 로 치환만 |
-| `NewReservationModal` | `serverTimestamp` import 1개뿐 | 사실상 정리만 |
-| `NotificationSettingsV2` | settings 읽기·쓰기 | 신규 `app/notifications` 와 **기능 중복** — 이식 말고 빠진 것만 이식(`autoSendDaily`) |
-| `SmsHistoryTable` | reservations 읽기 + `smsStatus` 맵 | D1 엔 그 필드가 없다 → `notification_log` JOIN 으로 **재작성** |
-| `DataInitializer` | rooms/pricing_rules/options 하드코딩 덮어쓰기 | **폐기** (아래 위험 참조) |
-| `useCustomers` | 단건 getDoc + 죽은 `updateCustomer` | `useFirebaseStore.customers` 로 **흡수** |
-| `useOptionSettings` | settings/option_settings 읽기 | D1 에 데이터 없음 → 갭 메운 뒤 |
-| `sensService` | settings 읽기 + SENS 발송 | **삭제** — `lib/sms.js` 가 완전 대체 (아래 보안) |
-| `notificationScheduler` | settings·reservations·message_templates | 입실·퇴실 스케줄러 — 서버 이관 대상 |
-| `diagnostics` · `reservationDebugger` | 진단용 reservations 1건 조회 | 디버그 도구 — 폐기 |
-| `App.jsx` · `LoginScreen` | Firebase **Auth** (Firestore 아님) | 신규 JWT 인증(`lib/auth-jwt.js`)으로 교체 |
-
-- **아키텍처 확정(사용자, 2026-07-16)**: 최종 화면은 **Next 가 레거시 컴포넌트를 렌더**한다.
-  → `App.jsx` · react-router · `legacy-pages/` · 재작성본(`app/calendar` 등)은 최종적으로 폐기.
-  지금은 `legacy-pages/` 가 **살아있는 화면의 정의**라 남겨둔다.
-- 이식 원칙은 스토어와 같다: **기대하는 모양을 먼저 측정** → `legacy-shape.js` 에 있으면 그대로.
-  쓰기는 반드시 `/api/*` 경유 (D1 토큰이 번들에 들어가면 끝)
+### ~~이식 대상 14개~~ → **4개** (2026-07-17 기준)
+> 이 자리에 있던 14개 표는 **삭제했다.** 그 표의 판정 4개가 틀렸고(위 "핸드오프가 틀렸던 것" 참조)
+> 다음 세션이 그걸 근거로 레거시를 지우려 들 위험이 실제로 있었다.
+> **현재 남은 4개는 위 "다음 세션 첫 액션 → 1) 남은 Firebase 소비자 4개" 표가 유일한 진실이다.**
+> 도달성은 항상 `node scripts/audit/reachability.mjs` 로 판정할 것.
 
 ### ✅ `useReservationStore` 이식 완료 (커밋 `b638879`)
 쓰기 7개 → API. **API 표면 14/14 동일**(HEAD 대조) → Dashboard·useReservations 등 호출부 무수정.
@@ -643,10 +690,11 @@ SQLite 는 동적 타입이라 INTEGER 컬럼에 그대로 들어간다 → `WHE
 역매퍼 `!!"false"` = true → **"목록엔 없는데 화면엔 활성"** 인 유령 상태. `lib/d1.js` 바인딩 계층에서
 0/1 로 정규화했다. 기존 데이터 전수 검사 → 오염 0건. **새 코드에서 불리언을 넘길 때 주의.**
 
-**3. 보안 — `sensService.js` 가 SENS 키 원문을 브라우저로 내린다 (운영 중)**
+**3. ~~보안 — `sensService.js` 가 SENS 키 원문을 브라우저로 내린다~~ → ✅ 삭제** (`11f06d7`, 2026-07-17)
 `settings/notifications_v2_*` 에서 `accessKey`/`secretKey` 를 클라이언트가 `getDoc` 으로 읽어
-(47·66행) `fetch` POST 바디에 실어 보낸다(150-177행) → DevTools Network 에 원문 노출.
-`lib/sms.js` 가 서버 전용 `process.env` + HMAC 으로 이미 100% 대체 → **이식이 아니라 삭제**.
+`fetch` POST 바디에 실어 보냈다 → DevTools Network 에 원문 노출. **4개월간 0순위였던 항목.**
+NotificationSettingsV2 이식(`fcd5337`)으로 마지막 소비자가 사라져 죽은 파일이 됐고 삭제했다.
+`lib/sms.js` 가 서버 전용 `process.env` + HMAC 으로 100% 대체한다.
 
 **4. ~~`DataInitializer` 파괴 경로~~ → ✅ 삭제** (`8bf57f7`)
 시드값이 이미 틀려 있었다: `Forest` 기본요금을 **180,000 → 150,000** 으로 되돌리고 지금은 없는
@@ -661,15 +709,16 @@ SQLite 는 동적 타입이라 INTEGER 컬럼에 그대로 들어간다 → `WHE
 이런 문서를 근거로 판단해서 이전 세션들이 Dashboard.jsx(죽은 코드)를 살아있는 화면으로 알았다.
 경고 헤더를 붙여뒀다. **살아있음의 근거는 `node scripts/audit/reachability.mjs` 뿐이다.**
 
-### 남은 것
-1. ~~option_settings 갭 → 쓰기 API → 두 화면 이식~~ ✅ 완료
-2. **Firebase 소비자 8개** — 전부 판단이 필요하다 (맨 위 "다음 세션 첫 액션" 표 참조)
-3. `src/config/firebase.js` 제거 → Vite 의존 정리 (위 8개가 다 빠진 뒤)
-4. 입실·퇴실 스케줄러 — 신규 스택엔 없다. 단 `notificationScheduler.js`(브라우저)와
-   `functions/src/smsScheduler.js`(Cloud Function, **실제 발송 중**)가 중복인지 먼저 확인할 것
+### 남은 것 (2026-07-17 갱신 — 맨 위 "다음 세션 첫 액션" 이 정본)
+1. ~~option_settings 갭~~ / ~~알림설정 갭 5개~~ / ~~sensService 삭제~~ ✅ 완료
+2. **Firebase 소비자 4개** — App · LoginScreen · SmsHistoryTable · notificationScheduler
+3. `src/config/firebase.js` 제거 → Vite 의존 정리 (위 4개가 다 빠진 뒤)
+4. **입실·퇴실 스케줄러 + 9시 리포트 → Vercel Cron 으로 한 번에** (🔴 컷오버 블로커).
+   ~~중복인지 확인~~ → **확인 완료**: 입실/퇴실은 실제 발송 0건이었고(제거함),
+   9시 리포트는 **브라우저가 유일한 발송자**다. 상세는 맨 위 "2) 컷오버 블로커" 참조
 5. `src/scripts/*` 4개 — Firebase 폐기(Phase 8) 때 함께 정리
-6. `notificationService.js` 미커밋 101줄 처리 (죽은 코드 · 효과 0)
-7. 재작성본 `app/calendar` 등 정리 — 레거시 화면을 Next 로 올릴 때 대체된다
+6. ~~`notificationService.js` 미커밋 101줄~~ ✅ 보존 커밋(`80ecfc2`) 후 삭제(`70add23`)
+7. 재작성본 `app/notifications`·`app/calendar` 등 정리 — 레거시 화면을 Next 로 올릴 때 대체된다
 
 ## 🧹 죽은 코드 159개 삭제 완료 (커밋 `eb87704`) — src/ 235 → 76
 
