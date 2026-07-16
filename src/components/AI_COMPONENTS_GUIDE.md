@@ -1,3 +1,20 @@
+> # ⚠️ 이 문서는 낡았다 — 그대로 믿지 말 것 (2026-07-17 확인)
+>
+> 여기 적힌 파일 **30개 중 20개가 이미 삭제됐다**. 죽은 코드 159개를 정리하면서
+> `Dashboard.jsx` 서브트리·`marketing*`·동명이인 컴포넌트들이 전부 사라졌다.
+> 이 문서를 근거로 "어떤 컴포넌트가 살아있나"를 판단하면 **틀린다** —
+> 실제로 이전 세션들이 `Dashboard.jsx`(사실은 죽은 코드)를 살아있는 화면으로 알고 분석했다.
+>
+> **살아있는 컴포넌트의 근거는 도달성 그래프뿐이다:**
+> ```
+> node scripts/audit/reachability.mjs
+> ```
+> 진짜 진입점(index.html → src/main.jsx, Next 규약 app/**/page|route|layout)에서 BFS 하고,
+> 정적·동적 import·re-export·CSS @import 까지 따라간다. grep 으로 세면 안 된다
+> (죽은 파일이 죽은 파일을 import 해서 살아 보인다).
+>
+> 아래 내용은 참고용 히스토리로만 남긴다.
+
 # 🧩 Components 폴더 가이드
 
 ## 📁 컴포넌트 구조 및 용도
@@ -50,7 +67,6 @@
 ### 🛠️ 유틸리티 컴포넌트
 - **LazyImage.jsx**             → 지연 로딩 이미지 (성능 최적화용)
 - **VirtualList.jsx**           → 가상 스크롤 리스트 (대용량 리스트 렌더링)
-- **DataInitializer.jsx**       → 데이터 초기화 도구 (초기 데이터 설정)
 - **DebugPanel.jsx**            → 디버그 패널 (개발용 상태 모니터링)
 - **PerformanceMonitor.jsx**    → 성능 모니터링 (렌더링 성능 추적)
 

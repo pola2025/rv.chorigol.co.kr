@@ -15,7 +15,6 @@ import { useRooms } from '../hooks/useRooms';
 import { useReservations } from '../hooks/useReservations';
 import useFirebaseStore from '../stores/useFirebaseStore';
 import { toRoomWriteBody } from '../../lib/legacy-write-shape';
-import DataInitializer from './DataInitializer';
 import './RoomManagement.css';
 
 /** 쓰기 API — 실패하면 서버 문구를 그대로 던진다 (레거시가 Firestore 에러를 그대로 썼듯이) */
@@ -276,11 +275,21 @@ const RoomManagement = () => {
     return <div className="loading">로딩 중...</div>;
   }
 
-  // 객실이 없는 경우 초기화 화면 표시
+  // 객실이 없으면 — 데이터가 안 온 것이지, 초기화할 상황이 아니다.
+  //
+  // 레거시는 여기서 <DataInitializer/> 를 띄웠는데, 그 버튼은 하드코딩된 2025년 값으로
+  // rooms/options/pricing_rules 를 merge 없이 **덮어썼다**(batch.set). 시드값이 이미 낡아
+  // Forest 기본요금을 180,000 → 150,000 으로 되돌리고 지금은 없는 '단체예약' 객실을 만든다.
+  // 게다가 신규 스택에선 /api/snapshot 이 한 번 실패하면 rooms=[] 라 이 화면이 뜬다
+  // → 일시적 오류에 운영 데이터를 날릴 수 있는 경로였다. 컴포넌트째로 삭제했다.
   if (!rooms || rooms.length === 0) {
     return (
       <div className="room-management">
-        <DataInitializer onComplete={() => window.location.reload()} />
+        <div className="empty-state">
+          <h3>객실 정보를 불러오지 못했습니다</h3>
+          <p>일시적인 오류일 수 있습니다. 새로고침해 주세요.</p>
+          <button className="btn-primary" onClick={() => refresh()}>다시 불러오기</button>
+        </div>
       </div>
     );
   }
