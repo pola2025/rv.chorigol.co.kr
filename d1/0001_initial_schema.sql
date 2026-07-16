@@ -189,6 +189,21 @@ CREATE TABLE sms_config (
 );
 
 -- ─────────────────────────────────────────────
+-- 기본 옵션 오버라이드 (Firestore: settings/option_settings)
+--   ⚠️ options 테이블과 **합치지 않는다** — id 가 겹치고(late_checkout) 용도가 다르다:
+--     · options/late_checkout            → 예약모달 옵션 목록(이름·가격·설명). useOptions 가 읽는다
+--     · option_settings/late_checkout    → roomStocks. useLateCheckoutSettings 가 읽어
+--       **옵션 노출 여부**를 정한다 (NewReservationModal:845 — 재고>0 인 객실에만 체크박스가 뜬다)
+--   즉 둘 다 진실이고 독자가 다르다. 합치면 한쪽이 죽는다.
+--   레거시는 문서 하나에 { late_checkout: {...}, extra_person: {...} } 맵으로 들고 있다 → 키당 1행.
+-- ─────────────────────────────────────────────
+CREATE TABLE option_settings (
+  id         TEXT PRIMARY KEY,          -- 기본옵션 id (late_checkout | extra_person)
+  data       TEXT NOT NULL,             -- 원본 값 통째 (JSON) — 레거시가 문서를 통째로 읽는다
+  updated_at TEXT
+);
+
+-- ─────────────────────────────────────────────
 -- 객실별 문자 템플릿 (settings.roomSettings[room].templates)
 --   "설정 문서 통째 로드" 패턴 제거 → room/kind 단위 조회
 -- ─────────────────────────────────────────────
