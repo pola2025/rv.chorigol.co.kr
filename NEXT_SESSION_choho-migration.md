@@ -4,10 +4,12 @@
 
 ## 복사용 요청문
 ```
-초호펜션 예약시스템 Firebase→Vercel+D1 이관 중. Phase 0~5 완료.
-지금: rv 레거시 화면 "모양 그대로" 이식 중 — **스토어 2/2 완료**(useFirebaseStore·useReservationStore).
-다음: 직접 Firebase 쓰는 컴포넌트 9개 교체 → 입실·퇴실 스케줄러 → Phase 6.
+초호펜션 예약시스템 Firebase→Vercel+D1 이관 중. Phase 0~5 완료. 스토어 2/2 완료. 죽은코드 159개 정리(src/ 235→76).
+다음: settings/option_settings 미이관 갭 → rooms/options/pricing_rules 쓰기 API 신설 →
+      RoomManagement·OptionsSettings 이식(지금 읽기D1/쓰기Firestore 로 갈라져 있음).
 F:\rv-chorigol.co.kr\NEXT_SESSION_choho-migration.md 전체 컨텍스트. 브랜치 migrate/nextjs-d1.
+최종 화면은 **Next 가 레거시 컴포넌트를 렌더**한다(사용자 확정). App.jsx·react-router·재작성본은 폐기 대상.
+도달성 판정은 grep 금지 → `node scripts/audit/reachability.mjs` (Dashboard.jsx 가 죽은 코드였다).
 
 원칙: rv는 "기존 모습 그대로" 이관 — UI 임의변경 금지. 새 UI 아이디어는 admin(별개 통계앱)으로.
       모양·기능이 같아야 하므로 **측정과 감사**가 핵심. 추측으로 이식 금지.
@@ -28,6 +30,8 @@ F:\rv-chorigol.co.kr\NEXT_SESSION_choho-migration.md 전체 컨텍스트. 브랜
 
 | Phase | 내용 | 상태 |
 |---|---|---|
+| — | **죽은 코드 159개 삭제** (src/ 235 → 76) + 도달성 그래프 도구 | ✅ |
+| — | **운영 핫픽스** (예약목록 수정 저장 불가) → main push 배포 완료 | ✅ |
 | 0 | 계정·SSH·DNS(Cloudflare)·admin 도메인 | ✅ |
 | 1 | D1 생성 + 스키마 13테이블 | ✅ |
 | 2 | 데이터 2,067건 전량 이관 + 검증 + 시크릿 env 분리 | ✅ |
@@ -58,20 +62,34 @@ node scripts/set-admin-password.mjs
 - **에이전트에게 비밀번호를 알려주지 말 것** — 채팅에 남으면 그 자체가 유출이다
 
 ## 다음 세션 첫 액션
-**직접 Firebase 를 쓰는 컴포넌트 9개 교체** (스토어 2/2 는 끝났다 — 아래 "레거시 화면 이식" 참조).
-`src/config/firebase.js` 를 지우려면 이게 마지막 관문이다.
+**`rooms` / `options` / `pricing_rules` 쓰기 API 신설 → RoomManagement·OptionsSettings 이식.**
+지금 이 둘은 **읽기는 D1, 쓰기는 옛 Firestore** 로 갈라져 있다(아래 "split-brain"). 가장 고장난 상태다.
+그 전에 **`settings/option_settings` 미이관 갭**부터 메워야 한다 — 데이터가 없으면 이식이 불가능하다.
 
-| 컴포넌트 | 비고 |
-|---|---|
-| NewReservationModal · OptionsSettings · ReservationCalendar · RoomManagement | 화면 4개 |
-| NotificationSettingsV2 · SmsHistoryTable · DataInitializer | 설정·로그 |
-| useCustomers · useOptionSettings | 훅 2개 (읽기 위주 → `/api/snapshot` 으로 흡수 가능한지 먼저 볼 것) |
-| sensService · reservationDebugger | 서비스 (sensService 는 서버 `lib/sms.js` 와 중복 — 삭제 후보) |
+### 이식 대상 14개 (측정 확정 — `node scripts/audit/reachability.mjs`)
+죽은 코드 159개를 지운 뒤 `src/` 는 76개만 남았고, 그중 **Firebase 를 직접 쓰는 건 14개**다.
 
-- **ReservationModal.jsx 는 죽은 코드다** (import 하는 곳 0 — Dashboard 의 주석만 남아 혼동을 준다).
-  무제한 `deleteDoc` 이 들어 있으니 이식하지 말고 **삭제**할 것. 살아있는 모달은 `BookingModal`.
-- 이식 순서는 스토어와 같다: **컴포넌트가 기대하는 모양을 먼저 측정** → 역매퍼(`legacy-shape.js`)에
-  이미 있으면 그대로, 없으면 추가. 쓰기는 반드시 `/api/*` 경유 (D1 토큰이 번들에 들어가면 끝)
+| 파일 | 성격 | 판정 |
+|---|---|---|
+| `RoomManagement` | 쓰기 8곳 + writeBatch 2 (rooms·reservations·pricing_rules·inventory_overrides) | **가장 큼. API 신설 필요** |
+| `OptionsSettings` | 쓰기 4곳 (options·settings/option_settings) | API 신설 필요 |
+| `ReservationCalendar` | 읽기 3곳(getDocs rooms/options/reservations) | **가장 쉬움** — `useRooms()/useOptions()/useReservations()` 로 치환만 |
+| `NewReservationModal` | `serverTimestamp` import 1개뿐 | 사실상 정리만 |
+| `NotificationSettingsV2` | settings 읽기·쓰기 | 신규 `app/notifications` 와 **기능 중복** — 이식 말고 빠진 것만 이식(`autoSendDaily`) |
+| `SmsHistoryTable` | reservations 읽기 + `smsStatus` 맵 | D1 엔 그 필드가 없다 → `notification_log` JOIN 으로 **재작성** |
+| `DataInitializer` | rooms/pricing_rules/options 하드코딩 덮어쓰기 | **폐기** (아래 위험 참조) |
+| `useCustomers` | 단건 getDoc + 죽은 `updateCustomer` | `useFirebaseStore.customers` 로 **흡수** |
+| `useOptionSettings` | settings/option_settings 읽기 | D1 에 데이터 없음 → 갭 메운 뒤 |
+| `sensService` | settings 읽기 + SENS 발송 | **삭제** — `lib/sms.js` 가 완전 대체 (아래 보안) |
+| `notificationScheduler` | settings·reservations·message_templates | 입실·퇴실 스케줄러 — 서버 이관 대상 |
+| `diagnostics` · `reservationDebugger` | 진단용 reservations 1건 조회 | 디버그 도구 — 폐기 |
+| `App.jsx` · `LoginScreen` | Firebase **Auth** (Firestore 아님) | 신규 JWT 인증(`lib/auth-jwt.js`)으로 교체 |
+
+- **아키텍처 확정(사용자, 2026-07-16)**: 최종 화면은 **Next 가 레거시 컴포넌트를 렌더**한다.
+  → `App.jsx` · react-router · `legacy-pages/` · 재작성본(`app/calendar` 등)은 최종적으로 폐기.
+  지금은 `legacy-pages/` 가 **살아있는 화면의 정의**라 남겨둔다.
+- 이식 원칙은 스토어와 같다: **기대하는 모양을 먼저 측정** → `legacy-shape.js` 에 있으면 그대로.
+  쓰기는 반드시 `/api/*` 경유 (D1 토큰이 번들에 들어가면 끝)
 
 ### ✅ `useReservationStore` 이식 완료 (커밋 `b638879`)
 쓰기 7개 → API. **API 표면 14/14 동일**(HEAD 대조) → Dashboard·useReservations 등 호출부 무수정.
@@ -215,15 +233,42 @@ node scripts/set-admin-password.mjs
 
 ⚠️ 이전 핸드오프가 "admin에 이 앱을 올린다"고 적었던 건 **오해**였다. admin은 통계 전용 별도 앱.
 
-### 🚨 .vercel 링크가 구 계정을 가리킨다 (사고 위험)
-`.vercel/project.json` = `team_Gwjg6taUVyH9b1X1ZZ3ozWX9` / `rv-chorigol-co-kr`
-→ **핸드오프의 새 계정(`team_dRQbvedrBJ4kxHtMAg59xpZo`)이 아니라, 지금 rv 라이브를 돌리는 구 계정 프로젝트다.**
+### 🔑 Vercel 토큰 2개 — 계정이 갈려 있다 (2026-07-16 실측 확정)
+| env 키 | 계정 | 프로젝트 |
+|---|---|---|
+| `VERCEL_TOKEN` | chohopark134@gmail.com | `chohopark` (새 계정, team_dRQbvedrBJ4kxHtMAg59xpZo) — 이관 대상, 앱 없음 |
+| `VERCEL_TOKEN_RV` | **mkt9834@gmail.com** | `rv-chorigol-co-kr` (구 계정, team_Gwjg6taUVyH9b1X1ZZ3ozWX9) — **지금 라이브** |
 
-**이 폴더에서 `vercel --prod` 치면 라이브 rv가 즉시 새 앱으로 덮인다.** 컷오버 전까지 절대 금지.
-- 새 계정에 배포하려면 먼저 `vercel link`로 새 프로젝트에 연결하고
-  `.env.local`의 `VERCEL_TOKEN`을 `--token`으로 명시 전달 (defaults.md 규칙)
-- ⚠️ **컷오버 다운타임 리스크**: `rv`는 지금 **구 Vercel 계정** 소유다. 새 계정에 붙이려면
-  구 계정에서 먼저 떼야 하고, 그 사이 rv가 잠깐 끊긴다 → **심야 작업 필수**
+- **`VERCEL_TOKEN`(새 계정)으로 라이브 rv 를 조회하면 `forbidden`** 이다. 거기서 막히면 토큰을 잘못 골랐다.
+- **사용자 방침: 팀 토큰 안 쓴다. 토큰은 프로젝트별로 값이 다르다.** 새 토큰이 생겨도 **덮어쓰지 말고
+  각각 구분**해 보관 (`.env.local` 에 어느 계정인지 주석 있음).
+
+### ✅ 배포는 `main` push 자동배포 — CLI 아니다
+`rv-chorigol-co-kr` 은 **GitHub 연결**이다: `pola2025/rv.chorigol.co.kr`, production branch `main`.
+최근 배포 전부 `git:main@<sha>` 소스. → **운영 반영 = `git push origin main`**.
+
+**🚨 이 폴더에서 `vercel --prod` 치지 말 것.** `.vercel/project.json` 이 **라이브 rv** 를 가리켜서
+현재 체크아웃된 브랜치(이관 중인 Next 앱)가 라이브를 덮는다. 운영 수정은 **main 워크트리**에서.
+- ⚠️ **컷오버 다운타임 리스크**: `rv` 는 구 계정 소유다. 새 계정에 붙이려면 구 계정에서 먼저 떼야 하고,
+  그 사이 rv 가 잠깐 끊긴다 → **심야 작업 필수**
+
+## 🚑 운영 핫픽스 배포됨 (2026-07-16, `96af26b`) — 예약목록 수정 저장 불가
+**증상**: 예약목록 화면에서 예약을 수정·저장하면 "예약 수정에 실패했습니다" — **캘린더에선 정상**.
+```
+ReservationsPage:34  await updateReservation({ id, ...data })   ← 객체 1개
+useReservations.js:52 mutateAsync: (id, data) => ...            ← 인자 2개
+→ 스토어가 reservationId={객체}, updates=undefined → doc(db,'reservations',{객체}) 에서 던짐
+```
+확정·취소는 시그니처가 맞아 정상이라 **이 증상만 고립**돼 있었다. 라이브 커밋
+c3b1510("예약 수정 기능 구현 및 버그 수정")은 이 파일을 건드리지도 않았다 — **버그는 그보다 오래됐다.**
+
+- 이관과 무관한 기존 운영 버그 → **main 에 직접 수정 후 push → 자동배포 완료**
+- **검증**: 배포 READY(production=96af26b) / rv.chorigol.co.kr 200 /
+  **라이브 번들에서 두 호출부 모두 `await n(u,h)` 두 인자 확인** (깨진 `{id:` 스프레드 소멸)
+- 같은 수정을 이 브랜치에도 적용(`b3d2752`, 경로만 `legacy-pages`)
+- 교훈: 운영 핫픽스는 **최소 diff**. 포매터 훅이 파일 전체를 재포맷해(30+/14-) 다시 만들었다
+  → Edit/Write 대신 bash(python)로 패치하면 훅이 안 돈다. 최종 diff 3+/1-
+- **함께 올라간 것**: `9ece739`(이전 세션 미푸시 — functions/·d1/·문서. 화면 영향 0, Functions 는 별도 배포됨)
 
 ### 컷오버 순서 (이 순서 아니면 사고)
 1. **비번 설정** — `node scripts/set-admin-password.mjs` (안 하면 새 앱에 아무도 못 들어감)
@@ -498,10 +543,68 @@ customers 402 / overrides 26 를 원본 Firestore 덤프와 **전필드 대조**
 > `date`·`room_name` 을 반드시 채울 것. 비면 가드가 `WHERE room_name=? AND date=?` 로 못 찾아
 > **막아둔 날이 통째로 무시**된다 (이관 버그가 정확히 그거였다).
 
+### 🚨 측정으로 드러난 것 (2026-07-16 · 전부 실측)
+
+**1. split-brain — 읽기 D1 / 쓰기 Firestore**
+`RoomManagement`·`OptionsSettings` 는 읽기를 이미 `useFirebaseStore`(D1)로 하는데 **쓰기는 옛
+Firestore 를 직접 친다**. 저장해도 화면에 안 나타난다. 이 브랜치 한정(운영 main 무관)이지만
+**이 상태로 컷오버하면 객실·옵션 관리가 조용히 죽는다.** `rooms`/`options`/`pricing_rules` API 가
+아예 없어서 단순 치환이 아니라 신규 설계다.
+
+**2. `settings/option_settings` 미이관 — 진짜 데이터 갭**
+D1 에 `settings` 테이블 자체가 없다. 덤프엔 있다:
+- `late_checkout.roomStocks = {Forest mini: 2, Forest: 1}` ← `NewReservationModal` 이 읽는 재고 제한
+- `extra_person` (인원 추가 15,000원 per_person) ← **options 컬렉션엔 아예 없는 항목**
+`options.late_checkout.room_stocks` 는 **NULL**. 이관 안 하면 레이트체크아웃 재고가 조용히 풀린다.
+※ Firestore 는 `options/late_checkout` 문서와 `settings/option_settings.late_checkout` **두 벌**을
+   갖고 있고 값도 다르다(설명·applicableRooms). 어느 쪽이 진실인지 정하고 이관할 것.
+
+**3. 보안 — `sensService.js` 가 SENS 키 원문을 브라우저로 내린다 (운영 중)**
+`settings/notifications_v2_*` 에서 `accessKey`/`secretKey` 를 클라이언트가 `getDoc` 으로 읽어
+(47·66행) `fetch` POST 바디에 실어 보낸다(150-177행) → DevTools Network 에 원문 노출.
+`lib/sms.js` 가 서버 전용 `process.env` + HMAC 으로 이미 100% 대체 → **이식이 아니라 삭제**.
+
+**4. `DataInitializer` — 좁지만 실재하는 파괴 경로**
+`rooms.length === 0` 일 때만 뜨는 폴백 화면이라 평소엔 안 보인다. 그런데 **신규 스택에선
+`/api/snapshot` 이 한 번 실패하면 `rooms=[]`** → 이 화면이 뜨고, 누르면 `batch.set()`(merge 없음)로
+**운영 Firestore 의 rooms 6 / options 3 / pricing_rules 3 을 2025년 하드코딩 값으로 덮어쓴다.**
+이식하지 말고 지울 것.
+
+**5. `RoomManagement` 의 조용히 깨진 로직**
+`r.room === roomName` 으로 예약을 거르는데(174·276행) 실제 필드는 `roomName` 이다
+→ "객실명 변경·삭제 시 관련 예약 경고" 가 **항상 빈 배열**이라 무력화돼 있다.
+
 ### 남은 것
-1. 직접 Firebase 쓰는 컴포넌트 9개 (위 "다음 세션 첫 액션" 표)
-2. `src/config/firebase.js` 제거 → Vite 의존 정리
-3. 입실·퇴실 스케줄러 이관 (신규 스택에 없어 **아직 아무 동작도 안 한다**)
+1. `settings/option_settings` 갭 메우기 → `rooms`/`options`/`pricing_rules` API → 두 화면 이식
+2. 나머지 Firebase 직접 사용 파일 (위 표)
+3. `src/config/firebase.js` 제거 → Vite 의존 정리
+4. 입실·퇴실 스케줄러 이관 (신규 스택에 없어 **아직 아무 동작도 안 한다**)
+5. `src/scripts/*` 4개 — Firebase 폐기(Phase 8) 때 함께 정리
+6. 미커밋 10개(`functions/src/index.js` 1,197줄 등) 정체 확인. `notificationService.js` 는
+   **죽은 코드인데 미커밋 수정 101줄**이 있어 남겨뒀다 (효과 0 — 아무도 import 안 함)
+
+## 🧹 죽은 코드 159개 삭제 완료 (커밋 `eb87704`) — src/ 235 → 76
+
+**`grep` 으로 "import 0" 을 세면 안 된다.** 실제로 겪은 함정:
+- **`Dashboard.jsx` 자체가 죽은 코드**였는데 컴포넌트 20여 개를 import 해서, 그것들이
+  "누가 import 하니 살아있다"로 오판된다. **죽은 뿌리가 서브트리를 살려 보이게 한다.**
+  (이전 세션이 Dashboard 를 살아있는 화면으로 알고 분석했다 — 실제 화면은 `App.jsx → legacy-pages` 5개)
+- 주석 속 언급이 import 로 오인된다
+- 동명이인: `ReservationList` 4종, `NotificationSettings` v1/v2, `marketing/` 과 `marketing-v2/` 에
+  같은 파일명 `MarketingStatsV2.jsx` 두 벌
+
+→ `scripts/audit/reachability.mjs` — 진짜 진입점(index.html→main.jsx, Next 규약 app/**/page|route|layout,
+middleware.js)에서 BFS. 정적·동적 import, require, **re-export**, **CSS `@import`** 까지 따라간다.
+
+**CSS 구멍**: 1차 그래프는 JS 만 봐서 `index.css` 의 `@import './styles/ui-enhancements.css'` 와
+`App.css` 의 `@import './styles/*-optimization.css'` 를 놓쳐 CSS 3개를 지웠다 → **빌드가 깨져서 발견**.
+CSS→CSS 연쇄를 추가하고 전량 복구 후 재삭제했다. **빌드 검증이 없었으면 스타일이 조용히 깨졌다.**
+
+**검증**: 삭제 전후 Vite 번들이 **완전히 동일**(889.45 kB, 해시 D_AA_jaL 까지) → 159개가 빌드에
+1바이트도 기여하지 않았다는 증거. Next 빌드 통과. 전부 git 추적 파일이라 복구 가능.
+
+**부수 수정**: `src/App.jsx` 가 `./pages` 를 import 하는데 그 폴더는 `legacy-pages` 로 이름이 바뀌어
+있었다(커밋 5629f77 이 import 를 안 고침) → **이 브랜치의 `vite build` 가 아예 실패 중**이었다. 1줄 수정.
 
 ## 🔒 재고 가드 완료 (2026-07-16, 커밋 `c3d2257` + API연결 `18a629c`) — `lib/inventory.js`
 
