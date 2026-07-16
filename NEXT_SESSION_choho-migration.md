@@ -4,11 +4,11 @@
 
 ## 복사용 요청문
 ```
-초호펜션 예약시스템 Firebase→Vercel+D1 이관 중. Phase 0~5 완료. 스토어 2/2. 죽은코드 159개 정리(src/ 235→76).
-option_settings 갭 복구 + rooms/options/pricing_rules 쓰기 API + RoomManagement·OptionsSettings 이식 완료
-(split-brain 해소). Firebase 직접사용 14개 → **12개**.
-다음: ReservationCalendar(읽기 3곳, 가장 쉬움) → NewReservationModal → useCustomers →
-      sensService/DataInitializer 삭제 → NotificationSettingsV2·SmsHistoryTable → App/LoginScreen 인증.
+초호펜션 예약시스템 Firebase→Vercel+D1 이관 중. Phase 0~5 완료. 스토어 2/2. 죽은코드 161개 정리(src/ 235→74).
+option_settings 갭 복구 + rooms/options/pricing_rules 쓰기 API + 화면 5개 이식 완료(split-brain 해소).
+**Firebase 직접 사용 소비자 14 → 8.**
+다음: 남은 8개는 전부 "판단이 필요한 것"이다 — 아래 표 참조. sensService(보안) 가 0순위인데
+      NotificationSettingsV2·notificationScheduler 가 물고 있어 그 둘 처리가 선행돼야 한다.
 F:\rv-chorigol.co.kr\NEXT_SESSION_choho-migration.md 전체 컨텍스트. 브랜치 migrate/nextjs-d1.
 최종 화면은 **Next 가 레거시 컴포넌트를 렌더**한다(사용자 확정). App.jsx·react-router·재작성본은 폐기 대상.
 도달성 판정은 grep 금지 → `node scripts/audit/reachability.mjs` (Dashboard.jsx 가 죽은 코드였다).
@@ -42,7 +42,7 @@ F:\rv-chorigol.co.kr\NEXT_SESSION_choho-migration.md 전체 컨텍스트. 브랜
 | — | 인프라봇 헬스체크 분리 | ✅ |
 | 5 | 인증 (Firebase Auth → JWT 쿠키) | ✅ (비번 설정만 남음) |
 | — | **재고 가드** (오버부킹 원자적 차단) + API 연결 | ✅ |
-| — | **레거시 화면 이식** (rv 모양 그대로) | 🔄 스토어 2/2 ✅ · **Firebase 직접사용 12개 남음** |
+| — | **레거시 화면 이식** (rv 모양 그대로) | 🔄 스토어 2/2 ✅ · **Firebase 소비자 8개 남음** |
 | — | option_settings 갭 복구 + rooms/options/pricing_rules 쓰기 API + 두 화면 이식 | ✅ |
 | 6 | api.chorigol.co.kr Worker 보안 | ⬜ |
 | 7 | 컷오버 (rv CNAME) → 병렬운영 2주 | ⬜ |
@@ -65,16 +65,31 @@ node scripts/set-admin-password.mjs
 - **에이전트에게 비밀번호를 알려주지 말 것** — 채팅에 남으면 그 자체가 유출이다
 
 ## 다음 세션 첫 액션
-**`ReservationCalendar` 이식** (읽기 3곳뿐 — 가장 쉽다). `getDocs(rooms/options/reservations)` 를
-이미 D1 인 `useRooms()/useOptions()/useReservations()` 로 치환하면 끝. 자체 useState 로 같은 데이터를
-중복 fetch 하고 있을 뿐이라 모양이 안 바뀐다.
+**쉬운 이식은 다 끝났다.** 남은 8개는 전부 **판단이 필요한 것**들이다.
 
-그 다음 순서(쉬운 것부터): `NewReservationModal`(serverTimestamp import 1개만 정리) →
-`useCustomers`(단건 getDoc → `useFirebaseStore.customers` 로 흡수, `updateCustomer` 는 죽은 코드) →
-**`sensService` 삭제**(보안 — 아래) + **`DataInitializer` 삭제**(파괴 위험 — 아래) →
-`NotificationSettingsV2`(신규 `app/notifications` 와 중복 — 빠진 `autoSendDaily` 만) ·
-`SmsHistoryTable`(`notification_log` JOIN 으로 재작성) → `App.jsx`·`LoginScreen`(Firebase **Auth** →
-`lib/auth-jwt.js`) → `src/config/firebase.js` 제거.
+| 남은 파일 | 성격 | 판단 |
+|---|---|---|
+| `sensService.js` | SENS 키 원문을 브라우저로 내린다 (**보안 0순위**) | **삭제**. `lib/sms.js` 가 서버에서 완전 대체. **단 아래 2개가 물고 있어 선행 필요** |
+| `notificationScheduler.js` | 입실·퇴실 스케줄러. `App.jsx:11` 이 로드 | 브라우저에서 도는 스케줄러다 — **탭이 열려 있어야 동작**. 진짜 발송은 Cloud Function(`functions/src/smsScheduler.js`)이 한다. **중복인지 확인 후 삭제 or 서버 이관** |
+| `NotificationSettingsV2.jsx` | settings 읽기·쓰기 + sensService 테스트발송 | 신규 `app/notifications` 와 **기능 중복**. 빠진 건 `autoSendDaily` 뿐 → 이식 말고 **그것만 추가**하고 폐기 |
+| `SmsHistoryTable.jsx` | 예약별 `smsStatus` 맵을 읽는다 | D1 엔 그 필드가 **없다**(→ `notification_log` 1,086건으로 정규화). 컴포넌트 이식이 아니라 **JOIN 쿼리로 재작성** |
+| `App.jsx` · `LoginScreen.jsx` | Firebase **Auth** (Firestore 아님) | 신규 JWT(`lib/auth-jwt.js` + `/api/auth/*`)로 교체. **`admins` 0건이라 먼저 비번 설정 필요** |
+| `diagnostics.js` · `reservationDebugger.js` | 진단용 reservations 1건 조회 | 디버그 도구 — **폐기** (D1 체제에서 무의미) |
+| `src/config/firebase.js` | 위가 다 빠지면 마지막 | 제거 → Vite/Firebase 의존 정리 |
+
+> 순서 제안: `diagnostics`·`reservationDebugger` 폐기(쉬움) → `notificationScheduler` 정체 확인
+> → `NotificationSettingsV2` + `SmsHistoryTable` → **`sensService` 삭제** → `App`/`LoginScreen` 인증
+> → `config/firebase.js` 제거
+
+### ✅ 이번에 끝낸 이식 (커밋 `bf2b132` `e713a1e` `8bf57f7`)
+- **ReservationCalendar** — rooms/options/reservations 를 자체 useState 로 **중복 fetch** 하던 걸
+  훅으로 치환. 쓰기는 원래 props 위임이라 손댈 게 없었다.
+  ⚠️ 날짜별 목록 `.sort()` 가 객실명 순으로만 정렬해 **같은 객실·같은 날짜는 동점** → 입력 순서가
+  드러난다. 입력 순서가 문서ID순 → check_in DESC 로 바뀌었다(해당 케이스 5건, 예: 호수뷰객실
+  2025-08-14 에 6건). **양쪽 다 임의 순서**라 정렬 로직은 안 건드렸다
+- **NewReservationModal** — `serverTimestamp` 하나뿐이었다. createdAt 은 서버가 찍는다
+- **useCustomers** — 단건 getDoc → 스토어 흡수(402건 이미 보유). `updateCustomer` 는 죽은 코드라 제거
+- **DataInitializer 삭제** — 아래 "파괴 경로" 참조. 빈 상태는 "불러오지 못했습니다 + 다시 불러오기"로
 
 ### ✅ 완료 — split-brain 해소 + option_settings 갭 (커밋 `4e5a1ee` `2730e27` `33665e6`)
 - **`settings/option_settings` 미이관 갭 복구**: D1 에 `settings` 테이블 자체가 없어
@@ -586,15 +601,18 @@ SQLite 는 동적 타입이라 INTEGER 컬럼에 그대로 들어간다 → `WHE
 (47·66행) `fetch` POST 바디에 실어 보낸다(150-177행) → DevTools Network 에 원문 노출.
 `lib/sms.js` 가 서버 전용 `process.env` + HMAC 으로 이미 100% 대체 → **이식이 아니라 삭제**.
 
-**4. `DataInitializer` — 좁지만 실재하는 파괴 경로**
-`rooms.length === 0` 일 때만 뜨는 폴백 화면이라 평소엔 안 보인다. 그런데 **신규 스택에선
-`/api/snapshot` 이 한 번 실패하면 `rooms=[]`** → 이 화면이 뜨고, 누르면 `batch.set()`(merge 없음)로
-**운영 Firestore 의 rooms 6 / options 3 / pricing_rules 3 을 2025년 하드코딩 값으로 덮어쓴다.**
-이식하지 말고 지울 것.
+**4. ~~`DataInitializer` 파괴 경로~~ → ✅ 삭제** (`8bf57f7`)
+시드값이 이미 틀려 있었다: `Forest` 기본요금을 **180,000 → 150,000** 으로 되돌리고 지금은 없는
+`단체예약` 객실을 만든다. "일시적 snapshot 실패 → rooms=[] → 초기화 버튼 노출 → 클릭 → 요금표 파손"
+이 성립했다. 컴포넌트째 삭제.
 
-**5. `RoomManagement` 의 조용히 깨진 로직**
-`r.room === roomName` 으로 예약을 거르는데(174·276행) 실제 필드는 `roomName` 이다
-→ "객실명 변경·삭제 시 관련 예약 경고" 가 **항상 빈 배열**이라 무력화돼 있다.
+**5. ~~`RoomManagement` 의 조용히 깨진 로직~~ → ✅ 해소** (`33665e6`)
+`r.room`(없는 필드) 가드 2개를 걷어내고 서버가 판정한다. 삭제 가드는 이제 실제로 걸린다
+(Forest 활성예약 84건 → 409).
+
+**6. ⚠️ `AI_COMPONENTS_GUIDE.md` 는 낡았다** — 언급하는 30개 중 **20개가 삭제된 파일**이다.
+이런 문서를 근거로 판단해서 이전 세션들이 Dashboard.jsx(죽은 코드)를 살아있는 화면으로 알았다.
+경고 헤더를 붙여뒀다. **살아있음의 근거는 `node scripts/audit/reachability.mjs` 뿐이다.**
 
 ### 남은 것
 1. `settings/option_settings` 갭 메우기 → `rooms`/`options`/`pricing_rules` API → 두 화면 이식
