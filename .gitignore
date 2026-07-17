@@ -28,3 +28,4 @@ next-env.d.ts
 scripts/audit/.dead-files.txt
 scripts/migration/.notification-gap-before.json
 scripts/audit/.notification-doc-before.json
+scripts/migration/.backfill-sms-status.rollback.json
