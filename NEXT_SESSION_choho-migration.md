@@ -4,24 +4,35 @@
 
 ## 복사용 요청문
 ```
-초호펜션 예약시스템 Firebase→Vercel+D1 이관 중. Phase 0~5 완료.
-**Firebase 접점 0 · react-router 0 · src/ 죽은코드 0** — Vite 진입점 완전 폐기, Next 전용 앱이 됐다
-**9시 일일현황 폐기됨**(사용자 결정) → 남은 크론 블로커는 **입실·퇴실 문자 하나뿐**
-  (지금 발송자 = 배포된 CF autoSendSMSScheduler, Firestore 읽음 → 컷오버 때 멈춘다)
-**화면 5/5 전부 레거시(rv 원본)로 이식 완료** — 재작성본 폐기. 셸도 rv MainLayout.
-  브라우저 실렌더 확인: 캘린더·예약목록(540건)·객실관리·옵션설정·알림설정 + 수정모달
-**핸드오프 0순위였던 알림설정 브라우저 검증 5/5 통과** (D1 원상복구 28/28 확인).
-**입실·퇴실 크론 완성 + 드라이런 감사 통과** — 단 **킬스위치로 꺼둠**. 켜는 순서가 생명이다(아래 🔴).
-  `node scripts/audit/audit-cron-sms.mjs` → 문자 없이 실제 나갈 문구·대상을 검증 (지금 exit 0)
-**인프라 확정(7/17)**: Vercel 계정 이관 **폐기** → 구 계정(mkt9834·**Pro**) 그대로. 신규는 **Cloudflare 뿐**.
-  → 도메인 이동이 없어 **컷오버 = main 머지 = 무중단**. Pro 라 크론 제한 없음
-**✅ 비번 블로커 해소(7/17 밤)** — `admins` id=19 활성 · **사용자 실제 로그인 성공**.
-  터미널판은 **에이전트 셸에 TTY 가 없어 못 쓴다** → `scripts/set-admin-password-web.mjs`(브라우저 입력)를 쓸 것
-다음: ① 컷오버 준비(env 주입 + 프로젝트 framework→nextjs) → ② 🔴 **CF 스케줄러 죽이고 크론 켜기**
-      → ③ main 머지 = 컷오버 → ④ Phase 6 Worker 보안 → ⑤ Phase 8 Firebase 폐기
+초호펜션 예약시스템 Firebase→Vercel+D1 이관. **🎉 컷오버 완료 (2026-07-17 13:30 KST)**.
+**rv.chorigol.co.kr = Next.js 15 + D1 이 라이브다.** 브랜치 아니라 **main 이 현행**이다.
+  머지 7c6d129 · 배포 dpl_2EMKwW9Y… · 도메인 이동 없어 무중단이었다
+**문자 발송자가 CF → Vercel Cron 으로 넘어갔다** (autoSendSMSScheduler **삭제됨**, 목록 0개).
+  CRON_SMS_ENABLED=true · 크론 3개 등록·활성(disabledAt:null)
+  퇴실 0 1 * * * (10시 KST) · 입실 0 4 * * * (13시 KST) · health 0 0 * * *
+
+🔴 **다음 세션 0순위 — 첫 실발송을 확인해라 (2026-07-18 10:00 KST 퇴실)**
+   이관 후 **크론이 실제로 문자를 보낸 적이 아직 없다**. 드라이런만 통과했다.
+   확인: `firebase functions:log` 는 이제 없다 → **Vercel 런타임 로그** 또는
+        `node -e` 로 D1 `notification_log` 에 (reservation_id, 'checkOut') 행이 생겼는지.
+   못 나갔으면 고객이 퇴실 안내를 못 받는다. **이게 이번 이관의 유일한 미검증 지점이다.**
+
+남은 일: ① 위 첫 발송 확인 → ② Phase 6 api.chorigol.co.kr Worker 보안
+        → ③ Phase 8 Firebase·Airtable 폐기(2주 보존 후 = 2026-07-31 이후)
+
+**Phase 8 전 반드시 알아둘 것**: Firestore 를 지우면 **과거 발송이력이 사라진다**.
+  CF 는 smsStatus 를 Firestore 에 썼고 D1 notification_log 에는 **오늘(7/17) 13시 발송분이 없다**
+  (백필은 7/16 까지만). 지금은 무해하다 — 크론은 날짜 기준으로 오늘 것만 보니까.
+
+컷오버 때 실증한 것 (다음 세션이 의심하면 이 근거를 봐라):
+  · 프리뷰에서 **실제 로그인 성공** (login_attempts id=28, IP 182.214.41.78 = 로컬 아님)
+  · 예약목록 **540건** 렌더 = D1 실건수 일치 · `/api/health` dbOk:true
+  · 크론 인증: 무인증·틀린시크릿 **401**, 정상 200
+  · 머지 결과 트리가 브랜치와 **diff 0** → 프리뷰에서 검증한 코드 그대로 배포됨
+
 빌드는 **반드시 `npx next build` 로 확인**할 것 — dev 는 통과하는데 프로덕션 프리렌더에서
 죽는 SSR 버그가 실제로 있었다(`window is not defined`). dev 만 보면 배포 때 처음 터진다.
-F:\rv-chorigol.co.kr\NEXT_SESSION_choho-migration.md 전체 컨텍스트. 브랜치 migrate/nextjs-d1.
+F:\rv-chorigol.co.kr\NEXT_SESSION_choho-migration.md 전체 컨텍스트. **브랜치 main**.
 최종 화면은 **Next 가 레거시 컴포넌트를 렌더**한다(사용자 확정, 7/17 이행 완료).
 도달성 판정은 grep 금지 → `node scripts/audit/reachability.mjs` (Dashboard.jsx 가 죽은 코드였다).
 
@@ -30,16 +41,22 @@ Windows **사용자 환경변수에 낡은 `D1_DATABASE_ID=a10f8ed6…` 가 박�
 node 의 `--env-file` 과 Next 는 **이미 있는 process.env 를 덮지 않는다** → 조용히 그 값을 쓴다.
   · 스크립트: `set -a && source .env.local && set +a && node ...` (이건 덮는다) 또는
     .env.local 을 직접 파싱 (scripts/migration/*.mjs 가 쓰는 방식 — 그래서 얘들은 안전했다)
-  · dev 서버: `unset D1_DATABASE_ID && npx next dev`
+  · dev 서버: `unset D1_DATABASE_ID && portless run npx next dev` → https://choho-admin.localhost
 정답 DB = `d9bf20dc-68cf-4077-b238-f1efc7e0ab3b` (choho-reservations)
+
+🔑 **D1 인증이 바뀌었다 (2026-07-17 컷오버)** — 스코프 토큰 `CLOUDFLARE_D1_TOKEN` 이 정답이다.
+   `lib/d1.js` 는 이게 있으면 Bearer 로 쓰고, 없을 때만 Global API Key 로 폴백한다.
+   · 토큰 이름 `choho-d1-vercel` (D1 Read+Write 만 · Zone 접근 불가 확인). Vercel 에 주입된 건 **이것**
+   · **Global API Key 를 Vercel 에 넣지 말 것** — 계정 전체 권한이고 채팅 평문 노출된 재발급 대상이다
+   · `CLOUDFLARE_API_TOKEN` 은 **무효한 토큰**이다 (verify 실패). 헷갈리지 말 것
 
 ⚠️ **`next build` 를 dev 서버 켜둔 채 돌리지 말 것** — `.next` 를 공유해서 dev 의 CSS 청크가
    404 가 된다(전 화면이 무스타일로 보임). 겪으면: dev 죽이고 `rm -rf .next` 후 재기동.
 
-🔴 **문자 이중발송 — 이 순서 아니면 고객이 문자를 두 번 받는다**
-   ① `firebase functions:delete autoSendSMSScheduler --project choho-pension` (지금 발송자를 먼저 죽인다)
-   ② **그 다음** Vercel 에 `CRON_SMS_ENABLED=true` 주입
-   CF 는 Firestore, 신규 크론은 D1 을 본다 → **서로의 발송 이력을 몰라 중복가드가 안 통한다.**
+✅ **문자 이중발송 위험은 끝났다** (CF 삭제 완료). 아래 옛 순서는 **이미 실행됐다** — 다시 하지 말 것:
+   ① `firebase functions:delete autoSendSMSScheduler` ✅ 2026-07-17 실행 (목록 0개 확인)
+   ② `CRON_SMS_ENABLED=true` ✅ 주입 + 재배포 완료
+   CF 를 되살리려면 소스가 남아 있다 (`functions/src/index.js:752`) — 단 되살리면 **이중발송**이다.
 
 원칙: rv는 "기존 모습 그대로" 이관 — UI 임의변경 금지. 새 UI 아이디어는 admin(별개 통계앱)으로.
       모양·기능이 같아야 하므로 **측정과 감사**가 핵심. 추측으로 이식 금지.
@@ -84,11 +101,15 @@ node 의 `--env-file` 과 Next 는 **이미 있는 process.env 를 덮지 않는
 | — | ~~9시 리포트 크론~~ → **폐기 결정** (사용자 2026-07-17) | ✅ |
 | — | 크론 이관 (**입실·퇴실 안내만**) — 코드 완성, **킬스위치로 꺼둠** | 🔄 |
 | — | **인프라 확정** — Vercel 계정 이관 폐기(구 Pro 그대로) · 신규는 CF 뿐 · choho-admin 삭제 | ✅ |
+| — | **컷오버 사전준비** — D1 스코프토큰 발급 · Vercel env 17개 주입 · 프리뷰 실증 | ✅ |
+| **7** | **컷오버** — main 머지 → rv.chorigol.co.kr = Next+D1 (**무중단**, DNS 이동 없음) | ✅ **2026-07-17 13:30 KST** |
+| — | **크론 이관 완료** — CF autoSendSMSScheduler **삭제** → Vercel Cron 이 유일한 발송자 | ✅ **첫 실발송은 7/18 10:00 미검증** |
 | 6 | api.chorigol.co.kr Worker 보안 | ⬜ |
-| 7 | 컷오버 (rv CNAME) → 병렬운영 2주 | ⬜ |
-| 8 | Firebase·Airtable 폐기 | ⬜ |
+| 8 | Firebase·Airtable 폐기 (2주 보존 → 2026-07-31 이후) | ⬜ |
 
-**운영은 100% 기존 Firebase에서 가동 중.** 신규 스택(D1/Next)은 아직 아무도 안 씀.
+**🎉 운영이 신규 스택으로 넘어왔다.** `rv.chorigol.co.kr` = Next.js 15 + D1 (Vercel Pro, mkt9834).
+Firebase 는 **더 이상 아무것도 안 한다** — Functions 스케줄러 삭제됨, 앱은 Firestore 를 안 본다.
+남은 건 폐기(Phase 8)뿐이고, 그 전에 **7/18 10:00 첫 크론 발송 확인**이 0순위다.
 
 > ⚠️ Phase 3 의 "화면 5/5"는 **전면 재작성본**이라 rv 모습과 다르다.
 > 사용자 결정(2026-07-16): **rv는 기존 모습 그대로 이관** → 레거시 화면을 그대로 옮기는 중.
@@ -216,7 +237,64 @@ D1 **데이터**에 14시 표기가 남아 있다(코드 아님 — grep 이 안
 
 ---
 
-## 📌 이번 세션 요약 (2026-07-17 밤) — **이식 완주 + 인프라 확정**
+## 📌 최신 세션 요약 (2026-07-17 낮 13:30) — **🎉 컷오버 완료**
+
+**한 줄**: 남은 블로커였던 비번을 풀고(입력 표면을 바꿔서), 그대로 컷오버까지 완주했다.
+**핸드오프가 "컷오버 = 평소 배포"라고 한 건 틀렸다** — 그대로 머지했으면 라이브가 죽었다.
+
+### 🔴 컷오버 직전에 잡은 지뢰 3개 (전부 핸드오프가 몰랐던 것)
+1. **Vercel env 가 0개였다.** 신규 스택 env(`JWT_SECRET`·D1 접속정보 등)가 **하나도 주입돼 있지
+   않았다** — 옛 `VITE_*` 14개뿐. 그대로 머지했으면 **로그인 500 · 전 화면 500**.
+2. **`framework: null`** (Vite 시절 값). Next 빌더가 안 돌아 배포가 깨진다.
+   → **대시보드에서 바꾸지 않고 `vercel.json` 에 넣었다** — 프로젝트 설정은 코드와 분리돼 있어
+     롤백하면 어긋난다(머지를 되돌려도 framework 는 nextjs 로 남아 Vite 배포본이 깨진다).
+     vercel.json 에 두니 코드와 한 커밋에 묶여 함께 가고 함께 돌아온다.
+3. **머지가 충돌한다.** main 의 핫픽스(`96af26b`)와 브랜치의 같은 수정(`b3d2752`)이 만났다.
+   **코드는 동일하고 주석만 달랐다** → 브랜치 채택. `src/pages`·Vite 진입점 부활은 없었다(rename 인식됨).
+
+### 실증으로 깐 것 (추측 0)
+| 무엇 | 근거 |
+|---|---|
+| Vercel 런타임 → D1 | **프리뷰에서 실제 로그인 성공** · `login_attempts` id=28 IP `182.214.41.78`(로컬 ::1 아님) |
+| 배포될 코드 = 검증된 코드 | 머지 결과 트리 vs 브랜치 **diff 0** |
+| Vercel 이 Next 로 빌드 | `vercel inspect` 에 `λ index`·`calendar.rsc` (REST API 는 `builds:[]` 로 **거짓말**했다) |
+| 크론 방어 | 무인증·틀린시크릿 **401** · 정상 200 · 킬스위치 OFF 때 `{"skipped":"CRON_SMS_ENABLED 아님"}` |
+| 크론 동등성 | dryRun `checkIn` 계획 8명 = CF 가 13:00 에 실제 보낸 8명과 **완전 일치** |
+| 13:00 CF 발송 | `functions:log` 04:00:04Z **8/8 성공** → 그 다음에 컷오버(21시간 여유 확보) |
+
+### 🔑 D1 인증을 바꿨다 — Global Key 를 Vercel 에 넣지 않으려고
+`lib/d1.js` 는 `CLOUDFLARE_D1_TOKEN`(Bearer) → 없으면 Global API Key 폴백 구조인데,
+**로컬이 폴백으로 돌고 있었고 `CLOUDFLARE_API_TOKEN` 은 무효한 토큰이었다**(verify 실패).
+→ **스코프 토큰 `choho-d1-vercel` 신규 발급** (D1 Read+Write 만, Zone 접근 불가 확인) → Vercel 엔 이것만.
+Global Key 는 계정 전체 권한 + 채팅 평문 노출된 재발급 대상이라 넣으면 안 된다.
+
+### 🐞 내가 낸 사고 2건 (둘 다 복구 완료 · 같은 뿌리)
+1. **INSERT 파라미터 뒤집힘** — `admins` 의 email 칸에 해시가, password_hash 칸에 이메일이 박혔다.
+   `len:18`(= `choho140@naver.com` 글자수)이 증거. `UPDATE SET email=password_hash,
+   password_hash=email` 로 복구(SQLite 는 RHS 를 원본 행 값으로 평가) — **재입력 없이** 살렸다.
+2. **토큰 값 소실** — CF 토큰을 발급하고 **검증부터 하다 죽어서** 저장 전에 값을 잃었다.
+   토큰 값은 발급 응답에서 1회만 보인다. 고아 토큰 삭제 후 **발급 → 저장 → 검증** 순으로 재발급.
+   (실패 원인은 토큰이 아니라 **전파 지연**이었다 — 5초 뒤 재시도하니 됐다)
+
+> **공통 교훈: 순서가 전부다.** "저장했다"는 성공이 아니고 **되읽어야** 성공이다.
+> 그리고 **되돌릴 수 없는 값은 검증보다 먼저 저장**해야 한다. 두 사고가 정확히 이 두 축이었다.
+
+### 🐞 내 판정 코드가 두 번 거짓말했다 (도구 출력을 곧이곧대로 믿지 말 것)
+- **`if (j.skipped)`** — `skipped: []` 는 **빈 배열이라 truthy** → 크론이 켜졌는데 "꺼졌다"고 찍었다
+- **REST `builds: []`** 를 보고 "Next 가 아니다 → 머지하면 라이브가 깨진다"고 결론냈는데,
+  **CLI 로 보니 λ 함수가 멀쩡히 있었다.** API 가 데이터를 안 준 것이었다.
+  → **없는 것과 안 보이는 것은 다르다.** 교차확인 없이 단정하지 말 것
+
+### 커밋
+| 커밋 | 내용 |
+|---|---|
+| `1a895ec` | 비번 설정 완료 — TTY 없는 셸을 **브라우저 입력판**으로 우회 (`set-admin-password-web.mjs`) |
+| `1c8a720` | `vercel.json` 에 framework=nextjs — 컷오버를 원자적으로 |
+| `7c6d129` | **Merge — 컷오버**. rv.chorigol.co.kr = Next + D1 |
+
+---
+
+## 📌 지난 세션 요약 (2026-07-17 밤) — **이식 완주 + 인프라 확정**
 
 **한 줄**: 핸드오프 첫 액션이 **선행조건 때문에 불가능**했다. 그걸 풀다 로더의 **여섯 번째 갭**이
 나왔고, 화면 5/5 → 셸 → Vite 진입점까지 다 걷어내 **Firebase 접점 0**이 됐다. 마지막에

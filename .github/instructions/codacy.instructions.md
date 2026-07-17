@@ -7,27 +7,25 @@
 Configuration for AI behavior when interacting with Codacy's MCP Server
 
 ## CRITICAL: After ANY successful `edit_file` or `reapply` operation
-- YOU MUST IMMEDIATELY run the `codacy_cli_analyze` tool from Codacy's MCP Server for each file that was edited, with:
+- When the Codacy MCP tool is available, YOU MUST IMMEDIATELY run the `codacy_cli_analyze` tool for each file that was edited, with:
  - `rootPath`: set to the workspace path
  - `file`: set to the path of the edited file
  - `tool`: leave empty or unset
 - If any issues are found in the new edits, propose and apply fixes for them.
 - > NOTE: Failure to follow this rule is considered a critical error.
 
-## When you tried to run the `codacy_cli_analyze` tool and the Codacy CLI is not installed
-- Ask the user 'Codacy CLI is not installed. Would you like me to install it now?'
-- If the user responds with "yes", run the `codacy_cli_install` tool and then continue with the original task
-- If the user responds with "no", instruct the user that they can disable automatic analysis in the extension settings
-- Wait for the user to respond before proceeding with any other actions
+## When `codacy_cli_analyze` is unavailable or the Codacy CLI is not installed
+- MUST NOT ask the user to install Codacy, reset MCP, open settings, or run commands as a condition for continuing the requested work.
+- MUST NOT wait for a user response or stop the original task solely because optional Codacy analysis cannot run.
+- Continue with the best available local validation and report the Codacy validation gap once in the final result.
+- Only install or configure Codacy when the user explicitly requests Codacy setup.
 
 ## After every response
-- If you made any file edits in this conversation, verify you ran `codacy_cli_analyze` tool from Codacy's MCP Server 
+- If you made file edits and the Codacy tool was available, verify you ran `codacy_cli_analyze` from Codacy's MCP Server.
 
 ## When there are no Codacy MCP Server tools available, or the MCP Server is not reachable
-- Suggest the user the following troubleshooting steps:
- - Try to reset the MCP on the extension
- - If the user is using VSCode, suggest them to review their Copilot > MCP settings in Github, under their organization or personal account. Refer them to Settings > Copilot > Enable MCP servers in Copilot. Suggested URL (https://github.com/settings/copilot/features) or https://github.com/organizations/{organization-name}/settings/copilot/features (This can only be done by their organization admins / owners)
-- If none of the above steps work, suggest the user to contact Codacy support
+- Continue the requested task without interruption using available lint, typecheck, tests, or static inspection.
+- Mention the missing Codacy check as a validation gap, not as a user action item, unless the user explicitly asks to repair Codacy.
 
 ## Trying to call a tool that needs a rootPath as a parameter
 - Always use the standard, non-URL-encoded file system path
@@ -48,6 +46,7 @@ Configuration for AI behavior when interacting with Codacy's MCP Server
  - Stop all other operations
  - Propose and apply fixes for the security issues
  - Only continue with the original task after security issues are resolved
+- If the Codacy tool is unavailable, continue with available local dependency/security validation and report that Trivy/Codacy did not run. Do not hand the check to the user.
 - EXAMPLE:
  - After: npm install react-markdown
  - Do: Run codacy_cli_analyze with trivy
@@ -65,8 +64,6 @@ Configuration for AI behavior when interacting with Codacy's MCP Server
 - When calling `codacy_cli_analyze`, only send provider, organization and repository if the project is a git repository.
 
 ## Whenever a call to a Codacy tool that uses `repository` or `organization` as a parameter returns a 404 error
-- Offer to run the `codacy_setup_repository` tool to add the repository to Codacy
-- If the user accepts, run the `codacy_setup_repository` tool
-- Do not ever try to run the `codacy_setup_repository` tool on your own
-- After setup, immediately retry the action that failed (only retry once)
+- Do not block the current task or ask for setup unless the user explicitly requested Codacy repository integration.
+- If Codacy setup is the requested task, run `codacy_setup_repository` within that scope and retry the failed action once.
 ---
