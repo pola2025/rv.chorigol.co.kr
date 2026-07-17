@@ -29,6 +29,7 @@ scripts/audit/.dead-files.txt
 scripts/migration/.notification-gap-before.json
 scripts/audit/.notification-doc-before.json
 scripts/migration/.backfill-sms-status.rollback.json
+scripts/migration/.backfill-*.rollback.json
 scripts/audit/.room-templates-before-browser-test.json
 scripts/audit/.danche-upsert-test-rows.json
 
