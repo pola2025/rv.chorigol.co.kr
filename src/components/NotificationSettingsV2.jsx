@@ -149,10 +149,9 @@ const NotificationSettingsV2 = () => {
     }
   };
 
-  // SENS 설정 저장
-  const saveSensConfig = async (type) => {
-    await saveGlobalSettings(type);
-  };
+  // SENS 설정 저장 — 제거됨 (SENS 설정 섹션이 사라졌다. saveGlobalSettings 를 부르는
+  // 중복 별칭이었을 뿐이다). ⚠️ globalSettings 의 `sens` 필드는 **지우지 말 것** —
+  // 저장 매퍼(lib/legacy-shape)가 그 모양을 기대한다(감사 124/124).
 
   // 텔레그램 설정 저장
   const saveTelegramConfig = async (type) => {
@@ -289,65 +288,13 @@ const NotificationSettingsV2 = () => {
         ))}
       </div>
 
-      {/* SENS 설정 - 접이식 */}
-      <div className="collapsible-section">
-        <div className="section-toggle" onClick={() => toggleSection("sens")}>
-          <div className="section-title">
-            <span className="section-icon">📨</span>
-            <span>네이버 SENS 설정</span>
-            {/* 시크릿은 서버에만 있다 → serviceId 로는 판정할 수 없다. 발신번호 유무로 본다 */}
-            {currentGlobalSettings.sens.from && (
-              <span className="status-badge connected">연결됨</span>
-            )}
-          </div>
-          <span className="toggle-icon">
-            {expandedSections.sens ? "▲" : "▼"}
-          </span>
-        </div>
-
-        {expandedSections.sens && (
-          <div className="section-content">
-            {/* 시크릿(서비스ID·액세스키·시크릿키)은 서버 env 가 단일 소스라 화면에 값이 오지 않는다.
-                레거시는 여기 입력란에서 Firestore 로 읽고 썼고, 그 값이 DevTools Network 에
-                평문으로 보였다. 발신번호는 시크릿이 아니라 그대로 편집한다. */}
-            <div className="managed-notice">
-              🔒 서비스 ID · 액세스 키 · 시크릿 키는 <b>서버에서 관리</b>됩니다.
-              <small>
-                보안을 위해 브라우저로 내려보내지 않습니다. 변경은 서버
-                환경변수에서 합니다.
-              </small>
-            </div>
-            <div className="form-grid">
-              <div className="form-group">
-                <label>발신번호</label>
-                <input
-                  type="tel"
-                  value={currentGlobalSettings.sens.from}
-                  onChange={(e) =>
-                    setGlobalSettings((prev) => ({
-                      ...prev,
-                      [activeTab]: {
-                        ...prev[activeTab],
-                        sens: { ...prev[activeTab].sens, from: e.target.value },
-                      },
-                    }))
-                  }
-                  placeholder="010-0000-0000"
-                />
-              </div>
-            </div>
-            <div className="section-actions">
-              <button
-                onClick={() => saveSensConfig(activeTab)}
-                className="btn btn-primary"
-                disabled={loading}
-              >
-                저장
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+      {/* 🔴 네이버 SENS 설정 섹션을 제거했다 (사용자 결정, 2026-07-17).
+          **쓰기 전용 설정이었다** — 화면은 sms_config.sms_from 을 저장하고 되읽어 보여주는데
+          실제 발송자는 `lib/sms.js:53` 의 `FROM[business]` = `process.env.SENS_FROM_CHOHO` 를 쓴다.
+          서비스ID·액세스키·시크릿키도 전부 env 다. 즉 **고쳐도 아무 일도 안 일어나는 화면**이라
+          "바꿨는데 왜 그대로냐"를 만들 뿐이었다.
+          발신번호를 바꾸려면 Vercel 환경변수 SENS_FROM_CHOHO / SENS_FROM_SHELTER 를 고친다.
+          발송이 실제로 됐는지는 위 **문자 발송 이력(신호기)** 로 본다. */}
 
       {/* 텔레그램 설정 - 접이식 */}
       <div className="collapsible-section">
@@ -391,34 +338,16 @@ const NotificationSettingsV2 = () => {
                     color: "#475569",
                   }}
                 >
-                  봇 토큰은 서버에서 안전하게 관리됩니다. Firebase Console에서
-                  직접 수정하세요.
+                  봇 토큰과 채팅 ID는 서버 환경변수에서 관리됩니다.
                 </p>
               </div>
             </div>
 
-            <div className="form-grid">
-              <div className="form-group">
-                <label>채팅 ID</label>
-                <input
-                  type="text"
-                  value={currentGlobalSettings.telegram.chatId}
-                  onChange={(e) =>
-                    setGlobalSettings((prev) => ({
-                      ...prev,
-                      [activeTab]: {
-                        ...prev[activeTab],
-                        telegram: {
-                          ...prev[activeTab].telegram,
-                          chatId: e.target.value,
-                        },
-                      },
-                    }))
-                  }
-                  placeholder="-1000000000000"
-                />
-              </div>
-            </div>
+            {/* 🔴 채팅 ID 입력칸을 제거했다 (사용자 결정, 2026-07-17).
+                sms_config.telegram_chat_id 에 저장은 되는데 **아무도 안 읽는다** —
+                실제 발송자 `lib/telegram.js:9` 는 `process.env.TELEGRAM_CHAT_ID_CHOHO` 를 쓴다.
+                바꾸려면 Vercel 환경변수에서 고친다.
+                아래 예약/취소 알림은 **진짜로 동작한다** (reservation-notify.js:105/122 가 읽는다) → 남긴다. */}
 
             <div className="toggle-options">
               <label className="toggle-option">
@@ -459,32 +388,20 @@ const NotificationSettingsV2 = () => {
                 />
                 <span>취소 알림</span>
               </label>
-              <label className="toggle-option highlight">
-                <input
-                  type="checkbox"
-                  checked={currentGlobalSettings.telegram.autoSendDaily}
-                  onChange={(e) =>
-                    setGlobalSettings((prev) => ({
-                      ...prev,
-                      [activeTab]: {
-                        ...prev[activeTab],
-                        telegram: {
-                          ...prev[activeTab].telegram,
-                          autoSendDaily: e.target.checked,
-                        },
-                      },
-                    }))
-                  }
-                />
-                <span>📆 일일 현황 자동 발송 (오전 9시)</span>
-              </label>
+              {/* 🔴 "일일 현황 자동 발송 (오전 9시)" 체크박스를 제거했다 (사용자 결정, 2026-07-17).
+                  9시 일일현황은 폐기됐다 — 유일한 발송자가 브라우저(notificationScheduler)였고
+                  그걸 지웠다. 체크박스만 남아 **켜져 있으니 보내지는 중으로 오해**하게 만들었다.
+                  D1 의 autoSendDaily 값은 남지만 아무도 안 읽는다. */}
             </div>
 
             <div className="section-actions">
               <button
                 onClick={() => testTelegramConnection(activeTab)}
                 className="btn btn-outline"
-                disabled={testing || !currentGlobalSettings.telegram.botToken}
+                // 🔴 예전엔 `|| !…telegram.botToken` 이 붙어 **버튼이 영구히 비활성**이었다.
+                //    봇토큰을 서버로 옮기면서 클라가 절대 못 받게 됐는데 조건은 안 고쳤다
+                //    → 항상 회색이라 아무도 누를 수 없었다 (2026-07-17 발견).
+                disabled={testing}
               >
                 {testing ? "테스트 중..." : "연결 테스트"}
               </button>
