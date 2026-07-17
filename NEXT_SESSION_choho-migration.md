@@ -488,10 +488,14 @@ D1 **데이터**에 14시 표기가 남아 있다(코드 아님 — grep 이 안
 | `api.chorigol.co.kr` | CF Worker (Phase 6) | 🔴 **DNS 자체가 없다** |
 
 ⚠️ `chorigol.**net**` 계열(`chohopark`·`admin-chohopark` 프로젝트)은 **별개 브랜드사이트다 — 건드리지 말 것.**
-🗑️ `choho-admin` 프로젝트(→ `auto.polaai.co.kr`)는 **폐기 대상** (사용자 2026-07-17).
-   이름이 이 repo(`package.json` name = `choho-admin`)와 같아 **혼동 위험이 크다** — admin.chorigol.co.kr
-   과 아무 관계 없다. 아직 안 지웠다: 프로젝트 삭제는 비가역이고 `auto.polaai.co.kr` 이 물려 있어
-   그 도메인을 어떻게 할지 확인이 필요하다.
+
+✅ `choho-admin` 프로젝트 **삭제 완료** (2026-07-17, 사용자 지시 "내가 만든거니깐 지워도 된다").
+   `auto.polaai.co.kr` 도 같이 죽었다(사용자 확인: "죽어도 되"). 이름이 이 repo 의
+   `package.json` name(`choho-admin`)과 같아 혼동을 유발하던 유령 프로젝트였다.
+
+📌 **`admin.chorigol.co.kr` 은 이관이 끝난 뒤 새로 만든다** (사용자 결정 2026-07-17).
+   지금은 어느 프로젝트에도 안 붙어 있다(범용 CNAME 만 떠 있어 404). **이 repo 와 무관** —
+   통계 대시보드 전용 별도 앱이다. 지금 건드릴 것 없다.
 
 ### 🔑 Vercel — **구 계정(Pro) 하나만 쓴다** (2026-07-17 실측 확정)
 | env 키 | 계정 | 플랜 | 용도 |
