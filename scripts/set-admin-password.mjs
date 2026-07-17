@@ -19,20 +19,33 @@ for (const line of fs.readFileSync(path.join(ROOT, ".env.local"), "utf8").split(
   const t = line.trim();
   if (!t || t.startsWith("#") || !t.includes("=")) continue;
   const i = t.indexOf("=");
-  process.env[t.slice(0, i).trim()] ??= t.slice(i + 1).trim().replace(/^"|"$/g, "");
+  // **??= 쓰면 안 된다** — Windows 사용자 환경변수에 낡은 D1_DATABASE_ID(a10f8ed6…, 없는 DB)가
+  // 박혀 있어서 기존 값이 이기면 엉뚱한 DB 를 친다. .env.local 이 이 프로젝트의 단일 소스다.
+  process.env[t.slice(0, i).trim()] = t.slice(i + 1).trim().replace(/^"|"$/g, "");
 }
 
 const { hashPassword } = await import("../lib/auth.js");
 const { queryOne, execute } = await import("../lib/d1.js");
 
-/** 입력을 화면에 표시하지 않고 받는다 */
+/**
+ * 비밀번호 입력 — 원문 대신 `*` 를 찍는다.
+ *
+ * 예전엔 **아무것도 안 찍었다**. 그러니 타이핑해도 화면이 그대로라 멈춘 줄 알고 못 넘어간다
+ * (실제로 사용자가 여기서 막혔다). 보안상 필요한 건 "원문을 안 보이게"지 "반응을 없애기"가 아니다.
+ */
 function askHidden(prompt) {
   return new Promise((resolve) => {
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+      terminal: true,
+    });
     rl.stdoutMuted = true;
     rl._writeToOutput = function (s) {
-      // 프롬프트만 출력하고 입력 문자는 버린다
-      if (!rl.stdoutMuted || s.includes(prompt)) rl.output.write(s);
+      if (!rl.stdoutMuted) return rl.output.write(s);
+      if (s.includes(prompt)) return rl.output.write(s); // 프롬프트는 그대로
+      if (s === "\r\n" || s === "\n" || s === "\r") return; // 개행은 아래서 직접
+      rl.output.write("*"); // 글자 1개 = * 1개
     };
     rl.question(prompt, (answer) => {
       rl.output.write("\n");
@@ -45,7 +58,11 @@ function askHidden(prompt) {
 const email = (process.argv[2] || DEFAULT_EMAIL).trim().toLowerCase();
 
 console.log(`\n관리자 비밀번호 설정 — ${email}`);
-console.log("입력은 화면에 표시되지 않습니다. 취소하려면 Ctrl+C.\n");
+console.log("─".repeat(46));
+console.log("비밀번호를 치면 ***** 로 표시됩니다 (원문은 안 보임).");
+console.log("다 치면 Enter. 같은 걸 두 번 칩니다. 10자 이상.");
+console.log("취소는 Ctrl+C.");
+console.log("─".repeat(46) + "\n");
 
 const pw1 = await askHidden("새 비밀번호: ");
 if (pw1.length < 10) {
