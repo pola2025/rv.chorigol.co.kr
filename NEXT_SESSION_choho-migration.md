@@ -5,16 +5,26 @@
 ## 복사용 요청문
 ```
 초호펜션 예약시스템 Firebase→Vercel+D1 이관 중. Phase 0~5 완료.
-**Firebase 직접 사용 소비자 8 → 4** (App · LoginScreen · SmsHistoryTable · notificationScheduler)
-**보안 0순위 해소**: sensService 삭제 완료 (SENS 키 브라우저 노출 경로 제거).
-알림설정(NotificationSettingsV2) D1 이관 완료 — 서버계층 감사 124/124. **브라우저 실동작만 미확인.**
-다음: ① 알림설정 화면 브라우저 검증 → ② SmsHistoryTable(JOIN 재작성) → ③ App/LoginScreen 인증
-      → ④ src/config/firebase.js 제거 → ⑤ 컷오버 전 크론 이관(아래 🔴 블로커)
+**Firebase 직접 사용 소비자 8 → 3** (App · LoginScreen · notificationScheduler)
+**화면 5/5 전부 레거시(rv 원본)로 이식 완료** — 재작성본 폐기. 셸도 rv MainLayout.
+  브라우저 실렌더 확인: 캘린더·예약목록(540건)·객실관리·옵션설정·알림설정 + 수정모달
+**핸드오프 0순위였던 알림설정 브라우저 검증 5/5 통과** (D1 원상복구 28/28 확인).
+다음: ① App/LoginScreen 인증 교체(=Vite 진입점 폐기) → ② src/config/firebase.js 제거
+      → ③ 컷오버 전 크론 이관(아래 🔴 블로커) → ④ Phase 6 Worker 보안
 F:\rv-chorigol.co.kr\NEXT_SESSION_choho-migration.md 전체 컨텍스트. 브랜치 migrate/nextjs-d1.
-최종 화면은 **Next 가 레거시 컴포넌트를 렌더**한다(사용자 확정). App.jsx·react-router·재작성본은 폐기 대상.
-  → 이 확정이 핸드오프 표("NotificationSettingsV2 폐기")와 충돌했다. **확정이 이긴다**(사용자 재확인 7/17).
-     app/notifications·app/calendar 등 재작성본이 폐기 대상이다. 표를 근거로 레거시를 지우지 말 것.
+최종 화면은 **Next 가 레거시 컴포넌트를 렌더**한다(사용자 확정, 7/17 이행 완료).
 도달성 판정은 grep 금지 → `node scripts/audit/reachability.mjs` (Dashboard.jsx 가 죽은 코드였다).
+
+🔴 **환경변수 함정 (이거 모르면 엉뚱한 DB 를 친다)**
+Windows **사용자 환경변수에 낡은 `D1_DATABASE_ID=a10f8ed6…` 가 박혀 있다**(이 계정에 없는 DB).
+node 의 `--env-file` 과 Next 는 **이미 있는 process.env 를 덮지 않는다** → 조용히 그 값을 쓴다.
+  · 스크립트: `set -a && source .env.local && set +a && node ...` (이건 덮는다) 또는
+    .env.local 을 직접 파싱 (scripts/migration/*.mjs 가 쓰는 방식 — 그래서 얘들은 안전했다)
+  · dev 서버: `unset D1_DATABASE_ID && npx next dev`
+정답 DB = `d9bf20dc-68cf-4077-b238-f1efc7e0ab3b` (choho-reservations)
+
+⚠️ **`next build` 를 dev 서버 켜둔 채 돌리지 말 것** — `.next` 를 공유해서 dev 의 CSS 청크가
+   404 가 된다(전 화면이 무스타일로 보임). 겪으면: dev 죽이고 `rm -rf .next` 후 재기동.
 
 원칙: rv는 "기존 모습 그대로" 이관 — UI 임의변경 금지. 새 UI 아이디어는 admin(별개 통계앱)으로.
       모양·기능이 같아야 하므로 **측정과 감사**가 핵심. 추측으로 이식 금지.
@@ -48,10 +58,12 @@ F:\rv-chorigol.co.kr\NEXT_SESSION_choho-migration.md 전체 컨텍스트. 브랜
 | — | 인프라봇 헬스체크 분리 | ✅ |
 | 5 | 인증 (Firebase Auth → JWT 쿠키) | ✅ (비번 설정만 남음) |
 | — | **재고 가드** (오버부킹 원자적 차단) + API 연결 | ✅ |
-| — | **레거시 화면 이식** (rv 모양 그대로) | 🔄 스토어 2/2 ✅ · **Firebase 소비자 4개 남음** |
+| — | **레거시 화면 이식** (rv 모양 그대로) | ✅ **5/5 + 셸(MainLayout)** · **Firebase 소비자 3개 남음** |
 | — | option_settings 갭 복구 + rooms/options/pricing_rules 쓰기 API + 두 화면 이식 | ✅ |
-| — | **알림설정 갭 5개 복구 + 역·정매퍼 + NotificationSettingsV2 이식** (감사 124/124) | ✅ (브라우저 검증만 남음) |
+| — | **알림설정 갭 5개 복구 + 역·정매퍼 + NotificationSettingsV2 이식** (감사 124/124) | ✅ **브라우저 검증 5/5 통과** |
 | — | **🔒 보안 0순위 — sensService 삭제** (SENS 키 브라우저 노출 제거) | ✅ |
+| — | **smsStatus 갭 복구(여섯 번째) + SmsHistoryTable D1 이관** (신호등 1454/1620) | ✅ |
+| — | **재작성본 폐기** (NotificationsClient·CalendarClient·EditReservationModal·nav.jsx) | ✅ |
 | — | 크론 이관 (9시 리포트 + 입실·퇴실 안내) → **컷오버 블로커** | ⬜ |
 | 6 | api.chorigol.co.kr Worker 보안 | ⬜ |
 | 7 | 컷오버 (rv CNAME) → 병렬운영 2주 | ⬜ |
@@ -75,21 +87,40 @@ node scripts/set-admin-password.mjs
 
 ## 다음 세션 첫 액션
 
-### 0) 🔴 먼저 — 알림설정 화면을 브라우저로 열어볼 것 (이번 세션이 못 한 유일한 것)
-서버 계층은 감사 124/124 로 검증했지만 **화면 실동작은 확인 못 했다**. 확인할 것:
-- 두 탭(초호펜션/초호쉼터) 로드 → 객실 카드 값이 예전과 같은가
-- 템플릿 저장 → 새로고침 → 값이 유지되는가 (**갭 5개 복구의 진짜 검증**)
-- SENS 섹션에 🔒 "서버에서 관리" 안내가 뜨고 발신번호만 편집되는가
-- `{customerName}` 같은 미지원 변수 입력 → 서버 400 문구가 alert 에 뜨는가
-- shelter/**단체예약** 카드 저장 → D1 에 행이 없는 객실이라 **upsert 경로**를 탄다 (유일한 미검증 분기)
+### 0) 화면은 다 됐다 — 이제 **진입점**이다
+5개 화면 + 셸 전부 레거시로 올라갔고 브라우저로 확인했다. 남은 Firebase 소비자 3개는
+전부 **Vite 진입점 체인**(App.jsx → LoginScreen → config/firebase.js)과 스케줄러다.
 
-### 1) 남은 Firebase 소비자 4개
+### 1) 남은 Firebase 소비자 3개 — 한 덩어리로 처리된다
 | 파일 | 성격 | 판단 |
 |---|---|---|
-| `SmsHistoryTable.jsx` | 예약별 `smsStatus` 맵을 읽는다 | D1 엔 그 필드가 **없다**(→ `notification_log` 1,086건으로 정규화). 이식이 아니라 **JOIN 쿼리로 재작성** |
-| `App.jsx` · `LoginScreen.jsx` | Firebase **Auth** (Firestore 아님) | 신규 JWT(`lib/auth-jwt.js` + `/api/auth/*`)로 교체. **`admins` 0건이라 먼저 비번 설정 필요** |
+| `App.jsx` · `LoginScreen.jsx` | Firebase **Auth** (Firestore 아님) | Next 는 이미 `app/login` + JWT 로 로그인한다 → **Vite 진입점(main.jsx·App.jsx·LoginScreen) 통째 폐기**가 정답. `App.jsx` 가 마지막 react-router 사용처이기도 하다 |
 | `notificationScheduler.js` | 9시 일일현황 텔레그램 **하나만** 남았다 | 아래 🔴 크론 블로커와 함께 처리 |
 | `src/config/firebase.js` | 위가 다 빠지면 마지막 | 제거 → Vite/Firebase 의존 정리 |
+
+> ⚠️ **App.jsx 를 지우면 Vite 앱이 안 뜬다.** 이 브랜치에선 그게 정답이다(신규 스택은 Next 전용).
+> 라이브 rv 는 `main` 브랜치라 무영향. 단 `package.json` 의 `dev`/`build` 가 아직 vite 다 → 같이 정리.
+> **`admins` 0건이라 아직 아무도 로그인 못 한다** (위 "사장님이 직접 해야 할 일").
+>   개발 중 화면을 열어야 하면 DB 를 건드리지 말고 JWT 를 직접 발급해 쿠키로 넣으면 된다:
+>   `signToken('choho140@naver.com')` → `document.cookie = "admin_token=<jwt>; path=/"` (이번 세션이 쓴 방법)
+
+### 1-1) 🟡 판단 필요 — **로그아웃 UI 가 없다**
+셸을 rv 원본(MainLayout)으로 되돌리면서 구 `app/nav.jsx` 의 로그아웃 버튼이 사라졌다.
+**rv 에는 원래 로그아웃 UI 가 없다** — `MainLayout({user, onLogout})` 이 두 prop 을 받고도
+한 번도 안 쓴다(죽은 prop). App.jsx 의 `handleLogout` 은 아무 버튼에도 안 붙어 있었다.
+- 그대로 두면: "기존 모습 그대로" 유지. 대신 30일 JWT 를 끊을 방법이 화면에 없다
+- 추가하면: rv 에 없던 UI 가 생긴다 (시크릿 UI 예외와 같은 성격의 판단)
+
+### 1-2) 🟡 판단 필요 — 레이트 체크아웃 **12시/14시가 D1 데이터에 남아 있다**
+지난 세션이 "repo 전체 grep 확인, 남은 건 한 곳뿐"이라며 코드만 고쳤는데,
+**이 문구는 코드가 아니라 D1 데이터에 있다**(grep 이 닿지 않는 곳):
+| 출처 | 현재 값 | 보이는 화면 |
+|---|---|---|
+| `options.late_checkout.description` | `Forest, Forest mini 객실만 가능 (14:00까지)` | 옵션 설정 |
+| `option_settings.late_checkout.data.description` | `오후 2시 체크아웃` | 옵션 설정 |
+- **이관 버그 아니다** — Firestore 원본이 그렇다. 즉 라이브 rv 도 지금 "2시"로 보인다
+- 사용자 확정은 "**12시가 맞다**" → 원본 데이터가 틀린 것. 고치려면 D1 UPDATE 2건(표시 문구뿐)
+- "기존 모습 그대로" 원칙과 충돌하므로 **임의로 안 고쳤다**
 
 ### 2) 🔴 컷오버 블로커 — 크론 이관 (지금은 안 깨지지만 컷오버 순간 조용히 사라진다)
 **9시 일일현황 텔레그램을 띄우는 건 `App.jsx` 다.** 그런데 App.jsx 는 폐기 대상이다
@@ -107,12 +138,72 @@ node scripts/set-admin-password.mjs
   `checkin_hours_before`·`checkout_hours_before` 는 이번에 D1 에 넣어뒀다(독자가 이 크론이 된다).
 
 ### 3) 그 외
-- 재작성본 `app/notifications`·`app/calendar` 등 폐기 (레거시를 Next 로 올릴 때)
-- `src/scripts/` 4개 — Firebase 폐기(Phase 8) 때 함께 정리
+- `src/scripts/` 4개 — 도달성 실측상 **죽은 코드**(reachability: src/ 71개 중 죽음 4 = 전부 이것들).
+  Firebase 폐기(Phase 8) 때 함께 정리
+- `lib/refund-policy.js` — **죽은 코드가 됐다**. 유일한 소비자였던 `app/calendar/EditReservationModal.jsx`
+  (재작성본)를 폐기했기 때문. 레거시 CancelReservationModal 은 `src/constants/refundPolicy.js` 를 쓴다.
+  "src/ 는 컷오버 후 삭제"를 전제로 만든 파일인데 **아키텍처가 뒤집혀(레거시가 산다) 전제가 사라졌다**.
+  크론/서버측 환불계산이 필요하면 살릴 것, 아니면 삭제. **판단 보류**
 
 ---
 
-## 📌 이번 세션 요약 (2026-07-17)
+## 📌 이번 세션 요약 (2026-07-17 밤) — 화면 이식 완주
+
+**한 줄**: 핸드오프의 첫 액션이 **선행조건 때문에 불가능**했다. 그걸 풀다 보니
+로더의 **여섯 번째 갭**이 나왔고, 결국 화면 5/5 + 셸까지 전부 rv 원본으로 올라갔다.
+
+| 커밋 | 내용 |
+|---|---|
+| `2059ea3` | **SmsHistoryTable D1 이관 + smsStatus 갭 복구** (635행 백필 · 신호등 1454/1620) |
+| `afc17af` | 예약 캘린더 레거시 이식 + **Vite-ism 제거**(import.meta.env) |
+| `5ee8a52` | **레거시 전역 CSS 로드** — 수정 모달이 뼈대만 나오던 문제 |
+| `0a66c75` | **rv 원본 셸(MainLayout) 채택** — nav.jsx 폐기 + react-router 제거 |
+| `170a686` | 알림설정 레거시 이식 + 재작성본 3개 폐기 + **0순위 브라우저 검증 5/5** |
+| `006d2e4` | 남은 3화면(예약목록·객실관리·옵션설정) 이식 → **5/5 완성** |
+
+### 🔴 핸드오프가 또 틀렸다 (이번엔 2개 + 순서 1개)
+1. **"① 브라우저 검증 → ② SmsHistoryTable" 순서가 거꾸로였다.**
+   `NotificationSettingsV2:280` 이 `SmsHistoryTable` 을 **품고 있다** → 그게 Firebase 를 물고 있는 한
+   알림설정 화면을 Next 에 올릴 수 없다. **②가 ①의 선행조건**이었다.
+2. **"smsStatus 는 notification_log 로 정규화됐으니 JOIN 으로 재작성"** → **틀렸다.**
+   로더(`load-logs.mjs`)는 `notification_logs`·`sms_logs` 두 컬렉션만 넣었다.
+   **예약 문서의 smsStatus MAP 은 아무도 안 옮겼다**(스키마 주석은 "흡수한다"고 선언해 놓고).
+   실측: D1 에 `confirmation`·`checkOut` kind 행 **0건** → 신호등 3종 중 2종은 JOIN 할 소스가 없었다.
+   그냥 재작성했으면 **590칸이 조용히 회색**이 됐다.
+3. **"재작성본이 폐기 대상"은 맞았지만 아무도 실행 안 하고 있었다** — 사용자가 캘린더를 보고 지적.
+
+### 측정이 또 구해냈다
+- **smsStatus 255건 vs 기존 checkIn 로그 166건은 거의 서로소**(겹침 1건) — 다른 시대의 기록이다.
+  백필 충돌 0
+- **신호등 차이 166칸은 전부 표시창(최근30일+미래) 밖** → 화면 출력은 레거시와 동일함을 증명하고 이식
+- **컷오프를 KST 로** — 레거시는 브라우저(KST), 신규는 UTC 서버. `toISOString()` 이면 하루 어긋난다
+- **옵션 칸은 원래 항상 ✓ 다** (`options || addons` 인데 `[]` 도 truthy) — 레거시 버그. 그대로 뒀다
+
+### 🐞 Vite → Next 이식 함정 3종 (다음에 화면 올릴 때 이것부터 봐라)
+| 함정 | 증상 | 처방 |
+|---|---|---|
+| `import.meta.env.*` | Next(webpack)에선 `import.meta.env` 가 undefined → `.DEV` 읽다 즉사 | `process.env.NODE_ENV` (양쪽 다 정적 치환) |
+| 모듈스코프 `window` | Next 는 클라이언트 컴포넌트도 **SSR** → `window is not defined` 500 | `typeof window !== 'undefined'` 가드 |
+| 진입점 전역 CSS 누락 | 컴포넌트 CSS 는 붙는데 `:root` 토큰이 없어 **뼈대만 남음** | 루트 레이아웃에서 theme.css·index.css·App.css import |
+> 남은 `import.meta` 는 `LoginScreen.jsx`·`config/firebase.js` 2곳뿐 — 둘 다 폐기 대상이라 무해.
+> `body` 인라인 스타일도 지웠다 — **인라인이 스타일시트를 이겨서** theme.css 의 body 규칙을 덮고 있었다.
+
+### 알아둘 사실
+- **rv 에 로그아웃 UI 가 없다** (위 1-1)
+- **레이트 체크아웃 14시가 D1 데이터에 남아 있다** (위 1-2). grep 은 데이터에 안 닿는다
+- 재작성본은 전부 **읽기 전용**이었다 → 이식으로 기능이 오히려 돌아왔다
+  (예약목록 50건 표 → 540건 + 검색·필터·수정/확정/취소)
+
+### 이번 세션의 D1 쓰기 (전부 검증·복구 완료)
+| 무엇 | 결과 |
+|---|---|
+| smsStatus 백필 | notification_log **1087 → 1722** (+635). 롤백앵커 `id > 1087` + 원본 JSON 캡처 |
+| 알림설정 저장 테스트 | 입실 2→5→2. **room_templates 28/28 전필드 원상복구** |
+| 단체예약 upsert 테스트 | 4행 생성 → **정확한 값으로 삭제**(LIKE 금지) → 28행 복귀 |
+
+---
+
+## 📌 지난 세션 요약 (2026-07-17 낮)
 
 **한 줄**: 핸드오프 첫 액션을 그대로 진행했는데, **핸드오프의 판단이 4곳에서 틀렸다**.
 전부 측정으로 잡아 고쳤고, **보안 0순위가 해소**됐다. Firebase 소비자 **8 → 4**.
