@@ -5,12 +5,16 @@
 ## 복사용 요청문
 ```
 초호펜션 예약시스템 Firebase→Vercel+D1 이관 중. Phase 0~5 완료.
-**Firebase 직접 사용 소비자 8 → 3** (App · LoginScreen · notificationScheduler)
+**Firebase 직접 사용 소비자 8 → 2** (App · LoginScreen — 둘 다 인증, 둘 다 폐기 대상)
+**9시 일일현황 폐기됨**(사용자 결정) → 남은 크론 블로커는 **입실·퇴실 문자 하나뿐**
+  (지금 발송자 = 배포된 CF autoSendSMSScheduler, Firestore 읽음 → 컷오버 때 멈춘다)
 **화면 5/5 전부 레거시(rv 원본)로 이식 완료** — 재작성본 폐기. 셸도 rv MainLayout.
   브라우저 실렌더 확인: 캘린더·예약목록(540건)·객실관리·옵션설정·알림설정 + 수정모달
 **핸드오프 0순위였던 알림설정 브라우저 검증 5/5 통과** (D1 원상복구 28/28 확인).
 다음: ① App/LoginScreen 인증 교체(=Vite 진입점 폐기) → ② src/config/firebase.js 제거
-      → ③ 컷오버 전 크론 이관(아래 🔴 블로커) → ④ Phase 6 Worker 보안
+      → ③ 입실·퇴실 크론 이관(아래 🔴 블로커) → ④ Phase 6 Worker 보안
+빌드는 **반드시 `npx next build` 로 확인**할 것 — dev 는 통과하는데 프로덕션 프리렌더에서
+죽는 SSR 버그가 실제로 있었다(`window is not defined`). dev 만 보면 배포 때 처음 터진다.
 F:\rv-chorigol.co.kr\NEXT_SESSION_choho-migration.md 전체 컨텍스트. 브랜치 migrate/nextjs-d1.
 최종 화면은 **Next 가 레거시 컴포넌트를 렌더**한다(사용자 확정, 7/17 이행 완료).
 도달성 판정은 grep 금지 → `node scripts/audit/reachability.mjs` (Dashboard.jsx 가 죽은 코드였다).
@@ -64,7 +68,8 @@ node 의 `--env-file` 과 Next 는 **이미 있는 process.env 를 덮지 않는
 | — | **🔒 보안 0순위 — sensService 삭제** (SENS 키 브라우저 노출 제거) | ✅ |
 | — | **smsStatus 갭 복구(여섯 번째) + SmsHistoryTable D1 이관** (신호등 1454/1620) | ✅ |
 | — | **재작성본 폐기** (NotificationsClient·CalendarClient·EditReservationModal·nav.jsx) | ✅ |
-| — | 크론 이관 (9시 리포트 + 입실·퇴실 안내) → **컷오버 블로커** | ⬜ |
+| — | ~~9시 리포트 크론~~ → **폐기 결정** (사용자 2026-07-17) | ✅ |
+| — | 크론 이관 (**입실·퇴실 안내만**) → **컷오버 블로커** | ⬜ |
 | 6 | api.chorigol.co.kr Worker 보안 | ⬜ |
 | 7 | 컷오버 (rv CNAME) → 병렬운영 2주 | ⬜ |
 | 8 | Firebase·Airtable 폐기 | ⬜ |
@@ -121,20 +126,30 @@ D1 **데이터**에 14시 표기가 남아 있다(코드 아님 — grep 이 안
 - **실제 정책은 12시다.** 위 문구는 표시용 설명일 뿐이고 로직은 `late_checkout` id 로 동작한다
 - **결정: 안 고친다.** D1 UPDATE 하지 말 것. 다음 세션이 "버그다" 하고 또 파지 말 것
 
-### 2) 🔴 컷오버 블로커 — 크론 이관 (지금은 안 깨지지만 컷오버 순간 조용히 사라진다)
-**9시 일일현황 텔레그램을 띄우는 건 `App.jsx` 다.** 그런데 App.jsx 는 폐기 대상이다
-→ 컷오버하면 사장님이 매일 받던 리포트가 **말없이 없어진다**.
+### 2) 🔴 컷오버 블로커 — 크론 이관 (**입실·퇴실만** 남았다)
 
-- 지금 발송자는 **브라우저 뿐**이다. CF 구현이 두 벌(`telegram-scheduler.js`,
-  `notifications.js` 의 V2) 있으나 **둘 다 index.js 가 export 를 안 해 미배포**다
-  (`npx firebase-tools functions:list --project choho-pension` 로 확인).
-- **CF 로 배포하지 말 것** — Phase 8 에서 폐기할 시스템이다. 게다가 `telegram-scheduler.js` 는
-  구 `settings/notifications` 를 읽어 **봇토큰이 다르다**(`7947112373…` vs 운영 `8053531001…`).
-- **제자리는 Vercel Cron → `/api/cron/*` → D1 → `lib/telegram.js`** 다. 근거: env 목록에 이미
-  `CRON_SECRET` 이 있고(원래 크론을 전제한 설계), `lib/telegram.js`·`lib/reservation-notify.js` 가
-  서버 전용 시크릿으로 완성돼 있다.
-- **입실·퇴실 안내도 같은 크론이 필요하다**(신규 스택엔 스케줄러가 없다) → **한 번에 같이 태울 것**.
-  `checkin_hours_before`·`checkout_hours_before` 는 이번에 D1 에 넣어뒀다(독자가 이 크론이 된다).
+#### ✅ 9시 일일현황 — **폐기됨** (사용자, 2026-07-17: "9시 일일현황 안띄워도 되")
+`src/services/notificationScheduler.js` 삭제 + App.jsx 배선 제거 (커밋 `655bb3a`).
+**유일한 발송자가 브라우저였으므로 이제 아무도 안 띄운다.** 크론으로 이관하지 말 것.
+
+#### 🔴 입실·퇴실 안내 — 이게 진짜 블로커다 (실고객에게 나가는 문자)
+**발송자 실측 (핸드오프 옛 서술보다 이게 정확하다)**:
+| 함수 | 배포 | 실제 동작 |
+|---|---|---|
+| **`autoSendSMSScheduler`** (`functions/src/smsScheduler.js`) | ✅ `index.js:752` 로 **배포됨** | 🔴 **이게 지금 입실·퇴실 문자를 보내는 놈이다.** Firestore 를 읽는다 (`Asia/Seoul`, `asia-northeast3`) |
+| `notificationScheduler` (`functions/src/notificationScheduler.js`) | `index.js:751` 로 배포됨 | **죽어 있다** — 본문 첫 줄이 `return null` (2025-12-19 "smsScheduler 로 대체됨") |
+| `telegram-scheduler.js` · `notifications.js` V2 | ❌ export 안 됨 | 미배포. 일일현황용이었으니 이제 **무관** |
+
+→ **컷오버(Firestore 폐기) 순간 입실·퇴실 문자가 조용히 멈춘다.** 이게 남은 유일한 크론 블로커다.
+- **CF 로 새로 배포하지 말 것** — Phase 8 에서 폐기할 시스템이다
+- **제자리는 Vercel Cron → `/api/cron/*` → D1 → `lib/sms.js`**. 근거: env 에 이미 `CRON_SECRET` 이
+  있고(원래 크론 전제 설계), `lib/sms.js`·`lib/reservation-notify.js` 가 서버 전용 시크릿으로 완성돼 있다
+- `checkin_hours_before`·`checkout_hours_before` 는 D1 에 들어 있다 (독자가 이 크론이 된다).
+  **Forest 패밀리만 2, 나머지 3** — 기본값으로 뭉개지 말 것
+- 중복발송 가드가 필요하다: 레거시는 `smsStatus.{type}Sent` 로 막았다. 신규는 그 자리에
+  **`notification_log` 가 있다**(이번 세션 백필로 과거분까지 채워짐) → `(reservation_id, kind)` 존재 확인으로 막으면 된다
+- ⚠️ **별건(기존 동작)**: 퇴실 템플릿이 레이트체크아웃 여부로 분기하지 않는다 → 12시 결제 고객도
+  "퇴실시간 오전 11시" 문자를 받는다. 크론 이관 때 같이 볼지 판단할 것
 
 ### 3) 그 외
 - `src/scripts/` 4개 — 도달성 실측상 **죽은 코드**(reachability: src/ 71개 중 죽음 4 = 전부 이것들).
