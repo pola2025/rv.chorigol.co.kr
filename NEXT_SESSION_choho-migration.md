@@ -11,8 +11,11 @@
 **화면 5/5 전부 레거시(rv 원본)로 이식 완료** — 재작성본 폐기. 셸도 rv MainLayout.
   브라우저 실렌더 확인: 캘린더·예약목록(540건)·객실관리·옵션설정·알림설정 + 수정모달
 **핸드오프 0순위였던 알림설정 브라우저 검증 5/5 통과** (D1 원상복구 28/28 확인).
-다음: ① **입실·퇴실 크론 이관**(아래 🔴 유일한 컷오버 블로커) → ② Phase 6 Worker 보안
-      → ③ 컷오버(rv CNAME) → ④ Phase 8 Firebase·Airtable 폐기
+**입실·퇴실 크론 코드 완성** (`app/api/cron/sms`) — 단 **킬스위치로 꺼둠**. 켜는 순서가 생명이다(아래 🔴).
+**인프라 확정(7/17)**: Vercel 계정 이관 **폐기** → 구 계정(mkt9834·**Pro**) 그대로. 신규는 **Cloudflare 뿐**.
+  → 도메인 이동이 없어 **컷오버 = main 머지 = 무중단**. Pro 라 크론 제한 없음
+다음: ① 컷오버 준비(env 주입 + 프로젝트 framework→nextjs) → ② 🔴 **CF 스케줄러 죽이고 크론 켜기**
+      → ③ main 머지 = 컷오버 → ④ Phase 6 Worker 보안 → ⑤ Phase 8 Firebase 폐기
 빌드는 **반드시 `npx next build` 로 확인**할 것 — dev 는 통과하는데 프로덕션 프리렌더에서
 죽는 SSR 버그가 실제로 있었다(`window is not defined`). dev 만 보면 배포 때 처음 터진다.
 F:\rv-chorigol.co.kr\NEXT_SESSION_choho-migration.md 전체 컨텍스트. 브랜치 migrate/nextjs-d1.
@@ -29,6 +32,11 @@ node 의 `--env-file` 과 Next 는 **이미 있는 process.env 를 덮지 않는
 
 ⚠️ **`next build` 를 dev 서버 켜둔 채 돌리지 말 것** — `.next` 를 공유해서 dev 의 CSS 청크가
    404 가 된다(전 화면이 무스타일로 보임). 겪으면: dev 죽이고 `rm -rf .next` 후 재기동.
+
+🔴 **문자 이중발송 — 이 순서 아니면 고객이 문자를 두 번 받는다**
+   ① `firebase functions:delete autoSendSMSScheduler --project choho-pension` (지금 발송자를 먼저 죽인다)
+   ② **그 다음** Vercel 에 `CRON_SMS_ENABLED=true` 주입
+   CF 는 Firestore, 신규 크론은 D1 을 본다 → **서로의 발송 이력을 몰라 중복가드가 안 통한다.**
 
 원칙: rv는 "기존 모습 그대로" 이관 — UI 임의변경 금지. 새 UI 아이디어는 admin(별개 통계앱)으로.
       모양·기능이 같아야 하므로 **측정과 감사**가 핵심. 추측으로 이식 금지.
@@ -70,7 +78,8 @@ node 의 `--env-file` 과 Next 는 **이미 있는 process.env 를 덮지 않는
 | — | **smsStatus 갭 복구(여섯 번째) + SmsHistoryTable D1 이관** (신호등 1454/1620) | ✅ |
 | — | **재작성본 폐기** (NotificationsClient·CalendarClient·EditReservationModal·nav.jsx) | ✅ |
 | — | ~~9시 리포트 크론~~ → **폐기 결정** (사용자 2026-07-17) | ✅ |
-| — | 크론 이관 (**입실·퇴실 안내만**) → **컷오버 블로커** | ⬜ |
+| — | 크론 이관 (**입실·퇴실 안내만**) — 코드 완성, **킬스위치로 꺼둠** | 🔄 |
+| — | **인프라 확정** — Vercel 계정 이관 폐기(구 Pro 그대로) · 신규는 CF 뿐 · choho-admin 삭제 | ✅ |
 | 6 | api.chorigol.co.kr Worker 보안 | ⬜ |
 | 7 | 컷오버 (rv CNAME) → 병렬운영 2주 | ⬜ |
 | 8 | Firebase·Airtable 폐기 | ⬜ |
@@ -173,10 +182,11 @@ D1 **데이터**에 14시 표기가 남아 있다(코드 아님 — grep 이 안
 
 ---
 
-## 📌 이번 세션 요약 (2026-07-17 밤) — 화면 이식 완주
+## 📌 이번 세션 요약 (2026-07-17 밤) — **이식 완주 + 인프라 확정**
 
-**한 줄**: 핸드오프의 첫 액션이 **선행조건 때문에 불가능**했다. 그걸 풀다 보니
-로더의 **여섯 번째 갭**이 나왔고, 결국 화면 5/5 + 셸까지 전부 rv 원본으로 올라갔다.
+**한 줄**: 핸드오프 첫 액션이 **선행조건 때문에 불가능**했다. 그걸 풀다 로더의 **여섯 번째 갭**이
+나왔고, 화면 5/5 → 셸 → Vite 진입점까지 다 걷어내 **Firebase 접점 0**이 됐다. 마지막에
+사용자가 **Vercel 계정 이관을 폐기**해 컷오버가 무중단으로 단순해졌다.
 
 | 커밋 | 내용 |
 |---|---|
@@ -186,6 +196,37 @@ D1 **데이터**에 14시 표기가 남아 있다(코드 아님 — grep 이 안
 | `0a66c75` | **rv 원본 셸(MainLayout) 채택** — nav.jsx 폐기 + react-router 제거 |
 | `170a686` | 알림설정 레거시 이식 + 재작성본 3개 폐기 + **0순위 브라우저 검증 5/5** |
 | `006d2e4` | 남은 3화면(예약목록·객실관리·옵션설정) 이식 → **5/5 완성** |
+| `655bb3a` | 9시 일일현황 제거(사용자) + **SSR 가드 3곳 — 프로덕션 빌드 복구** |
+| `cb23779` | **Vite 진입점 폐기** → Firebase 접점 0 · react-router 0 |
+| `c82c6d8` | 죽은 파일 2개 정리 → **src/ 죽은코드 0** |
+| `ca8d755` | **입실·퇴실 크론 이식**(킬스위치 OFF) + **인프라 확정** + vercel.json 지뢰 제거 |
+| `54f73a1` | `choho-admin` Vercel 프로젝트 삭제(사용자 지시) |
+
+### 🎯 인프라 확정 — 계획이 뒤집혔다 (사용자, 세션 말미)
+> "vercel 이관은 하지말고 클라우드플레어만 신규로 쓰자 / 그 구계정플랜을 그대로 쓰잔말임"
+
+**실측이 이 결정을 강하게 뒷받침한다:**
+| 계정 | 플랜 | 크론 | chorigol 도메인 |
+|---|---|---|---|
+| 구 mkt9834 (라이브 rv) | **Pro** | 제한 없음 | ✅ 보유 |
+| 신규 chohopark134 | Hobby | 2개·하루1회 | ❌ 없음 |
+
+- **다운타임 소멸**: 도메인을 뗄 일이 없다 → 컷오버 = `main` 머지 = 평소 배포
+- **`.vercel/project.json` 은 원래 맞았다** — 지난 세션에 내가 "지뢰"라고 적은 건 **오판**. 고치지 말 것
+- 신규 계정엔 chorigol 도메인이 없다 → 핸드오프의 "admin 은 새 계정에 연결됨"은 **사실이 아니었다**
+- `choho-admin` 프로젝트 삭제(사용자: "내가 만든거니깐 지워도 된다"). `auto.polaai.co.kr` 도 같이 죽음
+- **`admin.chorigol.co.kr` 은 이관 후 신규 구축** — 지금 404 인 게 정상이다
+
+### 🔴 vercel.json 에 배포를 깨뜨릴 지뢰가 있었다
+`{"rewrites":[{"source":"/(.*)","destination":"/index.html"}]}` — Vite SPA 리라이트인데
+그 `index.html` 을 이번 세션에 삭제했다. **그대로 배포했으면 전 경로가 깨졌다.**
+crons 가 원래 없어서 `/api/health` 는 **스케줄된 적조차 없었다**(핸드오프는 "Vercel Cron이 주기 호출"이라 적어둠).
+
+### 🐞 프로덕션 빌드가 죽고 있었다 (dev 는 통과 → 배포 때 처음 터질 뻔)
+`/reservations` 를 레거시로 바꾸며 **정적 프리렌더 대상**이 됐는데(재작성본은 force-dynamic 이었다)
+`initialData: window.innerWidth` 가 **렌더 중** 평가돼 `window is not defined` 로 export 실패.
+dev 가 멀쩡했던 건 migrationDebugger 가드가 `DEBUG_MODE`(=development) 라 프로덕션에선 안 타서다.
+→ **`npx next build` 없이 "됐다" 하지 말 것.**
 
 ### 🔴 핸드오프가 또 틀렸다 (이번엔 2개 + 순서 1개)
 1. **"① 브라우저 검증 → ② SmsHistoryTable" 순서가 거꾸로였다.**
@@ -213,6 +254,22 @@ D1 **데이터**에 14시 표기가 남아 있다(코드 아님 — grep 이 안
 | 진입점 전역 CSS 누락 | 컴포넌트 CSS 는 붙는데 `:root` 토큰이 없어 **뼈대만 남음** | 루트 레이아웃에서 theme.css·index.css·App.css import |
 > 남은 `import.meta` 는 `LoginScreen.jsx`·`config/firebase.js` 2곳뿐 — 둘 다 폐기 대상이라 무해.
 > `body` 인라인 스타일도 지웠다 — **인라인이 스타일시트를 이겨서** theme.css 의 body 규칙을 덮고 있었다.
+
+### 🔴 크론 이식 — CF 를 실측해서 맞춘 것 (핸드오프 가정이 또 틀렸다)
+**`checkin_hours_before` 를 실제 발송자는 안 읽는다.** 핸드오프는 "독자가 이 크론이 된다"고 했지만
+CF `autoSendSMSScheduler` 는 **고정 10시/13시 KST** 를 쓴다. hours_before 로 구현했으면
+Forest 패밀리(=2)만 발송 시각이 달라져 **동작이 바뀔 뻔했다.** D1 에 컬럼이 있고 화면에도
+보이지만 **아무도 안 읽는 죽은 설정**이다.
+
+| 항목 | CF 실측 | 크론 이식 |
+|---|---|---|
+| 시각 | 고정 10시(퇴실)/13시(입실) KST | 동일 (UTC 01:00 / 04:00 로 등록) |
+| 대상 | `check_in\|check_out = 오늘` + `status='예약확정'` | 동일 |
+| **주소 자동추가** | 치환 후 주소도 '주소' 글자도 없으면 끝에 붙임 → **퇴실 템플릿 7개 전부 걸린다** | 동일 (안 옮겼으면 퇴실 문구가 바뀐다) |
+| subject | 없음 (`sendSMS(to, content)`) | 없음 (넣으면 LMS 제목이 새로 생긴다) |
+| `{금액}`·`{인원}` | 원 붙임 / 기본값 2 | **무의미**: 템플릿에 `{금액}` 사용 0개, guests 는 NOT NULL DEFAULT 2 |
+| `source='막기'` | **안 거른다**(더미번호라 실패할 뿐) | 🔸 **일부러 스킵**. notifyReservation 규약과 일치. 실측 막기 16건 전부 더미·미래 0건 → 과거영향 0 |
+| 중복가드 | `smsStatus.{type}Sent` | `notification_log` (백필로 과거 이력 이어짐) |
 
 ### 알아둘 사실
 - **rv 에 로그아웃 UI 가 없다** → 사용자 결정: **안 만든다** (위 1-1)
