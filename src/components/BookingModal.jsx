@@ -27,7 +27,9 @@ const BookingModal = ({ booking, onClose, onConfirm, onCancel, onUpdate }) => {
     queryKey: ['isMobile-bookingModal'],
     queryFn: () => window.innerWidth < 768,
     staleTime: Infinity,
-    initialData: window.innerWidth < 768
+    // SSR 가드 — Next 는 클라이언트 컴포넌트도 프리렌더한다. initialData 는 **렌더 중** 평가되므로
+    // window 를 그냥 읽으면 빌드가 죽는다(Vite 는 CSR 전용이라 안전했던 코드). 서버에선 데스크톱 가정.
+    initialData: typeof window !== 'undefined' ? window.innerWidth < 768 : false
   });
 
   // Window resize 이벤트 리스너 (선언형)
@@ -73,7 +75,7 @@ const BookingModal = ({ booking, onClose, onConfirm, onCancel, onUpdate }) => {
   const OPTION_INFO = {
     '캠핑버너&그릴': { icon: '🔥', price: '20,000원' },
     '숯불바베큐': { icon: '🍖', price: '30,000원 (현장결제)' },
-    '레이트 체크아웃': { icon: '⏰', price: '오후 2시' }
+    '레이트 체크아웃': { icon: '⏰', price: '낮 12시' }
   };
 
   // 🔄 MIGRATION: useEffect를 React Query로 교체

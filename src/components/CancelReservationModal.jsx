@@ -1,16 +1,18 @@
 // src/components/CancelReservationModal.jsx
 import React, { useState, useEffect } from 'react';
-import { 
-  getRefundRate, 
-  calculateRefundAmount, 
+import {
+  getRefundRate,
+  calculateRefundAmount,
   calculateCancellationFee,
   getRefundPolicyText,
-  REFUND_POLICY 
+  REFUND_POLICY
 } from '../constants/refundPolicy';
 import './CancelReservationModal.css';
 
 function CancelReservationModal({ reservation, onConfirm, onClose }) {
   const [cancelReason, setCancelReason] = useState('');
+  const [isManualRefund, setIsManualRefund] = useState(false);
+  const [manualRefundAmount, setManualRefundAmount] = useState('');
   const [refundInfo, setRefundInfo] = useState({
     refundRate: 0,
     refundAmount: 0,
@@ -31,15 +33,40 @@ function CancelReservationModal({ reservation, onConfirm, onClose }) {
         cancellationFee,
         policyText
       });
+      setManualRefundAmount(refundAmount.toString());
     }
   }, [reservation]);
 
+  // 수동 환불금액 변경 시 수수료 재계산
+  const handleManualRefundChange = (value) => {
+    const numValue = value.replace(/[^0-9]/g, '');
+    setManualRefundAmount(numValue);
+  };
+
+  // 실제 환불금액 (수동 입력 or 자동 계산)
+  const getFinalRefundAmount = () => {
+    if (isManualRefund && manualRefundAmount !== '') {
+      return parseInt(manualRefundAmount) || 0;
+    }
+    return refundInfo.refundAmount;
+  };
+
+  // 실제 취소수수료 계산
+  const getFinalCancellationFee = () => {
+    const totalPrice = reservation?.totalPrice || 0;
+    return totalPrice - getFinalRefundAmount();
+  };
+
   const handleConfirm = () => {
+    const finalRefundAmount = getFinalRefundAmount();
+    const finalCancellationFee = getFinalCancellationFee();
+
     onConfirm({
       cancelReason,
-      refundAmount: refundInfo.refundAmount,
-      cancellationFee: refundInfo.cancellationFee,
-      refundRate: refundInfo.refundRate
+      refundAmount: finalRefundAmount,
+      cancellationFee: finalCancellationFee,
+      refundRate: isManualRefund ? Math.round((finalRefundAmount / (reservation?.totalPrice || 1)) * 100) : refundInfo.refundRate,
+      isManualRefund
     });
   };
 
@@ -115,24 +142,66 @@ function CancelReservationModal({ reservation, onConfirm, onClose }) {
 
           {/* 환불 금액 계산 */}
           <div className="refund-calculation">
-            <h4>환불 금액 계산</h4>
+            <div className="refund-header">
+              <h4>환불 금액 계산</h4>
+              <label className="manual-toggle">
+                <input
+                  type="checkbox"
+                  checked={isManualRefund}
+                  onChange={(e) => setIsManualRefund(e.target.checked)}
+                />
+                <span>수동 지정</span>
+              </label>
+            </div>
             <div className="calculation-details">
               <div className="calc-row">
                 <span>결제 금액</span>
                 <span className="amount">₩{reservation.totalPrice.toLocaleString()}</span>
               </div>
-              <div className="calc-row">
-                <span>환불율</span>
-                <span className="rate">{refundInfo.refundRate}%</span>
-              </div>
-              <div className="calc-row cancellation-fee">
-                <span>취소 수수료</span>
-                <span className="amount negative">-₩{refundInfo.cancellationFee.toLocaleString()}</span>
-              </div>
-              <div className="calc-row total">
-                <span>환불 예정 금액</span>
-                <span className="amount highlight">₩{refundInfo.refundAmount.toLocaleString()}</span>
-              </div>
+
+              {!isManualRefund ? (
+                <>
+                  <div className="calc-row">
+                    <span>환불율 (정책 기준)</span>
+                    <span className="rate">{refundInfo.refundRate}%</span>
+                  </div>
+                  <div className="calc-row cancellation-fee">
+                    <span>취소 수수료</span>
+                    <span className="amount negative">-₩{refundInfo.cancellationFee.toLocaleString()}</span>
+                  </div>
+                  <div className="calc-row total">
+                    <span>환불 예정 금액</span>
+                    <span className="amount highlight">₩{refundInfo.refundAmount.toLocaleString()}</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="calc-row manual-input-row">
+                    <span>환불 금액 (직접 입력)</span>
+                    <div className="manual-input-wrapper">
+                      <span className="currency">₩</span>
+                      <input
+                        type="text"
+                        value={manualRefundAmount}
+                        onChange={(e) => handleManualRefundChange(e.target.value)}
+                        placeholder="환불금액 입력"
+                        className="manual-refund-input"
+                      />
+                    </div>
+                  </div>
+                  <div className="calc-row cancellation-fee">
+                    <span>취소 수수료</span>
+                    <span className="amount negative">-₩{getFinalCancellationFee().toLocaleString()}</span>
+                  </div>
+                  <div className="calc-row total">
+                    <span>최종 환불 금액</span>
+                    <span className="amount highlight">₩{getFinalRefundAmount().toLocaleString()}</span>
+                  </div>
+                  <div className="manual-note">
+                    환불율: {Math.round((getFinalRefundAmount() / (reservation.totalPrice || 1)) * 100)}%
+                  </div>
+                </>
+              )}
             </div>
           </div>
 

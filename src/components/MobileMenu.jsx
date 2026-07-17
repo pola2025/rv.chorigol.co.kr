@@ -1,6 +1,8 @@
+"use client";
 // src/components/MobileMenu.jsx
+// react-router Link → next/link (MainLayout.jsx 와 같은 이유)
 import React from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import './MobileMenu.css';
 
 const MobileMenu = ({ isOpen, onClose, tabs, activeTab }) => {
@@ -29,7 +31,7 @@ const MobileMenu = ({ isOpen, onClose, tabs, activeTab }) => {
             return (
               <Link
                 key={tab.id}
-                to={tab.path}
+                href={tab.path}
                 onClick={onClose}
                 className={`mobile-menu-item ${activeTab === tab.id ? 'active' : ''}`}
               >

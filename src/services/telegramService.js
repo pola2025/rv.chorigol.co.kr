@@ -304,8 +304,21 @@ class TelegramService {
 
     message += `\n#예약취소 #${reservation.roomName.replace(/\s/g, '')}`;
 
+    // 기본 채널로 발송
     const result = await this.sendMessage(message);
     console.log('❌ [텔레그램] 취소 알림 발송 완료:', result);
+
+    // 호수뷰객실인 경우 추가 채널로도 발송
+    if (reservation.roomName && reservation.roomName.includes('호수뷰')) {
+      try {
+        console.log('🏞️ [DEBUG] 호수뷰객실 취소 - 추가 채널로 발송');
+        await this.sendMessage(message, 'HTML', TelegramService.LAKE_VIEW_CHAT_ID);
+        console.log('🏞️ [DEBUG] 호수뷰객실 추가 채널 취소 알림 발송 완료');
+      } catch (error) {
+        console.error('🏞️ [ERROR] 호수뷰객실 추가 채널 발송 실패:', error);
+      }
+    }
+
     return result;
   }
 
@@ -330,6 +343,83 @@ ${data.checkOutList.map(r => `  • ${r.roomName} - ${r.customerName}`).join('\n
     `.trim();
 
     return await this.sendMessage(message);
+  }
+
+  // 날짜별 예약 현황 전송 (캡쳐 대체용)
+  async sendDateReservationStatus(dateStr, reservations) {
+    const date = new Date(dateStr);
+    const days = ['일', '월', '화', '수', '목', '금', '토'];
+    const formattedDate = `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 (${days[date.getDay()]})`;
+
+    if (reservations.length === 0) {
+      const message = `📅 <b>${formattedDate}</b>\n\n예약이 없습니다.`;
+      return await this.sendMessage(message);
+    }
+
+    let message = `📅 <b>${formattedDate} 예약현황</b>\n`;
+    message += `총 ${reservations.length}건\n`;
+    message += `━━━━━━━━━━━━━━━━\n\n`;
+
+    reservations.forEach((res, index) => {
+      const nights = this.calculateNights(res.checkIn, res.checkOut);
+      const checkInShort = res.checkIn?.slice(5).replace('-', '/');
+      const checkOutShort = res.checkOut?.slice(5).replace('-', '/');
+
+      message += `<b>${index + 1}. ${res.roomName}</b>`;
+      if (res.status === '입금대기') {
+        message += ` ⏳`;
+      }
+      message += `\n`;
+
+      // 막기 예약인 경우 간단히 표시
+      if (res.source === '막기') {
+        message += `   📌 막기\n`;
+        message += `   📆 ${checkInShort} ~ ${checkOutShort} (${nights}박)\n\n`;
+        return;
+      }
+
+      message += `   👤 ${res.customerName}`;
+      if (res.customerPhone || res.phone) {
+        message += ` (${res.customerPhone || res.phone})`;
+      }
+      message += `\n`;
+
+      message += `   📆 ${checkInShort} ~ ${checkOutShort} (${nights}박)\n`;
+      message += `   👥 ${res.guests || res.guestCount || 2}명\n`;
+      message += `   💰 ${(res.totalPrice || res.roomPrice || 0).toLocaleString()}원\n`;
+
+      // 옵션
+      if (res.options && res.options.length > 0) {
+        const optionNames = res.options.map(opt =>
+          typeof opt === 'object' ? opt.name : opt
+        ).join(', ');
+        message += `   📦 ${optionNames}\n`;
+      }
+
+      // 메모
+      if (res.memo && res.memo.trim()) {
+        message += `   📝 ${res.memo}\n`;
+      }
+
+      message += `\n`;
+    });
+
+    message += `#예약현황 #${formattedDate.replace(/\s/g, '').replace(/[()]/g, '')}`;
+
+    // 기본 채널로 발송
+    const result = await this.sendMessage(message);
+
+    // 호수뷰객실 예약이 있으면 추가 채널로도 발송
+    const hasLakeView = reservations.some(res => res.roomName?.includes('호수뷰'));
+    if (hasLakeView) {
+      try {
+        await this.sendMessage(message, 'HTML', TelegramService.LAKE_VIEW_CHAT_ID);
+      } catch (error) {
+        console.error('🏞️ [ERROR] 호수뷰객실 추가 채널 발송 실패:', error);
+      }
+    }
+
+    return result;
   }
 
   // 예약 출처 이름 변환

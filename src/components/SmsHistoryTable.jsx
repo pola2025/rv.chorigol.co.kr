@@ -1,27 +1,30 @@
 // src/components/SmsHistoryTable.jsx - SMS 발송 이력 테이블
-import React, { useState, useEffect, useMemo } from 'react';
-import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
-import { db } from '../config/firebase';
-import { getKSTToday, getKSTDateString, formatPhoneNumber } from '../utils';
+// 데이터는 /api/sms-history 경유 — D1 이 단일 소스다 (Firestore 직접 접근 제거).
+//
+// 신호등 판정(getSmsStatus)은 **한 글자도 안 바꿨다**. 서버가 notification_log 를
+// 레거시 smsStatus 모양으로 되돌려주기 때문이다 (lib/sms-history.js).
+// 표시창 필터(업체·취소)도 레거시 그대로 여기 클라이언트에 남겨뒀다 — 서버는 창(30일+limit100)만 자른다.
+import React, { useState, useEffect, useMemo } from "react";
+import { getKSTToday, formatPhoneNumber } from "../utils";
 
 // 업체별 객실 구분
 // 호수뷰객실은 초호쉼터에 속함
 const ROOM_GROUPS = {
-  choho: ['Forest', 'Forest mini', 'Forest mini 패밀리', 'Forest 패밀리'],
-  shelter: ['호수뷰객실', '1박2일워크샵', '야유회', '단체예약']
+  choho: ["Forest", "Forest mini", "Forest mini 패밀리", "Forest 패밀리"],
+  shelter: ["호수뷰객실", "1박2일워크샵", "야유회", "단체예약"],
 };
 
 // 신호등 상태 컴포넌트
 const StatusLight = ({ status, title }) => {
-  let color = '#9CA3AF'; // 회색 (미발송)
-  let label = '미발송';
+  let color = "#9CA3AF"; // 회색 (미발송)
+  let label = "미발송";
 
-  if (status === 'success') {
-    color = '#10B981'; // 녹색 (발송완료)
-    label = '발송완료';
-  } else if (status === 'failed') {
-    color = '#EF4444'; // 빨간색 (발송실패)
-    label = '실패';
+  if (status === "success") {
+    color = "#10B981"; // 녹색 (발송완료)
+    label = "발송완료";
+  } else if (status === "failed") {
+    color = "#EF4444"; // 빨간색 (발송실패)
+    label = "실패";
   }
 
   return (
@@ -29,18 +32,19 @@ const StatusLight = ({ status, title }) => {
       className="status-light"
       title={`${title}: ${label}`}
       style={{
-        width: '14px',
-        height: '14px',
-        borderRadius: '50%',
+        width: "14px",
+        height: "14px",
+        borderRadius: "50%",
         backgroundColor: color,
-        display: 'inline-block',
-        boxShadow: status === 'success' ? '0 0 6px rgba(16, 185, 129, 0.5)' : 'none'
+        display: "inline-block",
+        boxShadow:
+          status === "success" ? "0 0 6px rgba(16, 185, 129, 0.5)" : "none",
       }}
     />
   );
 };
 
-const SmsHistoryTable = ({ businessType = 'choho' }) => {
+const SmsHistoryTable = ({ businessType = "choho" }) => {
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCompleted, setShowCompleted] = useState(false);
@@ -59,28 +63,21 @@ const SmsHistoryTable = ({ businessType = 'choho' }) => {
     try {
       const rooms = ROOM_GROUPS[businessType];
 
-      // 최근 30일 + 미래 예약 조회 (KST 기준)
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const dateStr = getKSTDateString(thirtyDaysAgo);
+      // 창(최근 30일 + 미래, orderBy checkIn asc, limit 100)은 서버가 자른다 — KST 기준도 서버가 맞춘다.
+      // 업체·취소 필터는 레거시와 같은 자리(여기)에 남겨둔다: limit 이 업체 필터보다 먼저 걸린다.
+      const res = await fetch("/api/sms-history", {
+        credentials: "same-origin",
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || "발송 이력 조회 실패");
 
-      const reservationsRef = collection(db, 'reservations');
-      const q = query(
-        reservationsRef,
-        where('checkIn', '>=', dateStr),
-        orderBy('checkIn', 'asc'),
-        limit(100)
-      );
-
-      const snapshot = await getDocs(q);
-      const allReservations = snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(r => rooms.includes(r.roomName))
-        .filter(r => r.status !== '예약취소'); // 취소된 예약 제외
+      const allReservations = (json.reservations || [])
+        .filter((r) => rooms.includes(r.roomName))
+        .filter((r) => r.status !== "예약취소"); // 취소된 예약 제외
 
       setReservations(allReservations);
     } catch (error) {
-      console.error('예약 조회 실패:', error);
+      console.error("예약 조회 실패:", error);
     } finally {
       setLoading(false);
     }
@@ -91,7 +88,7 @@ const SmsHistoryTable = ({ businessType = 'choho' }) => {
     const upcoming = [];
     const completed = [];
 
-    reservations.forEach(r => {
+    reservations.forEach((r) => {
       if (r.checkOut < today) {
         completed.push(r);
       } else {
@@ -112,16 +109,16 @@ const SmsHistoryTable = ({ businessType = 'choho' }) => {
     const smsStatus = reservation.smsStatus || {};
 
     if (smsStatus[`${type}Sent`] === true) {
-      return 'success';
+      return "success";
     } else if (smsStatus[`${type}Error`]) {
-      return 'failed';
+      return "failed";
     }
-    return 'pending'; // 미발송
+    return "pending"; // 미발송
   };
 
   // 날짜 포맷
   const formatDate = (dateStr) => {
-    if (!dateStr) return '-';
+    if (!dateStr) return "-";
     const date = new Date(dateStr);
     return `${date.getMonth() + 1}/${date.getDate()}`;
   };
@@ -133,20 +130,33 @@ const SmsHistoryTable = ({ businessType = 'choho' }) => {
       <td className="date-cell">
         {formatDate(reservation.checkIn)} ~ {formatDate(reservation.checkOut)}
       </td>
-      <td className="name-cell">{reservation.customerName || '-'}</td>
-      <td className="guests-cell hide-mobile">{reservation.guests || reservation.guestCount || '-'}명</td>
-      <td className="phone-cell hide-mobile">{formatPhoneNumber(reservation.phone) || '-'}</td>
+      <td className="name-cell">{reservation.customerName || "-"}</td>
+      <td className="guests-cell hide-mobile">
+        {reservation.guests || reservation.guestCount || "-"}명
+      </td>
+      <td className="phone-cell hide-mobile">
+        {formatPhoneNumber(reservation.phone) || "-"}
+      </td>
       <td className="option-cell hide-mobile">
-        {reservation.options || reservation.addons ? '✓' : '-'}
+        {reservation.options || reservation.addons ? "✓" : "-"}
       </td>
       <td className="status-cell">
-        <StatusLight status={getSmsStatus(reservation, 'confirmation')} title="예약확정" />
+        <StatusLight
+          status={getSmsStatus(reservation, "confirmation")}
+          title="예약확정"
+        />
       </td>
       <td className="status-cell">
-        <StatusLight status={getSmsStatus(reservation, 'checkIn')} title="입실안내" />
+        <StatusLight
+          status={getSmsStatus(reservation, "checkIn")}
+          title="입실안내"
+        />
       </td>
       <td className="status-cell">
-        <StatusLight status={getSmsStatus(reservation, 'checkOut')} title="퇴실안내" />
+        <StatusLight
+          status={getSmsStatus(reservation, "checkOut")}
+          title="퇴실안내"
+        />
       </td>
     </tr>
   );
@@ -164,9 +174,15 @@ const SmsHistoryTable = ({ businessType = 'choho' }) => {
       <div className="sms-history-header">
         <h3>📋 문자 발송 이력</h3>
         <div className="legend">
-          <span><StatusLight status="success" title="발송완료" /> 발송완료</span>
-          <span><StatusLight status="pending" title="미발송" /> 미발송</span>
-          <span><StatusLight status="failed" title="실패" /> 실패</span>
+          <span>
+            <StatusLight status="success" title="발송완료" /> 발송완료
+          </span>
+          <span>
+            <StatusLight status="pending" title="미발송" /> 미발송
+          </span>
+          <span>
+            <StatusLight status="failed" title="실패" /> 실패
+          </span>
         </div>
       </div>
 
@@ -186,9 +202,12 @@ const SmsHistoryTable = ({ businessType = 'choho' }) => {
             </tr>
           </thead>
           <tbody>
-            {upcomingReservations.length === 0 && completedReservations.length === 0 ? (
+            {upcomingReservations.length === 0 &&
+            completedReservations.length === 0 ? (
               <tr>
-                <td colSpan="9" className="empty-row">최근 30일 내 예약이 없습니다</td>
+                <td colSpan="9" className="empty-row">
+                  최근 30일 내 예약이 없습니다
+                </td>
               </tr>
             ) : (
               <>
@@ -203,7 +222,9 @@ const SmsHistoryTable = ({ businessType = 'choho' }) => {
                       onClick={() => setShowCompleted(!showCompleted)}
                     >
                       <td colSpan="9">
-                        <span className="toggle-icon">{showCompleted ? '▼' : '▶'}</span>
+                        <span className="toggle-icon">
+                          {showCompleted ? "▼" : "▶"}
+                        </span>
                         이용완료 고객 ({completedReservations.length}건)
                       </td>
                     </tr>

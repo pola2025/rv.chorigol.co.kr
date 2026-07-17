@@ -1,6 +1,15 @@
+"use client";
 // MainLayout.jsx - 공통 레이아웃 컴포넌트
+//
+// react-router → next 로 갈아끼웠다 (확정 아키텍처: react-router 폐기, Next 가 레거시를 렌더).
+// 바뀐 건 라우팅 프리미티브 4개뿐이고 마크업·CSS·탭 구성은 그대로다:
+//   Link to=       → next/link href=
+//   useLocation()  → usePathname()
+//   useNavigate()  → useRouter().push()
+//   <Outlet />     → {children}   (Next 는 레이아웃이 children 을 받는다)
 import React, { useState, useMemo } from 'react';
-import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import MobileMenu from '../components/MobileMenu';
 import MobileBottomNav from '../components/MobileBottomNav';
@@ -24,9 +33,11 @@ const TABS = [
   { id: 'notifications', path: '/notifications', label: '알림 설정', Icon: CustomerIcon },
 ];
 
-function MainLayout({ user, onLogout }) {
-  const location = useLocation();
-  const navigate = useNavigate();
+// user·onLogout 은 레거시가 넘겨받고도 **한 번도 안 쓰던 죽은 prop** 이다 (rv 에 로그아웃 UI 가 없다).
+// 시그니처를 children 으로 바꾼다 — Next 레이아웃 규약.
+function MainLayout({ children }) {
+  const pathname = usePathname();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -35,7 +46,9 @@ function MainLayout({ user, onLogout }) {
     queryKey: ['isMobile-layout'],
     queryFn: () => window.innerWidth < 768,
     staleTime: Infinity,
-    initialData: window.innerWidth < 768
+    // Next 는 클라이언트 컴포넌트도 SSR 한다 → 렌더 중 window 를 읽으면 서버에서 터진다.
+    // (Vite 는 CSR 전용이라 이 코드가 안전했다)
+    initialData: typeof window !== 'undefined' ? window.innerWidth < 768 : false
   });
 
   // Window resize 이벤트 리스너
@@ -52,15 +65,15 @@ function MainLayout({ user, onLogout }) {
 
   // 현재 활성 탭 확인
   const currentTab = useMemo(() => {
-    return TABS.find(tab => location.pathname === tab.path || location.pathname.startsWith(tab.path + '/'));
-  }, [location.pathname]);
+    return TABS.find(tab => pathname === tab.path || pathname.startsWith(tab.path + '/'));
+  }, [pathname]);
 
 
   // 하단 네비게이션 탭 변경 시 처리
   const handleBottomNavTabChange = (tabId) => {
     const tab = TABS.find(t => t.id === tabId);
     if (tab) {
-      navigate(tab.path);
+      router.push(tab.path);
     }
   };
 
@@ -69,7 +82,7 @@ function MainLayout({ user, onLogout }) {
       {/* 헤더 + 네비게이션 */}
       <header className="layout-header">
         <div className="header-left">
-          <Link to="/calendar" className="logo">
+          <Link href="/calendar" className="logo">
             <img
               src="/images/logo-white.webp"
               alt="초호 펜션"
@@ -78,11 +91,11 @@ function MainLayout({ user, onLogout }) {
           </Link>
           <nav className="header-nav">
             {TABS.map(tab => {
-              const isActive = location.pathname === tab.path || location.pathname.startsWith(tab.path + '/');
+              const isActive = pathname === tab.path || pathname.startsWith(tab.path + '/');
               return (
                 <Link
                   key={tab.id}
-                  to={tab.path}
+                  href={tab.path}
                   className={`header-nav-tab ${isActive ? 'active' : ''}`}
                 >
                   <span className="header-nav-label">{tab.label}</span>
@@ -120,7 +133,7 @@ function MainLayout({ user, onLogout }) {
         )}
 
         {/* 라우트 콘텐츠 */}
-        <Outlet />
+        {children}
       </main>
 
       {/* 모바일 메뉴 */}

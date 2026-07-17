@@ -1,17 +1,27 @@
 // src/stores/useFirebaseStore.js
+//
+// ⚠️ Firebase → D1 이관 (2026-07-16). **스토어 바깥 API 는 한 글자도 바꾸지 않았다.**
+//    상태 키(rooms/reservations/overrides/blockedDates/pricingRules/options/customers),
+//    loading/errors 모양, initialize()/cleanup()/isLoading()/refresh() 시그니처 모두 동일.
+//    → 이 스토어를 읽는 컴포넌트 23개는 수정하지 않는다 (레거시 화면 그대로 이식).
+//
+// 바뀐 것은 데이터 출처뿐:
+//    onSnapshot 리스너 7개  →  GET /api/snapshot 1회 + 30초 heartbeat
+//
+// 왜 폴링으로 "번역"하지 않았나 (실측):
+//    매번 전부 읽으면 1회 954 rows → 1초 폴링 시 68,688,000 rows/일 = 무료한도의 1374%.
+//    그런데 이 시스템은 **변경을 만드는 사람이 관리자 본인**이라 물어볼 이유가 거의 없다.
+//    로드 1회 + 쓰기 후 refresh() 로 끝나고, 다른 관리자의 변경만 heartbeat 로 잡는다.
+//    heartbeat 는 COUNT+MAX(updated_at) 한 줄(1 rows_read) → 2,400 rows/일 = 0.05%.
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
-import { 
-    collection, 
-    query, 
-    onSnapshot, 
-    orderBy,
-    where,
-    Timestamp 
-} from 'firebase/firestore';
-import { db } from '../config/firebase';
 
-// Firebase 실시간 동기화를 위한 스토어
+const POLL_MS = 30000; // heartbeat 주기 — 다른 관리자의 변경 감지용
+
+const COLLECTIONS = ['rooms', 'reservations', 'overrides', 'blockedDates', 'pricingRules', 'options', 'customers'];
+const allLoading = (v) => Object.fromEntries(COLLECTIONS.map((k) => [k, v]));
+const allErrors = (v) => Object.fromEntries(COLLECTIONS.map((k) => [k, v]));
+
 const useFirebaseStore = create(
     subscribeWithSelector((set, get) => ({
         // 상태
@@ -22,31 +32,16 @@ const useFirebaseStore = create(
         pricingRules: [],
         options: [],
         customers: [],
-        
+
         // 로딩 및 에러 상태
-        loading: {
-            rooms: true,
-            reservations: true,
-            overrides: true,
-            blockedDates: true,
-            pricingRules: true,
-            options: true,
-            customers: true,
-        },
-        errors: {
-            rooms: null,
-            reservations: null,
-            overrides: null,
-            blockedDates: null,
-            pricingRules: null,
-            options: null,
-            customers: null,
-        },
-        
-        // 리스너 관리
+        loading: allLoading(true),
+        errors: allErrors(null),
+
+        // 리스너 관리 (D1: heartbeat 타이머 정리 함수를 담는다 — cleanup() 이 그대로 돈다)
         unsubscribers: {},
         isInitialized: false,
-        
+        _version: null,
+
         // 초기화 함수
         initialize: () => {
             const { isInitialized } = get();
@@ -54,167 +49,102 @@ const useFirebaseStore = create(
                 console.log('Already initialized, skipping...');
                 return () => {};
             }
-            
-            console.log('Initializing Firebase listeners...');
-            
-            // cleanup 함수를 미리 호출하여 기존 리스너 정리
+
+            console.log('Initializing D1 snapshot sync...');
             get().cleanup();
-            
-            const collections = [
-                {
-                    name: 'rooms',
-                    query: query(collection(db, 'rooms'), orderBy('order', 'asc')),
-                    transform: (docs) => docs.map(doc => ({ id: doc.id, ...doc.data() }))
-                },
-                {
-                    name: 'reservations',
-                    query: query(collection(db, 'reservations'), orderBy('checkIn', 'desc')),
-                    transform: (docs) => docs.map(doc => {
-                        const data = doc.data();
-                        // Timestamp 객체를 평범한 JavaScript 객체로 변환
-                        const transformed = { id: doc.id, ...data };
-                        
-                        // Timestamp 필드들을 처리
-                        if (data.createdAt && data.createdAt.seconds) {
-                            transformed.createdAt = {
-                                seconds: data.createdAt.seconds,
-                                nanoseconds: data.createdAt.nanoseconds
-                            };
-                        }
-                        if (data.updatedAt && data.updatedAt.seconds) {
-                            transformed.updatedAt = {
-                                seconds: data.updatedAt.seconds,
-                                nanoseconds: data.updatedAt.nanoseconds
-                            };
-                        }
-                        
-                        return transformed;
-                    })
-                },
-                {
-                    name: 'overrides',
-                    collectionName: 'inventory_overrides',
-                    query: query(collection(db, 'inventory_overrides')),
-                    transform: (docs) => {
-                        const overrides = {};
-                        docs.forEach(doc => {
-                            overrides[doc.id] = doc.data().available;
-                        });
-                        return overrides;
-                    }
-                },
-                {
-                    name: 'blockedDates',
-                    collectionName: 'blocked_dates',
-                    query: query(collection(db, 'blocked_dates')),
-                    transform: (docs) => docs.map(doc => ({ id: doc.id, ...doc.data() }))
-                },
-                {
-                    name: 'pricingRules',
-                    collectionName: 'pricing_rules',
-                    query: query(collection(db, 'pricing_rules')),
-                    transform: (docs) => docs.map(doc => ({ id: doc.id, ...doc.data() }))
-                },
-                {
-                    name: 'options',
-                    query: query(collection(db, 'options')),
-                    transform: (docs) => docs.map(doc => ({ id: doc.id, ...doc.data() }))
-                },
-                {
-                    name: 'customers',
-                    query: query(collection(db, 'customers'), orderBy('lastVisitDate', 'desc')),
-                    transform: (docs) => docs.map(doc => ({ id: doc.id, ...doc.data() }))
+
+            let stopped = false;
+
+            // 전체 스냅샷 적재 — 레거시 onSnapshot 7개가 하던 일을 한 번에
+            const loadAll = async () => {
+                try {
+                    const res = await fetch('/api/snapshot', { credentials: 'same-origin' });
+                    if (!res.ok) throw new Error(`snapshot ${res.status}`);
+                    const { version, data } = await res.json();
+                    if (stopped) return;
+                    set({ ...data, _version: version, loading: allLoading(false), errors: allErrors(null) });
+                } catch (error) {
+                    console.error('Error fetching snapshot:', error);
+                    if (stopped) return;
+                    set({ loading: allLoading(false), errors: allErrors(error.message) });
                 }
-            ];
-            
-            const newUnsubscribers = {};
-            
-            collections.forEach(({ name, collectionName, query: collectionQuery, transform }) => {
-                // 로딩 상태 설정
-                set((state) => ({
-                    loading: { ...state.loading, [name]: true }
-                }));
-                
-                // 리스너 설정
-                newUnsubscribers[name] = onSnapshot(
-                    collectionQuery,
-                    (snapshot) => {
-                        const data = transform(snapshot.docs);
-                        set((state) => ({
-                            [name]: data,
-                            loading: { ...state.loading, [name]: false },
-                            errors: { ...state.errors, [name]: null }
-                        }));
-                    },
-                    (error) => {
-                        console.error(`Error fetching ${collectionName || name}:`, error);
-                        set((state) => ({
-                            loading: { ...state.loading, [name]: false },
-                            errors: { ...state.errors, [name]: error.message }
-                        }));
-                    }
-                );
+            };
+
+            // heartbeat — "바뀐 거 있나?"만 묻고, 달라졌을 때만 전체를 다시 받는다
+            const tick = async () => {
+                if (stopped || document.hidden) return; // 탭이 숨겨져 있으면 굳이 묻지 않는다
+                try {
+                    const res = await fetch('/api/version', { credentials: 'same-origin' });
+                    if (!res.ok) return;
+                    const { version } = await res.json();
+                    if (!stopped && version !== get()._version) await loadAll();
+                } catch {
+                    // heartbeat 실패는 조용히 넘긴다 (다음 주기에 다시 시도)
+                }
+            };
+
+            loadAll();
+            const timer = setInterval(tick, POLL_MS);
+
+            // cleanup() 이 Object.values(unsubscribers).forEach(unsub => unsub?.()) 로 도므로
+            // 함수 하나만 넣어두면 레거시 정리 경로가 그대로 동작한다
+            const stop = () => { stopped = true; clearInterval(timer); };
+
+            set({
+                unsubscribers: { snapshot: stop },
+                isInitialized: true
             });
-            
-            set({ 
-                unsubscribers: newUnsubscribers, 
-                isInitialized: true 
-            });
-            
+
             // cleanup 함수 반환
             return () => {
-                console.log('Cleaning up Firebase listeners...');
-                Object.values(newUnsubscribers).forEach(unsub => unsub?.());
-                set({ 
-                    unsubscribers: {}, 
+                console.log('Cleaning up D1 snapshot sync...');
+                stop();
+                set({
+                    unsubscribers: {},
                     isInitialized: false,
-                    loading: {
-                        rooms: true,
-                        reservations: true,
-                        overrides: true,
-                        blockedDates: true,
-                        pricingRules: true,
-                        options: true,
-                        customers: true,
-                    }
+                    loading: allLoading(true)
                 });
             };
         },
-        
+
         // 정리 함수
         cleanup: () => {
             const { unsubscribers } = get();
             Object.values(unsubscribers).forEach(unsub => unsub?.());
-            set({ 
-                unsubscribers: {}, 
+            set({
+                unsubscribers: {},
                 isInitialized: false,
-                loading: {
-                    rooms: true,
-                    reservations: true,
-                    overrides: true,
-                    blockedDates: true,
-                    pricingRules: true,
-                    options: true,
-                    customers: true,
-                }
+                loading: allLoading(true)
             });
         },
-        
+
         // 전체 로딩 상태 확인
         isLoading: () => {
             const { loading } = get();
             return Object.values(loading).some(isLoading => isLoading);
         },
-        
-        // 특정 컬렉션 새로고침
-        refresh: (collectionName) => {
-            const { unsubscribers } = get();
-            if (unsubscribers[collectionName]) {
-                // 기존 리스너 재실행을 트리거하기 위해 
-                // 로딩 상태만 변경 (실제로는 Firebase가 자동으로 최신 데이터 전송)
-                set((state) => ({
-                    loading: { ...state.loading, [collectionName]: true }
-                }));
+
+        /**
+         * 새로고침.
+         * 레거시는 Firestore 가 알아서 밀어줬으므로 loading 만 켜는 시늉이었지만,
+         * D1 엔 push 가 없으므로 실제로 다시 받아온다.
+         * 쓰기 직후(useReservationStore) 이걸 불러야 화면이 갱신된다.
+         * @param {string} [collectionName] 레거시 시그니처 유지용 — D1 은 스냅샷이 통짜라 전체를 받는다
+         */
+        refresh: async (collectionName) => {
+            set((state) => ({
+                loading: collectionName
+                    ? { ...state.loading, [collectionName]: true }
+                    : allLoading(true),
+            }));
+            try {
+                const res = await fetch('/api/snapshot', { credentials: 'same-origin' });
+                if (!res.ok) throw new Error(`snapshot ${res.status}`);
+                const { version, data } = await res.json();
+                set({ ...data, _version: version, loading: allLoading(false), errors: allErrors(null) });
+            } catch (error) {
+                console.error('Error refreshing snapshot:', error);
+                set({ loading: allLoading(false) });
             }
         }
     }))

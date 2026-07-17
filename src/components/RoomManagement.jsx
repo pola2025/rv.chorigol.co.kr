@@ -1,22 +1,37 @@
 // src/components/RoomManagement.jsx
+//
+// ⚠️ Firebase → D1 이관 (2026-07-17).
+//    읽기는 이미 D1(useRooms/useReservations/useFirebaseStore)이었는데 **쓰기만 옛 Firestore** 로
+//    가고 있었다 → 저장해도 화면에 안 나타나는 split-brain. 쓰기를 전부 /api/* 로 옮겼다.
+//
+// **객실명 변경은 막혔다** (사용자 결정 2026-07-17). 이름이 7곳에 사실상 FK 로 박혀 있고
+// (예약 133 · 고객 선호객실 90 · override · 템플릿 · 요금규칙 · 옵션설정),
+// 레거시의 rename 연쇄는 두 군데 다 깨져 있었다:
+//   · `where('room','==',old)` — 예약 필드는 `roomName` 이라 항상 0건 → 예약이 고아가 됐다
+//   · `docId.includes('_'+old)` — 부분일치라 "Forest" 를 바꾸면 "Forest mini" 까지 파괴됐다
+// → 연쇄 함수 2개를 지우고 수정 폼에서 객실명을 읽기전용으로 바꿨다. 서버도 400 으로 거부한다.
 import React, { useState, useEffect } from 'react';
 import { useRooms } from '../hooks/useRooms';
 import { useReservations } from '../hooks/useReservations';
 import useFirebaseStore from '../stores/useFirebaseStore';
-import {
-  doc,
-  updateDoc,
-  addDoc,
-  collection,
-  deleteDoc,
-  query,
-  where,
-  getDocs,
-  writeBatch
-} from 'firebase/firestore';
-import { db } from '../config/firebase';
-import DataInitializer from './DataInitializer';
+import { toRoomWriteBody } from '../../lib/legacy-write-shape';
 import './RoomManagement.css';
+
+/** 쓰기 API — 실패하면 서버 문구를 그대로 던진다 (레거시가 Firestore 에러를 그대로 썼듯이) */
+async function api(path, { method = 'PATCH', body } = {}) {
+  const res = await fetch(path, {
+    method,
+    credentials: 'same-origin',
+    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || `요청 실패 (${res.status})`);
+  return json;
+}
+
+/** 쓰기 후 화면 갱신 — 레거시는 Firestore 가 밀어줬지만 D1 엔 push 가 없다 */
+const refresh = () => useFirebaseStore.getState().refresh();
 
 const RoomManagement = () => {
   const { data: rooms, isLoading } = useRooms();
@@ -73,78 +88,6 @@ const RoomManagement = () => {
     setFormData(getInitialFormData());
   };
 
-  // 객실명 변경 시 관련 예약 업데이트
-  const updateRelatedReservations = async (oldRoomName, newRoomName) => {
-    try {
-      // 해당 객실명을 가진 예약들 찾기
-      const reservationsRef = collection(db, 'reservations');
-      const q = query(reservationsRef, where('room', '==', oldRoomName));
-      const querySnapshot = await getDocs(q);
-
-      if (querySnapshot.empty) {
-        console.log('업데이트할 예약이 없습니다.');
-        return;
-      }
-
-      // Batch 작업으로 모든 예약 업데이트
-      const batch = writeBatch(db);
-      let updateCount = 0;
-
-      querySnapshot.forEach((doc) => {
-        batch.update(doc.ref, { 
-          room: newRoomName,
-          updatedAt: new Date().toISOString()
-        });
-        updateCount++;
-      });
-
-      await batch.commit();
-      console.log(`${updateCount}개의 예약이 업데이트되었습니다.`);
-      return updateCount;
-    } catch (error) {
-      console.error('예약 업데이트 중 오류:', error);
-      throw error;
-    }
-  };
-
-  // 객실명 변경 시 인벤토리 오버라이드 업데이트
-  const updateInventoryOverrides = async (oldRoomName, newRoomName) => {
-    try {
-      const overridesRef = collection(db, 'inventory_overrides');
-      const querySnapshot = await getDocs(overridesRef);
-      
-      const batch = writeBatch(db);
-      let updateCount = 0;
-
-      querySnapshot.forEach((docSnapshot) => {
-        const docId = docSnapshot.id;
-        // inventory_overrides의 ID 형식: "YYYY-MM-DD_객실명"
-        if (docId.includes(`_${oldRoomName}`)) {
-          const [date] = docId.split('_');
-          const newDocId = `${date}_${newRoomName}`;
-          
-          // 기존 문서 삭제하고 새 문서 생성
-          batch.delete(docSnapshot.ref);
-          batch.set(doc(db, 'inventory_overrides', newDocId), {
-            ...docSnapshot.data(),
-            updatedAt: new Date().toISOString()
-          });
-          updateCount++;
-        }
-      });
-
-      if (updateCount > 0) {
-        await batch.commit();
-        console.log(`${updateCount}개의 인벤토리 오버라이드가 업데이트되었습니다.`);
-      }
-      
-      return updateCount;
-    } catch (error) {
-      console.error('인벤토리 오버라이드 업데이트 중 오류:', error);
-      throw error;
-    }
-  };
-
   const handleSave = async () => {
     if (!editingRoom) return;
     
@@ -165,70 +108,21 @@ const RoomManagement = () => {
       return;
     }
 
-    // 객실명이 변경되었는지 확인
-    const isRoomNameChanged = originalRoomName !== formData.객실명.trim();
-    
-    if (isRoomNameChanged) {
-      // 관련 예약이 있는지 확인
-      const relatedReservations = reservations.filter(r => 
-        r.room === originalRoomName && r.status !== '예약취소'
-      );
-      
-      if (relatedReservations.length > 0) {
-        const confirmMsg = `"${originalRoomName}"으로 등록된 ${relatedReservations.length}개의 예약이 있습니다.\n` +
-                          `객실명을 "${formData.객실명.trim()}"으로 변경하면 모든 예약도 함께 업데이트됩니다.\n\n` +
-                          `계속하시겠습니까?`;
-        
-        if (!window.confirm(confirmMsg)) {
-          return;
-        }
-      }
-    }
-
     setIsSaving(true);
     try {
-      // 객실 정보 업데이트
-      const roomRef = doc(db, 'rooms', editingRoom);
-      await updateDoc(roomRef, {
-        ...formData,
-        객실명: formData.객실명.trim(),
-        재고: formData.기본재고,
-        updatedAt: new Date().toISOString()
-      });
+      // 객실명은 서버가 400 으로 거부한다 — 폼에서도 읽기전용이라 여기 올 일이 없다
+      const { 객실명, ...editable } = formData;
+      await api('/api/rooms', { body: { id: editingRoom, ...toRoomWriteBody(editable) } });
+      await refresh();
 
-      // 객실명이 변경된 경우 관련 데이터 업데이트
-      if (isRoomNameChanged) {
-        console.log(`객실명 변경: ${originalRoomName} → ${formData.객실명.trim()}`);
-        
-        // 예약 업데이트
-        const updatedReservations = await updateRelatedReservations(
-          originalRoomName, 
-          formData.객실명.trim()
-        );
-        
-        // 인벤토리 오버라이드 업데이트
-        const updatedOverrides = await updateInventoryOverrides(
-          originalRoomName,
-          formData.객실명.trim()
-        );
+      alert('객실 정보가 수정되었습니다.');
 
-        if (updatedReservations > 0 || updatedOverrides > 0) {
-          alert(`객실 정보가 수정되었습니다.\n` +
-                `- 업데이트된 예약: ${updatedReservations || 0}개\n` +
-                `- 업데이트된 재고 설정: ${updatedOverrides || 0}개`);
-        } else {
-          alert('객실 정보가 수정되었습니다.');
-        }
-      } else {
-        alert('객실 정보가 수정되었습니다.');
-      }
-      
       setEditingRoom(null);
       setFormData({});
       setOriginalRoomName('');
     } catch (error) {
       console.error('객실 정보 수정 오류:', error);
-      alert('수정 중 오류가 발생했습니다.');
+      alert(error.message || '수정 중 오류가 발생했습니다.');
     } finally {
       setIsSaving(false);
     }
@@ -249,50 +143,43 @@ const RoomManagement = () => {
 
     setIsSaving(true);
     try {
-      const roomData = {
-        ...formData,
-        객실명: formData.객실명.trim(),
-        재고: formData.기본재고,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
+      // 재고 = 기본재고 는 서버(createRoom)가 레거시 규약대로 처리한다
+      await api('/api/rooms', {
+        method: 'POST',
+        body: toRoomWriteBody({ ...formData, 객실명: formData.객실명.trim() })
+      });
+      await refresh();
 
-      await addDoc(collection(db, 'rooms'), roomData);
-      
       alert('새 객실이 추가되었습니다.');
       setIsAddingRoom(false);
       setFormData({});
     } catch (error) {
       console.error('객실 추가 오류:', error);
-      alert('객실 추가 중 오류가 발생했습니다.');
+      alert(error.message || '객실 추가 중 오류가 발생했습니다.');
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDeleteRoom = async (roomId, roomName) => {
-    // 관련 예약이 있는지 확인
-    const relatedReservations = reservations.filter(r => 
-      r.room === roomName && r.status !== '예약취소'
-    );
-    
-    if (relatedReservations.length > 0) {
-      alert(`"${roomName}" 객실에 ${relatedReservations.length}개의 활성 예약이 있어 삭제할 수 없습니다.\n` +
-            `먼저 해당 예약들을 취소하거나 다른 객실로 변경해주세요.`);
-      return;
-    }
+    // 활성 예약 검사는 **서버**가 한다.
+    // 레거시는 여기서 `r.room === roomName` 으로 걸렀는데 예약 필드는 `roomName` 이라
+    // 항상 빈 배열 → 가드가 한 번도 안 걸렸다 (예약 84건짜리 객실도 그냥 지워졌다).
+    if (!window.confirm(`정말로 "${roomName}" 객실을 삭제하시겠습니까?
 
-    if (!window.confirm(`정말로 "${roomName}" 객실을 삭제하시겠습니까?\n\n⚠️ 주의: 이 작업은 되돌릴 수 없습니다.`)) {
+⚠️ 주의: 이 작업은 되돌릴 수 없습니다.`)) {
       return;
     }
 
     setIsDeletingRoom(roomId);
     try {
-      await deleteDoc(doc(db, 'rooms', roomId));
+      await api(`/api/rooms?id=${encodeURIComponent(roomId)}`, { method: 'DELETE' });
+      await refresh();
       alert('객실이 삭제되었습니다.');
     } catch (error) {
       console.error('객실 삭제 오류:', error);
-      alert('객실 삭제 중 오류가 발생했습니다.');
+      // 활성 예약이 있으면 서버가 레거시와 같은 문구로 막는다
+      alert(error.message || '객실 삭제 중 오류가 발생했습니다.');
     } finally {
       setIsDeletingRoom(null);
     }
@@ -323,18 +210,10 @@ const RoomManagement = () => {
 
     setIsSaving(true);
     try {
-      const roomRef = doc(db, 'rooms', roomId);
-      const updateData = {
-        [field]: value,
-        updatedAt: new Date().toISOString()
-      };
+      // 기본재고 → 재고 동기화는 서버(updateRoom)가 레거시 규약대로 처리한다
+      await api('/api/rooms', { body: { id: roomId, ...toRoomWriteBody({ [field]: value }) } });
+      await refresh();
 
-      // 기본재고 변경 시 재고 필드도 같이 업데이트
-      if (field === '기본재고') {
-        updateData.재고 = value;
-      }
-
-      await updateDoc(roomRef, updateData);
       setInlineEdit(null);
     } catch (error) {
       console.error('인라인 편집 저장 오류:', error);
@@ -356,11 +235,8 @@ const RoomManagement = () => {
   // 객실 활성화/비활성화 토글
   const toggleRoomActive = async (roomId, currentStatus) => {
     try {
-      const roomRef = doc(db, 'rooms', roomId);
-      await updateDoc(roomRef, {
-        isActive: !currentStatus,
-        updatedAt: new Date().toISOString()
-      });
+      await api('/api/rooms', { body: { id: roomId, ...toRoomWriteBody({ isActive: !currentStatus }) } });
+      await refresh();
     } catch (error) {
       console.error('객실 상태 변경 오류:', error);
       alert('상태 변경 중 오류가 발생했습니다.');
@@ -370,12 +246,9 @@ const RoomManagement = () => {
   // 시즌 가격 규칙 추가
   const addPricingRule = async (ruleData) => {
     try {
-      await addDoc(collection(db, 'pricing_rules'), {
-        ...ruleData,
-        created: new Date(),
-        updated: new Date(),
-        isActive: true
-      });
+      // 규칙 객체는 서버가 data JSON 에 통째로 보존한다 (이관 규약)
+      await api('/api/pricing-rules', { method: 'POST', body: { ...ruleData, isActive: true } });
+      await refresh();
       setIsAddingRule(false);
       alert('시즌 가격 규칙이 추가되었습니다.');
     } catch (error) {
@@ -388,7 +261,8 @@ const RoomManagement = () => {
   const deletePricingRule = async (ruleId) => {
     if (window.confirm('정말 삭제하시겠습니까?')) {
       try {
-        await deleteDoc(doc(db, 'pricing_rules', ruleId));
+        await api(`/api/pricing-rules?id=${encodeURIComponent(ruleId)}`, { method: 'DELETE' });
+        await refresh();
         alert('시즌 가격 규칙이 삭제되었습니다.');
       } catch (error) {
         console.error('규칙 삭제 오류:', error);
@@ -401,11 +275,21 @@ const RoomManagement = () => {
     return <div className="loading">로딩 중...</div>;
   }
 
-  // 객실이 없는 경우 초기화 화면 표시
+  // 객실이 없으면 — 데이터가 안 온 것이지, 초기화할 상황이 아니다.
+  //
+  // 레거시는 여기서 <DataInitializer/> 를 띄웠는데, 그 버튼은 하드코딩된 2025년 값으로
+  // rooms/options/pricing_rules 를 merge 없이 **덮어썼다**(batch.set). 시드값이 이미 낡아
+  // Forest 기본요금을 180,000 → 150,000 으로 되돌리고 지금은 없는 '단체예약' 객실을 만든다.
+  // 게다가 신규 스택에선 /api/snapshot 이 한 번 실패하면 rooms=[] 라 이 화면이 뜬다
+  // → 일시적 오류에 운영 데이터를 날릴 수 있는 경로였다. 컴포넌트째로 삭제했다.
   if (!rooms || rooms.length === 0) {
     return (
       <div className="room-management">
-        <DataInitializer onComplete={() => window.location.reload()} />
+        <div className="empty-state">
+          <h3>객실 정보를 불러오지 못했습니다</h3>
+          <p>일시적인 오류일 수 있습니다. 새로고침해 주세요.</p>
+          <button className="btn-primary" onClick={() => refresh()}>다시 불러오기</button>
+        </div>
       </div>
     );
   }
@@ -573,14 +457,14 @@ const RoomManagement = () => {
                     <input
                       type="text"
                       value={formData.객실명}
-                      onChange={(e) => setFormData({...formData, 객실명: e.target.value})}
-                      placeholder="예: 스탠다드룸"
-                    />
-                    {originalRoomName !== formData.객실명.trim() && formData.객실명.trim() && (
-                      <small className="warning-text">
-                        ⚠️ 객실명 변경 시 관련된 모든 예약이 자동으로 업데이트됩니다.
-                      </small>
-                    )}
+                      readOnly
+                      disabled
+                      title="객실명은 변경할 수 없습니다. 이름이 예약·재고·템플릿 등에 그대로 쓰여 바꾸면 데이터가 어긋납니다."
+                      />
+                    <small className="warning-text">
+                      객실명은 변경할 수 없습니다. 이름이 예약·재고·문자템플릿에 그대로 쓰여서
+                      바꾸면 기존 예약이 어긋납니다. 이름을 바꾸려면 새 객실을 만들어 주세요.
+                    </small>
                   </div>
                 </div>
                 
@@ -964,13 +848,14 @@ const RoomManagement = () => {
               });
 
               if (editingRule) {
-                updateDoc(doc(db, 'pricing_rules', editingRule.id), {
-                  ...ruleData,
-                  updated: new Date()
-                }).then(() => {
-                  setEditingRule(null);
-                  alert('시즌 규칙이 수정되었습니다.');
-                });
+                // 부분 수정은 서버가 기존 data 에 **머지**한다 (통째 교체하면 안 보낸 필드가 사라진다)
+                api('/api/pricing-rules', { body: { id: editingRule.id, ...ruleData } })
+                  .then(async () => {
+                    await refresh();
+                    setEditingRule(null);
+                    alert('시즌 규칙이 수정되었습니다.');
+                  })
+                  .catch((e) => alert(e.message || '수정 중 오류가 발생했습니다.'));
               } else {
                 addPricingRule(ruleData);
               }

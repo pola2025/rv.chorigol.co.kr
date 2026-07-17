@@ -1,12 +1,21 @@
 // src/components/ReservationCalendar.jsx
 // 2025 리뉴얼 - 관공서 스타일, 직관적이고 가독성 중심
+//
+// ⚠️ Firebase → D1 이관 (2026-07-17).
+//    이 화면은 rooms/options/reservations 를 **자체 useState 로 중복 fetch** 하고 있었다
+//    (getDocs 3곳). 같은 데이터를 전역 스토어(useFirebaseStore)가 이미 /api/snapshot 으로
+//    들고 있으므로 훅으로 치환했다 — 데이터 출처만 바뀌고 화면 모양은 그대로다.
+//    쓰기는 원래부터 props(onAddReservation 등)로 상위에 위임하고 있어 손댈 게 없었다.
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { collection, query, getDocs } from 'firebase/firestore';
-import html2canvas from 'html2canvas';
-import { db } from '../config/firebase';
+import { useRooms } from '../hooks/useRooms';
+import { useOptions } from '../hooks/useOptions';
+import { useReservations } from '../hooks/useReservations';
+import useFirebaseStore from '../stores/useFirebaseStore';
 import { toYYYYMMDD } from '../utils';
+import telegramService from '../services/telegramService';
 import CustomCalendar from './CustomCalendar';
 import NewReservationModal from '../common/NewReservationModal';
+import CancelReservationModal from './CancelReservationModal';
 import './ReservationCalendar.css';
 
 const ReservationCalendar = ({
@@ -15,23 +24,19 @@ const ReservationCalendar = ({
   onUpdateReservation,
   onAddReservation
 }) => {
-  const [reservations, setReservations] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [rooms, setRooms] = useState([]);
-  const [options, setOptions] = useState([]);
+  // 전역 스냅샷에서 받는다 (레거시는 여기서 getDocs 로 또 읽었다)
+  const { data: rooms = [] } = useRooms();
+  const { data: options = [] } = useOptions();
+  const { data: reservations = [], isLoading: loading } = useReservations();
   const [selectedDate, setSelectedDate] = useState(null);
   const [isNewReservationOpen, setIsNewReservationOpen] = useState(false);
   const [editingReservation, setEditingReservation] = useState(null);
-  const [isCapturing, setIsCapturing] = useState(false);
+  const [cancelingReservation, setCancelingReservation] = useState(null);
+  const [isSendingTelegram, setIsSendingTelegram] = useState(false);
+  const [showTelegramConfirm, setShowTelegramConfirm] = useState(false);
   const panelRef = useRef(null);
 
-  // 데이터 로드
-  useEffect(() => {
-    loadRooms();
-    loadOptions();
-    loadReservations();
-  }, []);
-
+  // 데이터 로드는 useFirebaseStore(초기화 시 /api/snapshot 1회)가 담당한다 — 여기서 또 받지 않는다
   // 모바일에서 캘린더 페이지 body 스크롤 방지
   useEffect(() => {
     const isMobile = window.innerWidth < 768;
@@ -56,38 +61,8 @@ const ReservationCalendar = ({
     };
   }, [selectedDate]);
 
-  const loadRooms = async () => {
-    try {
-      const snapshot = await getDocs(collection(db, 'rooms'));
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setRooms(data);
-    } catch (error) {
-      console.error('객실 로드 실패:', error);
-    }
-  };
-
-  const loadOptions = async () => {
-    try {
-      const snapshot = await getDocs(collection(db, 'options'));
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setOptions(data);
-    } catch (error) {
-      console.error('옵션 로드 실패:', error);
-    }
-  };
-
-  const loadReservations = async () => {
-    setLoading(true);
-    try {
-      const snapshot = await getDocs(query(collection(db, 'reservations')));
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setReservations(data);
-    } catch (error) {
-      console.error('예약 로드 실패:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  /** 쓰기 후 갱신 — 레거시의 loadReservations() 자리. D1 엔 push 가 없어 다시 받아야 한다 */
+  const loadReservations = () => useFirebaseStore.getState().refresh();
 
   // 선택된 날짜의 예약 필터링
   const selectedDateReservations = useMemo(() => {
@@ -197,22 +172,34 @@ const ReservationCalendar = ({
     }
   };
 
-  // 예약 취소
-  const handleCancelReservation = async (reservation) => {
-    console.log('🔴 [ReservationCalendar] handleCancelReservation 호출됨');
-    console.log('🔴 [ReservationCalendar] reservation:', reservation);
-    console.log('🔴 [ReservationCalendar] onCancelReservation 존재:', !!onCancelReservation);
+  // 예약 취소 모달 열기
+  const handleCancelReservation = (reservation) => {
+    console.log('🔴 [ReservationCalendar] 취소 모달 열기:', reservation);
 
-    if (!confirm(`${reservation.customerName}님의 예약을 취소하시겠습니까?`)) {
-      console.log('🔴 [ReservationCalendar] 사용자가 취소함');
+    // 막기 예약은 바로 삭제
+    if (reservation.source === '막기') {
+      if (!confirm(`막기 예약을 삭제하시겠습니까?`)) {
+        return;
+      }
+      handleConfirmCancel(reservation, {});
       return;
     }
 
+    // 일반 예약은 취소 모달 표시
+    setCancelingReservation(reservation);
+  };
+
+  // 예약 취소 확정 (모달에서 확인 버튼 클릭 시)
+  const handleConfirmCancel = async (reservation, cancelData) => {
+    console.log('🔴 [ReservationCalendar] 예약 취소 확정:', reservation?.id || cancelingReservation?.id, cancelData);
+
+    const targetReservation = reservation || cancelingReservation;
+    if (!targetReservation) return;
+
     try {
-      console.log('🔴 [ReservationCalendar] onCancelReservation 호출 시작...');
-      // cancelData를 빈 객체로 전달
-      await onCancelReservation(reservation, {});
-      console.log('🔴 [ReservationCalendar] onCancelReservation 완료');
+      await onCancelReservation(targetReservation, cancelData);
+      console.log('🔴 [ReservationCalendar] 예약 취소 완료');
+      setCancelingReservation(null);
       await loadReservations();
     } catch (error) {
       console.error('🔴 [ReservationCalendar] 예약 취소 실패:', error);
@@ -220,390 +207,86 @@ const ReservationCalendar = ({
     }
   };
 
-  // 화면 캡쳐 - DOM 복제 후 body에 임시 삽입하여 캡처
-  const handleCapture = async () => {
-    if (!panelRef.current || isCapturing) return;
+  // 텔레그램 전송 확인 모달 열기
+  const handleOpenTelegramConfirm = () => {
+    if (!selectedDate) return;
+    setShowTelegramConfirm(true);
+  };
 
-    setIsCapturing(true);
+  // 텔레그램으로 예약 현황 전송
+  const handleSendTelegram = async () => {
+    if (!selectedDate || isSendingTelegram) return;
+
+    setIsSendingTelegram(true);
 
     try {
-      const panel = panelRef.current;
-      const originalContent = panel.querySelector('.panel-content');
-
-      // 원본 스크롤 영역의 전체 높이 구하기
-      const contentScrollHeight = originalContent ? originalContent.scrollHeight : 0;
-
-      // 1. 패널을 완전히 복제
-      const clonedPanel = panel.cloneNode(true);
-
-      // 2. 복제된 패널에 캡처용 스타일 적용 (화면 내에 배치하되 뒤로 숨김)
-      clonedPanel.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 420px;
-        max-height: none;
-        height: auto;
-        border: 1px solid #d1d5db;
-        border-radius: 8px;
-        background: #ffffff;
-        box-shadow: none;
-        transform: none;
-        animation: none;
-        opacity: 1;
-        visibility: visible;
-        z-index: -99999;
-        display: block;
-        overflow: visible;
-        pointer-events: none;
-      `;
-
-      // 3. 모든 요소에 인라인 스타일 강제 적용 (rgba → solid 색상)
-      // 패널 헤더
-      const header = clonedPanel.querySelector('.panel-header');
-      if (header) {
-        header.style.cssText = `
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 14px 16px;
-          background: #1f2937;
-          color: #ffffff;
-          border-radius: 8px 8px 0 0;
-          opacity: 1;
-          visibility: visible;
-        `;
-
-        // 헤더 내 h3
-        const h3 = header.querySelector('h3');
-        if (h3) {
-          h3.style.cssText = 'margin: 0; font-size: 15px; font-weight: 600; color: #ffffff;';
-        }
-
-        // 예약 건수 배지 (rgba → solid)
-        const countBadge = header.querySelector('.reservation-count');
-        if (countBadge) {
-          countBadge.style.cssText = `
-            font-size: 13px;
-            background: #4b5563;
-            color: #ffffff;
-            padding: 3px 10px;
-            border-radius: 12px;
-          `;
-        }
-
-        // 캡처 버튼 숨김 (캡처 이미지에 불필요)
-        const captureBtn = header.querySelector('.capture-btn');
-        if (captureBtn) {
-          captureBtn.style.display = 'none';
-        }
-
-        // 닫기 버튼 숨김
-        const closeBtn = header.querySelector('.close-btn');
-        if (closeBtn) {
-          closeBtn.style.display = 'none';
-        }
-      }
-
-      // 패널 액션 영역
-      const actions = clonedPanel.querySelector('.panel-actions');
-      if (actions) {
-        actions.style.cssText = `
-          padding: 12px 16px;
-          border-bottom: 1px solid #e5e7eb;
-          background: #f9fafb;
-          opacity: 1;
-          visibility: visible;
-        `;
-
-        const addBtn = actions.querySelector('.add-btn');
-        if (addBtn) {
-          addBtn.style.cssText = `
-            width: 100%;
-            padding: 10px;
-            background: #1f2937;
-            color: #ffffff;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-          `;
-        }
-      }
-
-      // 패널 컨텐츠 - 원본의 scrollHeight를 명시적으로 적용
-      const content = clonedPanel.querySelector('.panel-content');
-      if (content) {
-        content.style.cssText = `
-          display: block;
-          max-height: none;
-          min-height: ${contentScrollHeight}px;
-          height: auto;
-          overflow: visible;
-          padding: 12px;
-          background: #ffffff;
-          opacity: 1;
-          visibility: visible;
-        `;
-      }
-
-      // 빈 메시지
-      const emptyMsg = clonedPanel.querySelector('.empty-message');
-      if (emptyMsg) {
-        emptyMsg.style.cssText = `
-          text-align: center;
-          padding: 40px 20px;
-          color: #6b7280;
-          background: #ffffff;
-        `;
-      }
-
-      // 예약 리스트
-      const list = clonedPanel.querySelector('.detail-reservation-list');
-      if (list) {
-        list.style.cssText = `
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        `;
-      }
-
-      // 모든 예약 카드
-      clonedPanel.querySelectorAll('.detail-reservation-card').forEach(card => {
-        card.style.cssText = `
-          border: 1px solid #d1d5db;
-          border-radius: 6px;
-          overflow: hidden;
-          background: #ffffff;
-          opacity: 1;
-          visibility: visible;
-        `;
-      });
-
-      // 카드 헤더
-      clonedPanel.querySelectorAll('.detail-card-header').forEach(cardHeader => {
-        cardHeader.style.cssText = `
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 10px 12px;
-          background: #f3f4f6;
-          border-bottom: 1px solid #e5e7eb;
-          opacity: 1;
-          visibility: visible;
-        `;
-
-        const roomName = cardHeader.querySelector('.room-name');
-        if (roomName) {
-          roomName.style.cssText = 'font-size: 14px; font-weight: 700; color: #111827;';
-        }
-
-        const statusBadge = cardHeader.querySelector('.status-badge');
-        if (statusBadge) {
-          const isWaiting = statusBadge.classList.contains('waiting');
-          statusBadge.style.cssText = `
-            font-size: 12px;
-            font-weight: 600;
-            padding: 3px 8px;
-            border-radius: 4px;
-            background: ${isWaiting ? '#fef3c7' : '#d1fae5'};
-            color: ${isWaiting ? '#b45309' : '#047857'};
-          `;
-        }
-      });
-
-      // 테이블
-      clonedPanel.querySelectorAll('.info-table').forEach(table => {
-        table.style.cssText = 'width: 100%; border-collapse: collapse; font-size: 13px; background: #ffffff;';
-      });
-
-      clonedPanel.querySelectorAll('.info-table th').forEach(th => {
-        th.style.cssText = `
-          padding: 8px 10px;
-          background: #f9fafb;
-          color: #374151;
-          font-weight: 600;
-          border-bottom: 1px solid #e5e7eb;
-          text-align: left;
-          vertical-align: middle;
-        `;
-      });
-
-      clonedPanel.querySelectorAll('.info-table td').forEach(td => {
-        td.style.cssText = `
-          padding: 8px 10px;
-          color: #111827;
-          border-bottom: 1px solid #e5e7eb;
-          background: #ffffff;
-          vertical-align: middle;
-        `;
-      });
-
-      // 박 수 배지
-      clonedPanel.querySelectorAll('.nights').forEach(nights => {
-        nights.style.cssText = `
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          margin-left: 8px;
-          padding: 2px 10px;
-          background: #3b82f6;
-          color: #ffffff;
-          font-size: 12px;
-          font-weight: 700;
-          border-radius: 12px;
-        `;
-      });
-
-      // 방문 횟수 배지
-      clonedPanel.querySelectorAll('.visit-badge').forEach(badge => {
-        const isVip = badge.classList.contains('vip');
-        const isRegular = badge.classList.contains('regular');
-        badge.style.cssText = `
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          min-width: 20px;
-          height: 20px;
-          margin-left: 6px;
-          padding: 0 6px;
-          font-size: 11px;
-          font-weight: 700;
-          border-radius: 10px;
-          background: ${isVip ? '#fef3c7' : isRegular ? '#dbeafe' : '#f3f4f6'};
-          color: ${isVip ? '#b45309' : isRegular ? '#1d4ed8' : '#6b7280'};
-          border: 1px solid ${isVip ? '#fcd34d' : isRegular ? '#93c5fd' : '#d1d5db'};
-        `;
-      });
-
-      // 옵션 태그
-      clonedPanel.querySelectorAll('.option-tag').forEach(tag => {
-        tag.style.cssText = `
-          display: inline-block;
-          background: #ecfdf5;
-          color: #047857;
-          border: 1px solid #6ee7b7;
-          padding: 2px 8px;
-          border-radius: 12px;
-          font-size: 12px;
-          margin-right: 4px;
-          margin-bottom: 2px;
-        `;
-      });
-
-      // 가격
-      clonedPanel.querySelectorAll('.price').forEach(price => {
-        price.style.cssText = 'font-weight: 700; color: #059669;';
-      });
-
-      clonedPanel.querySelectorAll('.price-onsite').forEach(price => {
-        price.style.cssText = 'font-weight: 700; color: #f59e0b;';
-      });
-
-      // 메모
-      clonedPanel.querySelectorAll('.memo').forEach(memo => {
-        memo.style.cssText = 'color: #6b7280; font-size: 12px; line-height: 1.4;';
-      });
-
-      // 이력
-      clonedPanel.querySelectorAll('.history-item').forEach(item => {
-        item.style.cssText = `
-          display: inline-block;
-          margin-right: 8px;
-          padding: 2px 8px;
-          background: #e5e7eb;
-          color: #111827;
-          border-radius: 4px;
-          font-size: 11px;
-          font-weight: 500;
-        `;
-      });
-
-      // 카드 액션 버튼
-      clonedPanel.querySelectorAll('.detail-card-actions').forEach(cardActions => {
-        cardActions.style.cssText = `
-          display: flex;
-          gap: 8px;
-          padding: 10px 12px;
-          background: #f9fafb;
-          border-top: 1px solid #e5e7eb;
-        `;
-      });
-
-      clonedPanel.querySelectorAll('.btn-edit').forEach(btn => {
-        btn.style.cssText = `
-          flex: 1;
-          padding: 8px;
-          background: #ffffff;
-          border: 1px solid #d1d5db;
-          border-radius: 4px;
-          font-size: 13px;
-          font-weight: 500;
-          color: #374151;
-        `;
-      });
-
-      clonedPanel.querySelectorAll('.btn-cancel').forEach(btn => {
-        btn.style.cssText = `
-          flex: 1;
-          padding: 8px;
-          background: #ffffff;
-          border: 1px solid #fca5a5;
-          border-radius: 4px;
-          font-size: 13px;
-          font-weight: 500;
-          color: #dc2626;
-        `;
-      });
-
-      // 4. body에 임시로 추가
-      document.body.appendChild(clonedPanel);
-
-      // 5. 렌더링 대기 (충분한 시간)
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      // 6. 실제 렌더링된 크기 구하기
-      const clonedContent = clonedPanel.querySelector('.panel-content');
-      const totalHeight = clonedPanel.scrollHeight;
-      const totalWidth = clonedPanel.scrollWidth;
-
-      // 7. 캡처 실행 (전체 크기 명시)
-      const canvas = await html2canvas(clonedPanel, {
-        backgroundColor: '#ffffff',
-        scale: 8,  // 고해상도 캡쳐 (8배)
-        useCORS: true,
-        logging: false,
-        allowTaint: true,
-        width: totalWidth,
-        height: totalHeight,
-        windowWidth: totalWidth,
-        windowHeight: totalHeight,
-        scrollX: 0,
-        scrollY: 0,
-      });
-
-      // 7. 임시 요소 제거
-      document.body.removeChild(clonedPanel);
-
-      // 8. 이미지 다운로드
-      const link = document.createElement('a');
-      const dateStr = formatDate(selectedDate).replace(/\s/g, '').replace(/[()]/g, '');
-      link.download = `예약현황_${dateStr}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-
+      await telegramService.sendDateReservationStatus(selectedDate, selectedDateReservations);
+      setShowTelegramConfirm(false);
+      alert('텔레그램으로 전송했습니다.');
     } catch (error) {
-      console.error('캡쳐 실패:', error);
-      alert('화면 캡쳐에 실패했습니다.');
-
-      // 에러 시에도 임시 요소 정리
-      const tempPanel = document.querySelector('.detail-panel[style*="z-index: -99999"]');
-      if (tempPanel) {
-        document.body.removeChild(tempPanel);
-      }
+      console.error('텔레그램 전송 실패:', error);
+      alert('텔레그램 전송에 실패했습니다.');
     } finally {
-      setIsCapturing(false);
+      setIsSendingTelegram(false);
     }
+  };
+
+  // 텔레그램 메시지 미리보기 생성
+  const generateTelegramPreview = () => {
+    if (!selectedDate) return '';
+
+    const date = new Date(selectedDate);
+    const days = ['일', '월', '화', '수', '목', '금', '토'];
+    const formattedDate = `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 (${days[date.getDay()]})`;
+
+    if (selectedDateReservations.length === 0) {
+      return `📅 ${formattedDate}\n\n예약이 없습니다.`;
+    }
+
+    let preview = `📅 ${formattedDate} 예약현황\n`;
+    preview += `총 ${selectedDateReservations.length}건\n`;
+    preview += `━━━━━━━━━━━━━━━━\n\n`;
+
+    selectedDateReservations.forEach((res, index) => {
+      const nights = getNights(res.checkIn, res.checkOut);
+      const checkInShort = res.checkIn?.slice(5).replace('-', '/');
+      const checkOutShort = res.checkOut?.slice(5).replace('-', '/');
+
+      preview += `${index + 1}. ${res.roomName}`;
+      if (res.status === '입금대기') preview += ` ⏳`;
+      preview += `\n`;
+
+      if (res.source === '막기') {
+        preview += `   📌 막기\n`;
+        preview += `   📆 ${checkInShort} ~ ${checkOutShort} (${nights}박)\n\n`;
+        return;
+      }
+
+      preview += `   👤 ${res.customerName}`;
+      if (res.customerPhone || res.phone) {
+        preview += ` (${res.customerPhone || res.phone})`;
+      }
+      preview += `\n`;
+
+      preview += `   📆 ${checkInShort} ~ ${checkOutShort} (${nights}박)\n`;
+      preview += `   👥 ${res.guests || res.guestCount || 2}명\n`;
+      preview += `   💰 ${(res.totalPrice || res.roomPrice || 0).toLocaleString()}원\n`;
+
+      if (res.options && res.options.length > 0) {
+        const optionNames = res.options.map(opt =>
+          typeof opt === 'object' ? opt.name : opt
+        ).join(', ');
+        preview += `   📦 ${optionNames}\n`;
+      }
+
+      if (res.memo && res.memo.trim()) {
+        preview += `   📝 ${res.memo}\n`;
+      }
+
+      preview += `\n`;
+    });
+
+    return preview;
   };
 
   // 재고 확인
@@ -676,12 +359,12 @@ const ReservationCalendar = ({
             <div className="panel-header-right">
               <span className="reservation-count">예약 {selectedDateReservations.length}건</span>
               <button
-                className="capture-btn"
-                onClick={handleCapture}
-                disabled={isCapturing}
-                title="화면 캡쳐"
+                className="telegram-btn"
+                onClick={handleOpenTelegramConfirm}
+                disabled={isSendingTelegram}
+                title="텔레그램으로 전송"
               >
-                {isCapturing ? '⏳' : '📷'}
+                {isSendingTelegram ? '⏳' : '📨'}
               </button>
               <button className="close-btn" onClick={handleClosePanel} aria-label="닫기">✕</button>
             </div>
@@ -845,6 +528,49 @@ const ReservationCalendar = ({
           onSubmit={handleSaveReservation}
           initialData={editingReservation}
         />
+      )}
+
+      {/* 예약 취소 모달 */}
+      {cancelingReservation && (
+        <CancelReservationModal
+          reservation={cancelingReservation}
+          onConfirm={(cancelData) => handleConfirmCancel(null, cancelData)}
+          onClose={() => setCancelingReservation(null)}
+        />
+      )}
+
+      {/* 텔레그램 전송 확인 모달 */}
+      {showTelegramConfirm && (
+        <div className="telegram-confirm-overlay" onClick={() => setShowTelegramConfirm(false)}>
+          <div className="telegram-confirm-modal" onClick={e => e.stopPropagation()}>
+            <div className="telegram-confirm-header">
+              <h3>📨 텔레그램 전송</h3>
+              <button className="close-btn" onClick={() => setShowTelegramConfirm(false)}>✕</button>
+            </div>
+            <div className="telegram-confirm-body">
+              <p className="telegram-confirm-message">예약 현황을 텔레그램으로 전송하시겠습니까?</p>
+              <div className="telegram-preview">
+                <pre>{generateTelegramPreview()}</pre>
+              </div>
+            </div>
+            <div className="telegram-confirm-footer">
+              <button
+                className="btn-cancel"
+                onClick={() => setShowTelegramConfirm(false)}
+                disabled={isSendingTelegram}
+              >
+                취소
+              </button>
+              <button
+                className="btn-confirm"
+                onClick={handleSendTelegram}
+                disabled={isSendingTelegram}
+              >
+                {isSendingTelegram ? '전송 중...' : '전송'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
