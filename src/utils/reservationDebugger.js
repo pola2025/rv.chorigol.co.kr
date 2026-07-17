@@ -140,7 +140,9 @@ if (typeof window !== "undefined") {
   window.reservationDebugger = reservationDebugger;
 
   // 페이지 로드 시 알림 (개발 환경에서만)
-  if (import.meta.env.DEV) {
+  // import.meta.env 는 Vite 전용이다 — Next(webpack)에선 undefined 라 .DEV 에서 터진다.
+  // process.env.NODE_ENV 는 Vite·Next 양쪽 다 정적 치환한다 (두 스택 공존 기간용).
+  if (process.env.NODE_ENV !== "production") {
     window.addEventListener("load", () => {
       console.log("🚀 예약 시스템 디버거 활성화됨");
     });
