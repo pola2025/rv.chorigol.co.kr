@@ -5,14 +5,14 @@
 ## 복사용 요청문
 ```
 초호펜션 예약시스템 Firebase→Vercel+D1 이관 중. Phase 0~5 완료.
-**Firebase 직접 사용 소비자 8 → 2** (App · LoginScreen — 둘 다 인증, 둘 다 폐기 대상)
+**Firebase 접점 0 · react-router 0 · src/ 죽은코드 0** — Vite 진입점 완전 폐기, Next 전용 앱이 됐다
 **9시 일일현황 폐기됨**(사용자 결정) → 남은 크론 블로커는 **입실·퇴실 문자 하나뿐**
   (지금 발송자 = 배포된 CF autoSendSMSScheduler, Firestore 읽음 → 컷오버 때 멈춘다)
 **화면 5/5 전부 레거시(rv 원본)로 이식 완료** — 재작성본 폐기. 셸도 rv MainLayout.
   브라우저 실렌더 확인: 캘린더·예약목록(540건)·객실관리·옵션설정·알림설정 + 수정모달
 **핸드오프 0순위였던 알림설정 브라우저 검증 5/5 통과** (D1 원상복구 28/28 확인).
-다음: ① App/LoginScreen 인증 교체(=Vite 진입점 폐기) → ② src/config/firebase.js 제거
-      → ③ 입실·퇴실 크론 이관(아래 🔴 블로커) → ④ Phase 6 Worker 보안
+다음: ① **입실·퇴실 크론 이관**(아래 🔴 유일한 컷오버 블로커) → ② Phase 6 Worker 보안
+      → ③ 컷오버(rv CNAME) → ④ Phase 8 Firebase·Airtable 폐기
 빌드는 **반드시 `npx next build` 로 확인**할 것 — dev 는 통과하는데 프로덕션 프리렌더에서
 죽는 SSR 버그가 실제로 있었다(`window is not defined`). dev 만 보면 배포 때 처음 터진다.
 F:\rv-chorigol.co.kr\NEXT_SESSION_choho-migration.md 전체 컨텍스트. 브랜치 migrate/nextjs-d1.
@@ -61,6 +61,7 @@ node 의 `--env-file` 과 Next 는 **이미 있는 process.env 를 덮지 않는
 | 4 | 쓰기 API + 알림 통합 (트리거 대체) | ✅ |
 | — | 인프라봇 헬스체크 분리 | ✅ |
 | 5 | 인증 (Firebase Auth → JWT 쿠키) | ✅ (비번 설정만 남음) |
+| — | **Vite 진입점 폐기** (App·LoginScreen·main·index.html·vite.config) → **Firebase 접점 0** | ✅ |
 | — | **재고 가드** (오버부킹 원자적 차단) + API 연결 | ✅ |
 | — | **레거시 화면 이식** (rv 모양 그대로) | ✅ **5/5 + 셸(MainLayout)** · **Firebase 소비자 3개 남음** |
 | — | option_settings 갭 복구 + rooms/options/pricing_rules 쓰기 API + 두 화면 이식 | ✅ |
@@ -92,22 +93,33 @@ node scripts/set-admin-password.mjs
 
 ## 다음 세션 첫 액션
 
-### 0) 화면은 다 됐다 — 이제 **진입점**이다
-5개 화면 + 셸 전부 레거시로 올라갔고 브라우저로 확인했다. 남은 Firebase 소비자 3개는
-전부 **Vite 진입점 체인**(App.jsx → LoginScreen → config/firebase.js)과 스케줄러다.
+### 0) ✅ 이식은 끝났다 — **Firebase 접점 0 · react-router 0 · src/ 죽은코드 0**
+화면 5/5 + 셸 + 진입점까지 전부 정리됐다. 이제 이 브랜치는 **Next 전용 앱**이다.
+남은 건 **① 크론(입실·퇴실) ② Phase 6 Worker 보안 ③ 컷오버** 뿐이다.
 
-### 1) 남은 Firebase 소비자 3개 — 한 덩어리로 처리된다
-| 파일 | 성격 | 판단 |
-|---|---|---|
-| `App.jsx` · `LoginScreen.jsx` | Firebase **Auth** (Firestore 아님) | Next 는 이미 `app/login` + JWT 로 로그인한다 → **Vite 진입점(main.jsx·App.jsx·LoginScreen) 통째 폐기**가 정답. `App.jsx` 가 마지막 react-router 사용처이기도 하다 |
-| `notificationScheduler.js` | 9시 일일현황 텔레그램 **하나만** 남았다 | 아래 🔴 크론 블로커와 함께 처리 |
-| `src/config/firebase.js` | 위가 다 빠지면 마지막 | 제거 → Vite/Firebase 의존 정리 |
+| 실측 (grep 아님 — `node scripts/audit/reachability.mjs`) | |
+|---|---|
+| Firebase 소비자 | **0** (`src/config/firebase.js` 삭제됨) |
+| react-router 사용처 | **0** (App.jsx 삭제로 소멸) |
+| src/ 죽은 코드 | **0** (60개 전부 살아있음) |
+| `npx next build` | Compiled successfully · static 10/10 |
 
-> ⚠️ **App.jsx 를 지우면 Vite 앱이 안 뜬다.** 이 브랜치에선 그게 정답이다(신규 스택은 Next 전용).
-> 라이브 rv 는 `main` 브랜치라 무영향. 단 `package.json` 의 `dev`/`build` 가 아직 vite 다 → 같이 정리.
+**Vite 는 완전히 걷혔다**: `index.html`·`main.jsx`·`App.jsx`·`LoginScreen.jsx`·`vite.config.js`·
+`src/scripts/`(4)·`src/utils/errorHandler.js` 삭제. `package.json` 은 `dev`/`build` = **next**,
+firebase·react-router-dom·vite·@vitejs/plugin-react·react-query-devtools 의존성 제거.
+`deploy`·`deploy:all`(= firebase hosting) 스크립트도 삭제 — CLAUDE.md 금지 경로였고
+`build` 가 next 로 바뀌어 말이 안 되게 됐다.
+
 > **`admins` 0건이라 아직 아무도 로그인 못 한다** (위 "사장님이 직접 해야 할 일").
->   개발 중 화면을 열어야 하면 DB 를 건드리지 말고 JWT 를 직접 발급해 쿠키로 넣으면 된다:
->   `signToken('choho140@naver.com')` → `document.cookie = "admin_token=<jwt>; path=/"` (이번 세션이 쓴 방법)
+>   개발 중 화면을 열어야 하면 **DB 를 건드리지 말고** JWT 를 직접 발급해 쿠키로 넣으면 된다:
+>   `signToken('choho140@naver.com')` → `document.cookie = "admin_token=<jwt>; path=/"`
+
+### 1) App.jsx 에서 건져낸 것 3개 (지웠으면 조용히 사라졌을 것들)
+| 레거시 | 옮긴 곳 |
+|---|---|
+| ErrorBoundary (App.jsx:54-86) | `app/error.jsx` — Next 규약이 같은 일을 한다 |
+| LoadingScreen (App.jsx:44-51) | `app/loading.jsx` — Suspense 폴백 |
+| `<div className="app">` | `app/providers.jsx` 래퍼. **없으면 배경이 어두워진다** (App.css:13 의 `#f8f9fa` 가 theme.css 의 어두운 body 를 덮는 구조) |
 
 ### 1-1) ✅ 결정됨 — **로그아웃 UI 는 안 만든다** (사용자, 2026-07-17: "로그아웃 필요 없고")
 셸을 rv 원본(MainLayout)으로 되돌리면서 구 `app/nav.jsx` 의 로그아웃 버튼이 사라졌다.
