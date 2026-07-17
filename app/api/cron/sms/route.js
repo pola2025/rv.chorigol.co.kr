@@ -1,23 +1,37 @@
 // 입실·퇴실 안내 문자 크론 — 발송 로직은 `lib/sms-schedule.js` 에 있다.
 // 여기는 **인증 · 킬스위치 · 위임**만 한다 (감사가 같은 로직을 검증할 수 있게 로직을 뺐다).
 //
-// 🔴 이게 **컷오버의 마지막 블로커**다. 지금 실고객에게 입실·퇴실 문자를 보내는 건 CF 이고,
-//    CF 는 Firestore 를 읽는다 → Firestore 를 끄는 순간 문자가 조용히 멈춘다.
-//
-// ⚠️ **이중발송 주의** — CF 가 살아 있는 동안 이 크론을 켜면 고객이 문자를 두 번 받는다
-//    (CF 는 Firestore, 크론은 D1 → 서로의 발송 이력을 몰라 중복가드가 안 통한다).
-//    그래서 `CRON_SMS_ENABLED=true` 가 아니면 아무것도 안 한다. 컷오버 순서:
-//      ① CF 스케줄러를 먼저 죽인다: `firebase functions:delete autoSendSMSScheduler --project choho-pension`
-//      ② 그 다음 Vercel 에 CRON_SMS_ENABLED=true 주입
-//    순서를 바꾸면 이중발송이거나 미발송이다.
+// ✅ 2026-07-17 컷오버 완료 — **이 크론이 입실·퇴실 문자의 유일한 발송자다.**
+//    CF `autoSendSMSScheduler` 는 삭제됐다(목록 0개 확인). 되살리면 이중발송이다.
 //
 // 스케줄(vercel.json): 퇴실 01:00 UTC = **10시 KST** / 입실 04:00 UTC = **13시 KST**
 //   Vercel Cron 은 UTC 다. KST 는 서머타임이 없어 이 매핑이 항상 성립한다.
+//
+// 인증: `CRON_SECRET` 이 있으면 **Vercel 이 자동으로** `Authorization: Bearer <값>` 을 붙여 호출한다
+//   (Vercel 공식 규약). 미들웨어가 이 경로를 통과시키므로 자체 검증이 유일한 방어선이다.
+//
+// 중복 호출 주의: Vercel 크론 전달은 **best effort** 라 같은 스케줄이 두 번 올 수 있다(공식 문서).
+//   그래서 발송 판단은 `notification_log` 기준으로 **멱등**해야 한다 — lib/sms-schedule.js 가 그렇게 한다.
 import { NextResponse } from "next/server";
 import { runSmsSchedule, KIND_FIELD } from "../../../../lib/sms-schedule.js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs"; // lib/sms.js 가 node:crypto(HMAC)를 쓴다
+
+/**
+ * 스케줄 → 종류 안전망.
+ *
+ * 크론 경로는 `?type=checkIn` 처럼 쿼리로 종류를 넘긴다. 만약 Vercel 이 호출 때 쿼리를
+ * 떨어뜨리면 `type` 이 없어 400 이 되고 **문자가 조용히 안 나간다**(아무도 모른다).
+ * Vercel 은 **모든 크론 요청에 `x-vercel-cron-schedule` 헤더**로 어떤 스케줄이 호출했는지
+ * 알려주므로(공식), 쿼리가 없을 때 이걸로 복구한다.
+ *
+ * ⚠️ vercel.json 의 schedule 을 바꾸면 여기도 같이 바꿔야 한다.
+ */
+const SCHEDULE_KIND = {
+  "0 1 * * *": "checkOut",
+  "0 4 * * *": "checkIn",
+};
 
 export async function GET(request) {
   // 인증: /api/health 와 같은 CRON_SECRET Bearer (미들웨어를 통과하므로 자체 방어 필수)
@@ -27,7 +41,10 @@ export async function GET(request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const sp = new URL(request.url).searchParams;
-  const kind = sp.get("type");
+  // 쿼리가 정상 경로. 없으면 크론 스케줄 헤더로 복구한다 (위 SCHEDULE_KIND 주석 참조)
+  const kind =
+    sp.get("type") ??
+    SCHEDULE_KIND[request.headers.get("x-vercel-cron-schedule")];
   if (!KIND_FIELD[kind])
     return NextResponse.json(
       { error: "type 은 checkIn | checkOut" },
