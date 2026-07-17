@@ -11,7 +11,8 @@
 **화면 5/5 전부 레거시(rv 원본)로 이식 완료** — 재작성본 폐기. 셸도 rv MainLayout.
   브라우저 실렌더 확인: 캘린더·예약목록(540건)·객실관리·옵션설정·알림설정 + 수정모달
 **핸드오프 0순위였던 알림설정 브라우저 검증 5/5 통과** (D1 원상복구 28/28 확인).
-**입실·퇴실 크론 코드 완성** (`app/api/cron/sms`) — 단 **킬스위치로 꺼둠**. 켜는 순서가 생명이다(아래 🔴).
+**입실·퇴실 크론 완성 + 드라이런 감사 통과** — 단 **킬스위치로 꺼둠**. 켜는 순서가 생명이다(아래 🔴).
+  `node scripts/audit/audit-cron-sms.mjs` → 문자 없이 실제 나갈 문구·대상을 검증 (지금 exit 0)
 **인프라 확정(7/17)**: Vercel 계정 이관 **폐기** → 구 계정(mkt9834·**Pro**) 그대로. 신규는 **Cloudflare 뿐**.
   → 도메인 이동이 없어 **컷오버 = main 머지 = 무중단**. Pro 라 크론 제한 없음
 다음: ① 컷오버 준비(env 주입 + 프로젝트 framework→nextjs) → ② 🔴 **CF 스케줄러 죽이고 크론 켜기**
@@ -48,7 +49,8 @@ node 의 `--env-file` 과 Next 는 **이미 있는 process.env 를 덮지 않는
        재고가드 테스트는 source="막기" 쓰면 안 됨(막기는 검사를 건너뜀) → sms_config 잠시 끄고 非막기로.
 감사: `node scripts/audit/<이름>.mjs` — 임시폴더에서 **repo 로 옮겨 영구 보관**했다.
       verify-snapshot(역매퍼 18) · audit-override(드리프트 25) · audit-store-port(이식 49) ·
-      **audit-notification-doc(알림설정 역·정매퍼 124)** · verify-migration · audit-inventory · audit-api-guard
+      **audit-notification-doc(알림설정 역·정매퍼 124)** · verify-migration · audit-inventory · audit-api-guard ·
+      **audit-sms-history(신호등 1454/1620)** · **audit-cron-sms(입실퇴실 드라이런 — 발송 없이 문구 검증)**
 포매터 훅 주의: Edit/Write 는 파일 전체를 재포맷한다(1글자 고쳐도 400줄 diff).
       최소 diff 가 필요하면 **bash 의 python 으로 패치**하면 훅이 안 돈다.
 ```
