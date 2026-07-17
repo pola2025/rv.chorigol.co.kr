@@ -27,7 +27,9 @@ const BookingModal = ({ booking, onClose, onConfirm, onCancel, onUpdate }) => {
     queryKey: ['isMobile-bookingModal'],
     queryFn: () => window.innerWidth < 768,
     staleTime: Infinity,
-    initialData: window.innerWidth < 768
+    // SSR 가드 — Next 는 클라이언트 컴포넌트도 프리렌더한다. initialData 는 **렌더 중** 평가되므로
+    // window 를 그냥 읽으면 빌드가 죽는다(Vite 는 CSR 전용이라 안전했던 코드). 서버에선 데스크톱 가정.
+    initialData: typeof window !== 'undefined' ? window.innerWidth < 768 : false
   });
 
   // Window resize 이벤트 리스너 (선언형)

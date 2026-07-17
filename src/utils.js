@@ -52,7 +52,8 @@ export const getKSTMinute = (date = new Date()) => {
 export const getKSTToday = () => getKSTDateString(new Date());
 
 export const useWindowWidth = () => {
-const [width, setWidth] = useState(window.innerWidth);
+// SSR 가드 — 서버엔 window 가 없다. 데스크톱 폭으로 가정하고 마운트 후 실측으로 교정된다
+const [width, setWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
 useEffect(() => {
 const handleResize = () => setWidth(window.innerWidth);
 window.addEventListener('resize', handleResize);

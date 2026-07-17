@@ -7,7 +7,6 @@ import { auth } from "./config/firebase";
 import { FirebaseProvider } from "./providers/FirebaseProvider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import notificationScheduler from "./services/notificationScheduler";
 import "./App.css";
 
 // 레이아웃
@@ -108,16 +107,8 @@ function App() {
         setUser(currentUser);
         setLoading(false);
 
-        // 사용자가 로그인하면 알림 스케줄러 시작
-        if (currentUser) {
-          console.log("📅 알림 스케줄러 시작...");
-          notificationScheduler.start().catch((err) => {
-            console.error("📅 알림 스케줄러 시작 실패:", err);
-          });
-        } else {
-          // 로그아웃 시 스케줄러 중지
-          notificationScheduler.stop();
-        }
+        // 9시 일일현황 스케줄러는 제거됐다 (사용자 결정 2026-07-17: "안띄워도 되").
+        // 유일한 발송자가 이 브라우저였으므로 이제 아무도 안 띄운다.
       },
       (error) => {
         console.error("Auth error:", error);
@@ -127,7 +118,6 @@ function App() {
 
     return () => {
       unsubscribe();
-      notificationScheduler.stop();
     };
   }, []);
 
