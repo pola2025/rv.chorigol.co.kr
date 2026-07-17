@@ -13,9 +13,13 @@
 
 🔴 **다음 세션 0순위 — 첫 실발송을 확인해라 (2026-07-18 10:00 KST 퇴실)**
    이관 후 **크론이 실제로 문자를 보낸 적이 아직 없다**. 드라이런만 통과했다.
-   확인: `firebase functions:log` 는 이제 없다 → **Vercel 런타임 로그** 또는
-        `node -e` 로 D1 `notification_log` 에 (reservation_id, 'checkOut') 행이 생겼는지.
+   확인: `firebase functions:log` 는 이제 없다 → **Vercel 런타임 로그**(대시보드 Cron Jobs →
+        View Logs) 또는 D1 `notification_log` 에 `(reservation_id, 'checkOut')` 행이 생겼는지.
    못 나갔으면 고객이 퇴실 안내를 못 받는다. **이게 이번 이관의 유일한 미검증 지점이다.**
+   · 쿼리스트링이 떨어져 400 이 나는 **조용한 미발송**은 안전망을 넣어 막았다(`e04e87f`) —
+     `x-vercel-cron-schedule` 헤더로 종류를 복구한다. **프로덕션에서 실제로 시험해 통과**했다
+   · Vercel 크론은 **best effort** 다 — 안 올 수도, 두 번 올 수도 있다(공식). 중복은
+     `notification_log` 가 막는다. **안 온 경우는 아무도 안 막는다** → 그래서 확인이 0순위다
 
 남은 일: ① 위 첫 발송 확인 → ② Phase 6 api.chorigol.co.kr Worker 보안
         → ③ Phase 8 Firebase·Airtable 폐기(2주 보존 후 = 2026-07-31 이후)
