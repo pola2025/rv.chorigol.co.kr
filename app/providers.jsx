@@ -36,13 +36,19 @@ export default function Providers({ children }) {
 
   // 로그인 화면은 셸 없이 — 보호 페이지 링크를 눌러봐야 다시 튕기기만 한다 (구 nav.jsx 와 같은 규칙).
   // 스냅샷 로드(FirebaseProvider)도 돌리지 않는다: 인증 전이라 401 이다.
-  if (pathname === "/login") return children;
+  // 단 `.app` 래퍼는 씌운다 — App.jsx 도 로그인 화면을 `.app` 안에서 그렸다.
+  if (pathname === "/login") return <div className="app">{children}</div>;
 
   return (
     <QueryClientProvider client={queryClient}>
-      <FirebaseProvider>
-        <MainLayout>{children}</MainLayout>
-      </FirebaseProvider>
+      {/* `.app` = App.css:13 — width 100% / min-height 100vh / **background #f8f9fa** / flex column.
+          이게 없으면 theme.css 의 어두운 body 배경(--bg-secondary)이 그대로 비친다.
+          App.jsx 는 로그인 화면까지 포함해 전체를 이 div 로 감싸고 있었다. */}
+      <div className="app">
+        <FirebaseProvider>
+          <MainLayout>{children}</MainLayout>
+        </FirebaseProvider>
+      </div>
     </QueryClientProvider>
   );
 }
