@@ -14,8 +14,10 @@ export async function middleware(request) {
   if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/")))
     return NextResponse.next();
 
-  // 헬스체크는 자체 CRON_SECRET Bearer 인증을 쓴다 (쿠키 없이 Vercel Cron이 호출)
-  if (pathname === "/api/health") return NextResponse.next();
+  // 헬스체크·크론은 자체 CRON_SECRET Bearer 인증을 쓴다 (쿠키 없이 Vercel Cron이 호출).
+  // 미들웨어를 통과시키는 만큼 각 라우트가 반드시 자체 검증한다 (security.md 2번).
+  if (pathname === "/api/health" || pathname.startsWith("/api/cron/"))
+    return NextResponse.next();
 
   const payload = await verifyToken(request.cookies.get(COOKIE_NAME)?.value);
   if (payload) return NextResponse.next();

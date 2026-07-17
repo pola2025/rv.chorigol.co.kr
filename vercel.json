@@ -1,8 +1,17 @@
 {
-  "rewrites": [
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "path": "/api/cron/sms?type=checkOut",
+      "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/cron/sms?type=checkIn",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/health",
+      "schedule": "0 0 * * *"
     }
   ]
 }

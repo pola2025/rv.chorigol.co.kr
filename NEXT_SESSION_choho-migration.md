@@ -476,23 +476,33 @@ D1 **데이터**에 14시 표기가 남아 있다(코드 아님 — grep 이 안
 - 키: `~/.ssh/id_ed25519_chohopark`
 - config: `Host github.com-chohopark` → `git@github.com-chohopark:chohopark134-ctrl/chohopark.git`
 
-### 🎯 도메인 역할 확정 (사용자 결정 2026-07-16)
-| 도메인 | 역할 |
-|---|---|
-| `rv.chorigol.co.kr` | **예약시스템 = 이 repo의 Next+D1 앱**. 계속 사용, 최종 주소 |
-| `admin.chorigol.co.kr` | **별개 관리자 대시보드 (통계 담당)** — 다른 앱, 추후 구축. 이 앱 아님 |
+### 🎯 인프라 확정 (사용자 결정 2026-07-17) — **Vercel 은 기존 것 그대로, Cloudflare 만 신규**
+> 이전 계획(=신규 Vercel 계정으로 이관)은 **폐기**했다. Vercel 계정 이관 안 한다.
+> **신규는 Cloudflare(D1) 뿐이다.** 도메인 구조는 3-tier 그대로 간다.
 
-⚠️ 이전 핸드오프가 "admin에 이 앱을 올린다"고 적었던 건 **오해**였다. admin은 통계 전용 별도 앱.
-
-### 🔑 Vercel 토큰 2개 — 계정이 갈려 있다 (2026-07-16 실측 확정)
-| env 키 | 계정 | 프로젝트 |
+| 도메인 | 역할 | 지금 붙은 Vercel 프로젝트 (구/Pro 계정 실측) |
 |---|---|---|
-| `VERCEL_TOKEN` | chohopark134@gmail.com | `chohopark` (새 계정, team_dRQbvedrBJ4kxHtMAg59xpZo) — 이관 대상, 앱 없음 |
-| `VERCEL_TOKEN_RV` | **mkt9834@gmail.com** | `rv-chorigol-co-kr` (구 계정, team_Gwjg6taUVyH9b1X1ZZ3ozWX9) — **지금 라이브** |
+| `chorigol.co.kr` + `www` | 메인 홈페이지 | `choho` |
+| `rv.chorigol.co.kr` | **예약시스템 = 이 repo**. 최종 주소 | **`rv-chorigol-co-kr`** ← 지금 라이브 |
+| `admin.chorigol.co.kr` | 별개 관리자 대시보드(통계) — 추후 구축. **이 앱 아님** | 🔴 **어느 프로젝트에도 안 붙어 있다** (DNS 는 `cname.vercel-dns.com` 만 떠 있어 지금 열면 404) |
+| `api.chorigol.co.kr` | CF Worker (Phase 6) | 🔴 **DNS 자체가 없다** |
 
-- **`VERCEL_TOKEN`(새 계정)으로 라이브 rv 를 조회하면 `forbidden`** 이다. 거기서 막히면 토큰을 잘못 골랐다.
-- **사용자 방침: 팀 토큰 안 쓴다. 토큰은 프로젝트별로 값이 다르다.** 새 토큰이 생겨도 **덮어쓰지 말고
-  각각 구분**해 보관 (`.env.local` 에 어느 계정인지 주석 있음).
+⚠️ `chorigol.**net**` 계열(`chohopark`·`admin-chohopark` 프로젝트)은 **별개 브랜드사이트다 — 건드리지 말 것.**
+🗑️ `choho-admin` 프로젝트(→ `auto.polaai.co.kr`)는 **폐기 대상** (사용자 2026-07-17).
+   이름이 이 repo(`package.json` name = `choho-admin`)와 같아 **혼동 위험이 크다** — admin.chorigol.co.kr
+   과 아무 관계 없다. 아직 안 지웠다: 프로젝트 삭제는 비가역이고 `auto.polaai.co.kr` 이 물려 있어
+   그 도메인을 어떻게 할지 확인이 필요하다.
+
+### 🔑 Vercel — **구 계정(Pro) 하나만 쓴다** (2026-07-17 실측 확정)
+| env 키 | 계정 | 플랜 | 용도 |
+|---|---|---|---|
+| **`VERCEL_TOKEN_RV`** | **mkt9834@gmail.com** (team_Gwjg6taUVyH9b1X1ZZ3ozWX9 = `mkt9834-4301s-projects`) | **Pro** | ✅ **이게 유일한 배포 경로다** |
+| `VERCEL_TOKEN` | chohopark134@gmail.com (team `chohopark`) | Hobby | ❌ **안 쓴다** (이관 폐기). chorigol 도메인 자체가 없다 |
+
+- **`.vercel/project.json` 은 이미 맞다** — `rv-chorigol-co-kr` @ 구 계정. 고치지 말 것
+- **Pro 라서 Vercel Cron 제한이 없다**(Hobby 는 2개·하루1회). 크론 3개 등록 가능 → `vercel.json` 참조
+- **`VERCEL_TOKEN`(새 계정)으로 라이브 rv 를 조회하면 `forbidden`** — 거기서 막히면 토큰을 잘못 골랐다
+- **사용자 방침: 팀 토큰 안 쓴다. 토큰은 프로젝트별로 값이 다르다.** 덮어쓰지 말고 각각 구분해 보관
 
 ### ✅ 배포는 `main` push 자동배포 — CLI 아니다
 `rv-chorigol-co-kr` 은 **GitHub 연결**이다: `pola2025/rv.chorigol.co.kr`, production branch `main`.
@@ -500,8 +510,14 @@ D1 **데이터**에 14시 표기가 남아 있다(코드 아님 — grep 이 안
 
 **🚨 이 폴더에서 `vercel --prod` 치지 말 것.** `.vercel/project.json` 이 **라이브 rv** 를 가리켜서
 현재 체크아웃된 브랜치(이관 중인 Next 앱)가 라이브를 덮는다. 운영 수정은 **main 워크트리**에서.
-- ⚠️ **컷오버 다운타임 리스크**: `rv` 는 구 계정 소유다. 새 계정에 붙이려면 구 계정에서 먼저 떼야 하고,
-  그 사이 rv 가 잠깐 끊긴다 → **심야 작업 필수**
+
+> ✅ **다운타임 리스크는 사라졌다** (2026-07-17 인프라 확정). 계정 이관을 안 하므로 rv 도메인을
+> 떼었다 붙일 일이 없다. **컷오버 = `main` 머지 = 평소 배포와 동일**하다.
+
+⚠️ **프로젝트 설정 하나는 컷오버 전에 반드시 바꿔야 한다** (실측):
+`rv-chorigol-co-kr` 은 **framework 미설정**(= Vite 정적 빌드 전제)이고 `buildCommand` 도 기본이다.
+main 에 Next 코드가 들어가는 순간 **framework 를 `nextjs` 로 바꿔야** 정상 빌드된다.
+`package.json` 의 `build` 는 이미 `next build` 로 바꿔뒀다. nodeVersion 은 24.x 라 문제없다.
 
 ## 🚑 운영 핫픽스 배포됨 (2026-07-16, `96af26b`) — 예약목록 수정 저장 불가
 **증상**: 예약목록 화면에서 예약을 수정·저장하면 "예약 수정에 실패했습니다" — **캘린더에선 정상**.
@@ -521,14 +537,23 @@ c3b1510("예약 수정 기능 구현 및 버그 수정")은 이 파일을 건드
   → Edit/Write 대신 bash(python)로 패치하면 훅이 안 돈다. 최종 diff 3+/1-
 - **함께 올라간 것**: `9ece739`(이전 세션 미푸시 — functions/·d1/·문서. 화면 영향 0, Functions 는 별도 배포됨)
 
-### 컷오버 순서 (이 순서 아니면 사고)
+### 컷오버 순서 (2026-07-17 개정 — **계정 이관 폐기로 단순해졌다**)
 1. **비번 설정** — `node scripts/set-admin-password.mjs` (안 하면 새 앱에 아무도 못 들어감)
-2. **새 계정에 새 프로젝트로 배포** → `*.vercel.app` 임시 URL에서 검증 (rv 무영향)
-3. env 주입 + 로그인·캘린더·알림 실동작 확인 → 며칠 병렬 운영
-4. **심야에** rv 도메인 구 계정에서 떼고 새 계정에 붙이기 (5~10분 중단)
-5. Firebase 2주 보존 후 폐기
+2. **`rv-chorigol-co-kr` 프로젝트 설정: framework → `nextjs`** (지금은 미설정 = Vite 전제)
+3. **env 주입** (구/Pro 계정 `rv-chorigol-co-kr` 에): D1·SENS·TELEGRAM·JWT_SECRET·CRON_SECRET.
+   **`CRON_SMS_ENABLED` 는 아직 넣지 말 것** (5번 참조)
+4. **미리보기 배포로 검증** — 브랜치를 push 하면 Vercel 이 preview URL 을 준다.
+   rv 무영향. 로그인·캘린더·알림 실동작 확인
+5. 🔴 **문자 이중발송 차단 — 순서 절대 지킬 것**
+   ① CF 스케줄러부터 죽인다: `firebase functions:delete autoSendSMSScheduler --project choho-pension`
+   ② **그 다음** Vercel 에 `CRON_SMS_ENABLED=true` 주입
+   → 순서를 바꾸면 고객이 입실·퇴실 문자를 **두 번** 받는다 (CF 는 Firestore, 크론은 D1 을 본다.
+     서로의 발송 이력을 모른다 → 중복가드가 안 통한다)
+6. **`main` 머지 = 컷오버.** 도메인 이동 없음 → **무중단**
+7. Firebase 2주 보존 후 폐기 (Phase 8)
 
-**2번 전에 rv를 떼면 대체할 게 없어 예약시스템이 그냥 중단된다.**
+**되돌리기**: main 을 이전 커밋으로 되돌리면 Vite 앱이 다시 뜬다(같은 프로젝트라 도메인 그대로).
+단 5번 ①을 이미 했으면 CF 스케줄러는 재배포해야 한다.
 - 폴더명 `F:\rv-chorigol.co.kr`(하이픈)과 도메인 `rv.chorigol.co.kr`(서브도메인)은 다르다.
   `rv-chorigol.co.kr`(하이픈)이라는 도메인은 존재하지 않음 — 폴더 이름일 뿐
 
