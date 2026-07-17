@@ -15,6 +15,8 @@
   `node scripts/audit/audit-cron-sms.mjs` → 문자 없이 실제 나갈 문구·대상을 검증 (지금 exit 0)
 **인프라 확정(7/17)**: Vercel 계정 이관 **폐기** → 구 계정(mkt9834·**Pro**) 그대로. 신규는 **Cloudflare 뿐**.
   → 도메인 이동이 없어 **컷오버 = main 머지 = 무중단**. Pro 라 크론 제한 없음
+**✅ 비번 블로커 해소(7/17 밤)** — `admins` id=19 활성 · **사용자 실제 로그인 성공**.
+  터미널판은 **에이전트 셸에 TTY 가 없어 못 쓴다** → `scripts/set-admin-password-web.mjs`(브라우저 입력)를 쓸 것
 다음: ① 컷오버 준비(env 주입 + 프로젝트 framework→nextjs) → ② 🔴 **CF 스케줄러 죽이고 크론 켜기**
       → ③ main 머지 = 컷오버 → ④ Phase 6 Worker 보안 → ⑤ Phase 8 Firebase 폐기
 빌드는 **반드시 `npx next build` 로 확인**할 것 — dev 는 통과하는데 프로덕션 프리렌더에서
@@ -70,7 +72,7 @@ node 의 `--env-file` 과 Next 는 **이미 있는 process.env 를 덮지 않는
 | 3 | Next.js 15 + 화면 이식 **5/5** (캘린더·예약목록·객실·옵션·알림설정) | ✅ |
 | 4 | 쓰기 API + 알림 통합 (트리거 대체) | ✅ |
 | — | 인프라봇 헬스체크 분리 | ✅ |
-| 5 | 인증 (Firebase Auth → JWT 쿠키) | ✅ (비번 설정만 남음) |
+| 5 | 인증 (Firebase Auth → JWT 쿠키) | ✅ **완료 — 비번 설정·로그인 실증됨 (7/17 밤)** |
 | — | **Vite 진입점 폐기** (App·LoginScreen·main·index.html·vite.config) → **Firebase 접점 0** | ✅ |
 | — | **재고 가드** (오버부킹 원자적 차단) + API 연결 | ✅ |
 | — | **레거시 화면 이식** (rv 모양 그대로) | ✅ **5/5 + 셸(MainLayout)** · **Firebase 소비자 3개 남음** |
@@ -92,27 +94,45 @@ node 의 `--env-file` 과 Next 는 **이미 있는 process.env 를 덮지 않는
 > 사용자 결정(2026-07-16): **rv는 기존 모습 그대로 이관** → 레거시 화면을 그대로 옮기는 중.
 > 재작성본(app/calendar 등)은 컷오버 전 정리 대상.
 
-## 🔑 사장님이 직접 해야 할 일 (1분, 로그인 하려면 필수) — **미완료 · 컷오버 블로커**
-```
-cd F:\rv-chorigol.co.kr
-node scripts/set-admin-password.mjs
-```
-`admins` 테이블이 **0건**이다(2026-07-17 확인) → 아무도 로그인할 수 없다.
-위 명령 → 비번 2번 입력 → `choho140@naver.com` 생성. D1엔 scrypt 해시만 저장된다.
-- 입력하면 `*****` 로 표시된다. **붙여넣기(Ctrl+V)도 된다** — 직접 타이핑 안 해도 됨
-- 비번 변경도 같은 명령. 다른 계정은 `node scripts/set-admin-password.mjs 이메일@주소`
-- **에이전트에게 비밀번호를 알려주지 말 것** — 채팅에 남으면 그 자체가 유출이다.
-  (2026-07-17 실제로 채팅에 노출된 적 있음 → **그 비번은 쓰지 말 것**)
+## ✅ 관리자 비밀번호 설정 — **완료** (2026-07-17, 로그인 실증됨)
 
-**⚠️ 2026-07-17 세션에서 이 단계가 막혔다.** 사용자가 실행에 실패했고 원인 미확인.
-스크립트 자체는 **정상 작동을 확인**했다 (`printf "abc\n" | node scripts/set-admin-password.mjs`
-→ 정상 DB 접속 · `새 비밀번호: ***` · "10자 이상" 거부). 막히면 화면 출력을 그대로 받아 진단할 것.
+`admins` id=19 · `choho140@naver.com` · 활성 1 · scrypt 해시 178자.
+**사용자 실제 로그인 성공 확인** (`login_attempts` id=27 `success=1` @ 2026-07-17T03:30:07Z).
+→ **컷오버 블로커 해소.** 이 섹션은 이제 "다시 할 일"이 아니라 **재설정 방법 안내**다.
 
-이번에 이 스크립트에서 **버그 2개를 고쳤다** (커밋 `c9b3113`) — 안 고쳤으면 계속 실패했다:
-1. `process.env[키] ??= 값` → **기존 값이 이겨서** 낡은 사용자 환경변수의 `D1_DATABASE_ID`
-   (a10f8ed6…, 없는 DB)를 쓰고 있었다 → "database could not be found" 로 죽는다. `=` 로 교체
-2. 입력 문자를 통째로 버려서 **타이핑해도 화면이 그대로**였다 → 멈춘 줄 알고 못 넘어간다.
-   `*` 표시 + 안내문구 추가. (보안상 필요한 건 "원문 감추기"지 "반응 없애기"가 아니다)
+### 비번을 다시 설정해야 하면 — **웹 입력판을 쓴다**
+
+```
+node scripts/set-admin-password-web.mjs [이메일]
+```
+127.0.0.1 임의포트에 일회용 URL 을 띄운다 → 브라우저에서 입력 → 저장되면 서버 자동 종료.
+(다른 계정: `node scripts/set-admin-password-web.mjs 이메일@주소`)
+
+**🔴 `scripts/set-admin-password.mjs`(터미널판)는 에이전트 셸에서 쓸 수 없다.**
+TTY 가 없어서 **사용자가 값을 칠 자리가 자체가 없다.** 2026-07-17 세션이 막힌 게 정확히 이것이고,
+그 세션이 "스크립트 버그"로 오진해 버그 2개를 고쳤지만(`c9b3113`) **원인은 스크립트가 아니라
+입력 표면이었다.** 사람이 진짜 터미널에서 직접 칠 때만 터미널판이 의미가 있다.
+→ **교훈: "안 된다"가 아니라 입력 표면을 옮기면 된다.** (사용자 지시: "무조건 안된단 소리 하지 말고 방법을 찾아")
+
+### 🔴 내가 낸 사고 — INSERT 파라미터 순서 (복구 완료, 같은 세션)
+
+웹 입력판을 처음 쓸 때 컬럼과 값이 **어긋나게** 들어갔다:
+```
+INSERT INTO admins (email, password_hash, is_active, created_at) VALUES (?, ?, 1, ?)
+전달값: [hash, email, ts]   ← 뒤집힘. email 칸에 해시가, password_hash 칸에 이메일이 박혔다
+```
+- **원본 터미널판은 맞게 돼 있었다**(`[email, hash, ts]`). 옮겨 적으며 뒤바꾼 것이다
+- 증상: 저장은 "성공"인데 `SELECT … WHERE email=?` 가 **null** → 로그인 영영 불가
+- **`len: 18` 이 결정적 증거였다** — `choho140@naver.com` 의 글자 수. 해시라면 178 이어야 한다
+- **복구**: 사용자가 입력한 비밀번호의 해시가 email 칸에 온전히 살아 있어서
+  `UPDATE admins SET email = password_hash, password_hash = email WHERE id = 19` 로 되돌렸다
+  (SQLite 는 UPDATE 의 RHS 를 **원본 행 값**으로 평가한다 → 한 문장으로 교환된다).
+  **사용자가 비번을 다시 입력할 필요가 없었다.** created_at 불변 확인
+- 스크립트는 고쳤다: 순서 주석 + **저장 확인을 응답 전에** + `res.headersSent` 가드
+  (확인 실패가 `json(500)` 을 또 보내 `ERR_HTTP_HEADERS_SENT` 로 프로세스가 죽었다)
+
+> 교훈: **"저장했다" 는 성공이 아니다.** 되읽어서 같은 행이 나와야 성공이다.
+> 이 사고는 되읽기가 null 을 뱉어서 잡혔다 — 그 확인이 없었으면 조용히 넘어갔다.
 
 ## 다음 세션 첫 액션
 
@@ -133,9 +153,9 @@ firebase·react-router-dom·vite·@vitejs/plugin-react·react-query-devtools 의
 `deploy`·`deploy:all`(= firebase hosting) 스크립트도 삭제 — CLAUDE.md 금지 경로였고
 `build` 가 next 로 바뀌어 말이 안 되게 됐다.
 
-> **`admins` 0건이라 아직 아무도 로그인 못 한다** (위 "사장님이 직접 해야 할 일").
->   개발 중 화면을 열어야 하면 **DB 를 건드리지 말고** JWT 를 직접 발급해 쿠키로 넣으면 된다:
->   `signToken('choho140@naver.com')` → `document.cookie = "admin_token=<jwt>; path=/"`
+> ✅ **로그인 된다** (7/17 밤 실증). `admins` id=19 · `choho140@naver.com` · 활성.
+>   dev 서버는 `unset D1_DATABASE_ID && portless run npx next dev` → `https://choho-admin.localhost`
+>   (비번을 모르는 채로 화면만 열려면 `signToken('choho140@naver.com')` → `document.cookie = "admin_token=<jwt>; path=/"`)
 
 ### 1) App.jsx 에서 건져낸 것 3개 (지웠으면 조용히 사라졌을 것들)
 | 레거시 | 옮긴 곳 |
@@ -217,12 +237,12 @@ D1 **데이터**에 14시 표기가 남아 있다(코드 아님 — grep 이 안
 | `54f73a1` | `choho-admin` Vercel 프로젝트 삭제(사용자 지시) |
 | `2bbb137` | **크론 발송로직 분리 + 드라이런 감사** — 문자 없이 CF 동등성 증명 |
 | `c9b3113` | set-admin-password 버그 2개(낡은 env 로 엉뚱한 DB · 입력이 안 보임) |
+| (이번) | **비번 설정 완료 — 웹 입력판 신설**. TTY 부재를 브라우저 입력으로 우회 → **로그인 실증** |
 
-### 🔴 남은 블로커는 **비번 설정 하나**다 (컷오버 전 필수)
-`admins` 0건 → 아무도 로그인 못 한다. 위 "사장님이 직접 해야 할 일" 참조.
-2026-07-17 세션에서 사용자가 실행에 실패했고 **원인을 못 잡았다**(스크립트 자체는 정상 확인).
-이번에 그 스크립트의 버그 2개를 고쳤으니 다시 시도하면 될 가능성이 높다.
-막히면 **화면 출력을 그대로 받아서** 진단할 것 — 추측하지 말 것.
+### ✅ 비번 설정 블로커 — **해소됨** (2026-07-17 밤, 로그인 실증)
+`admins` id=19 활성 · 사용자 실제 로그인 성공(`login_attempts` id=27 `success=1`).
+원인은 스크립트 버그가 아니라 **TTY 부재**였다 → 입력을 브라우저로 옮겨 해결
+(`scripts/set-admin-password-web.mjs`). 위 "관리자 비밀번호 설정 — 완료" 참조.
 
 ### 🎯 인프라 확정 — 계획이 뒤집혔다 (사용자, 세션 말미)
 > "vercel 이관은 하지말고 클라우드플레어만 신규로 쓰자 / 그 구계정플랜을 그대로 쓰잔말임"
@@ -834,7 +854,7 @@ Firestore 보고 발송 중). 화면에 그렇게 명시해둠. 컷오버 전 �
 - **쓰기 API는 미들웨어 + `requireAuth` 이중 방어** (security.md 2번)
 
 ### 남은 것
-- **`admins` 0건 → 아무도 로그인 못 함.** 위 "사장님이 직접 해야 할 일" 참조
+- **`admins` 0건 → 아무도 로그인 못 함.** 위 "에이전트가 완료해야 할 관리자 비밀번호 설정" 참조
 - 레거시 `src/utils/authSecurity.js`의 `ALLOWED_ADMINS`는 플레이스홀더(`admin@choho-pension.com`)라
   사실상 죽은 코드. 실제 관리자 목록은 `firestore.rules` 9-12행 (3개)
 - Firebase Auth 비번 해시는 이관 안 함 — 신규 스택은 새 비번 (스키마 주석대로)
