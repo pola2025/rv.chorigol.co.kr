@@ -37,7 +37,9 @@ class MigrationDebugger {
     this.queryCache = new Map();
     
     // 전역 에러 핸들러
-    if (DEBUG_MODE) {
+    // typeof window 가드 — 이 클래스는 모듈 스코프에서 즉시 인스턴스화된다(아래 export).
+    // Vite 는 CSR 전용이라 안전했지만 Next 는 SSR 중에 이 모듈을 평가한다 → window 없음.
+    if (DEBUG_MODE && typeof window !== 'undefined') {
       window.addEventListener('error', this.handleGlobalError.bind(this));
       window.addEventListener('unhandledrejection', this.handleUnhandledRejection.bind(this));
     }
@@ -362,8 +364,8 @@ class MigrationDebugger {
 // 전역 디버거 인스턴스
 export const migrationDebugger = new MigrationDebugger();
 
-// 전역 접근 가능하도록 설정
-if (DEBUG_MODE) {
+// 전역 접근 가능하도록 설정 (SSR 에선 건너뛴다 — 위와 같은 이유)
+if (DEBUG_MODE && typeof window !== 'undefined') {
   window.migrationDebugger = migrationDebugger;
   
   // 디버그 명령어
