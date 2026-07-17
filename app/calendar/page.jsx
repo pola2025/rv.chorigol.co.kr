@@ -7,15 +7,9 @@
 // CancelReservationModal)은 **react-router 를 안 쓴다**(실측 0건) → Next 에 그대로 올라간다.
 // 데이터는 useFirebaseStore 가 /api/snapshot 으로 가져온다(이미 이식됨. Firebase 접점 없음).
 //
-// FirebaseProvider 는 이름만 Firebase 다 — 하는 일은 store.initialize() 한 번뿐이고
-// 그 안은 이미 D1 이다. 이게 없으면 스토어가 비어 캘린더가 빈 화면이 된다.
-import { FirebaseProvider } from "../../src/providers/FirebaseProvider";
+// 스토어 초기화(FirebaseProvider)와 셸(MainLayout)은 app/providers.jsx 가 쥔다 — 전 화면 공통이다.
 import CalendarPage from "../../src/legacy-pages/CalendarPage.jsx";
 
 export default function Page() {
-  return (
-    <FirebaseProvider>
-      <CalendarPage />
-    </FirebaseProvider>
-  );
+  return <CalendarPage />;
 }

@@ -12,22 +12,16 @@ export const metadata = {
 import "../src/styles/theme.css";
 import "../src/index.css";
 import "../src/App.css";
-import Nav from "./nav.jsx";
+import Providers from "./providers.jsx";
 
 export default function RootLayout({ children }) {
   return (
     <html lang="ko">
-      <body
-        style={{
-          margin: 0,
-          fontFamily:
-            "'Malgun Gothic','Apple SD Gothic Neo',system-ui,sans-serif",
-          background: "#f5f6f4",
-          color: "#12211c",
-        }}
-      >
-        <Nav />
-        {children}
+      {/* body 에 인라인 스타일을 주지 않는다 — 인라인은 스타일시트를 이긴다.
+          재작성본 시절의 font/background 인라인이 theme.css:170 의 body 규칙
+          (--font-sans / --bg-secondary / --text-primary)을 덮어써서 rv 모양이 안 나온다. */}
+      <body>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
