@@ -11,6 +11,18 @@
   CRON_SMS_ENABLED=true · 크론 3개 등록·활성(disabledAt:null)
   퇴실 0 1 * * * (10시 KST) · 입실 0 4 * * * (13시 KST) · health 0 0 * * *
 
+✅ **Firebase 접점 0 달성 (2026-07-17)** — Functions **전멸(16→0)**. 앱 코드·package.json 의존성도 0.
+   Firestore 엔 **데이터만** 남아 있고 아무도 안 읽는다 → Phase 8 은 이제 그냥 지우면 된다.
+   · 인증 없이 문자/텔레그램 쏘던 공개 함수 **5개**(sendSENSSMS·sendBulkSMS·triggerSMSScheduler·
+     sendTelegram·testTelegramConnection)를 전부 삭제. 404 로 닫힌 것 확인
+   · 텔레그램은 `app/api/telegram`(인증됨) + `lib/telegram.js` 로 이관됨
+   · `functions/src/index.js` 의 export 를 떼어놨다 — **`firebase deploy --only functions` 하면
+     구멍이 통째로 부활한다.** 다시 export 하지 말 것
+
+⚠️ **아직 미검증 — `/api/telegram` 의 실제 발송 경로.** 인증(401)·라우팅은 확인했지만
+   텔레그램이 실제로 도착하는지는 **아무도 안 눌러봤다**. 알림설정 → 연결 테스트 1회면 된다.
+   (깨져 있어도 CF 삭제 때문이 아니다 — 클라는 이관 시점부터 이미 /api/telegram 만 봤다)
+
 🔴 **다음 세션 0순위 — 첫 실발송을 확인해라 (2026-07-18 10:00 KST 퇴실)**
    이관 후 **크론이 실제로 문자를 보낸 적이 아직 없다**. 드라이런만 통과했다.
    확인: `firebase functions:log` 는 이제 없다 → **Vercel 런타임 로그**(대시보드 Cron Jobs →
