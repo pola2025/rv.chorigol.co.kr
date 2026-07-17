@@ -94,7 +94,7 @@ const makeSignature = (method, url, timestamp, accessKey, secretKey) => {
 };
 
 // SENS 연결 테스트 (asia-northeast3 리전)
-export const testSENSConnection = functions
+const testSENSConnection = functions
   .region("asia-northeast3")
   .https.onRequest(async (request, response) => {
     setCorsHeaders(response);
@@ -225,7 +225,7 @@ export const testSENSConnection = functions
   });
 
 // SENS SMS 발송 (asia-northeast3 리전)
-export const sendSENSSMS = functions
+const sendSENSSMS = functions
   .region("asia-northeast3")
   .https.onRequest(async (request, response) => {
     setCorsHeaders(response);
@@ -465,7 +465,7 @@ export const sendSENSSMS = functions
   });
 
 // IP 차단 확인
-export const checkIPBlock = functions.https.onRequest(
+const checkIPBlock = functions.https.onRequest(
   async (request, response) => {
     setCorsHeaders(response);
 
@@ -482,7 +482,7 @@ export const checkIPBlock = functions.https.onRequest(
 );
 
 // 로그인 추적
-export const trackLoginAttempt = functions.https.onRequest(
+const trackLoginAttempt = functions.https.onRequest(
   async (request, response) => {
     setCorsHeaders(response);
 
@@ -496,7 +496,7 @@ export const trackLoginAttempt = functions.https.onRequest(
 );
 
 // 헬스 체크
-export const healthCheck = functions.https.onRequest((request, response) => {
+const healthCheck = functions.https.onRequest((request, response) => {
   setCorsHeaders(response);
   response.status(200).json({
     status: "ok",
@@ -747,13 +747,11 @@ export const testTelegramConnection = functions
     }
   });
 
-// 스케줄러 import는 모든 초기화 이후에
-export { notificationScheduler } from "./notificationScheduler.js";
-export { autoSendSMSScheduler, triggerSMSScheduler } from "./smsScheduler.js";
-export { sendBulkSMS, getBulkSMSStats } from "./bulkSMS.js";
-
-// Firestore 트리거: 예약 생성/수정 시 서버에서 알림 자동 발송
-export {
-  onReservationCreated,
-  onReservationUpdated,
-} from "./reservationTriggers.js";
+// 🔴 여기 있던 re-export 를 전부 제거했다 (2026-07-17 컷오버).
+//    notificationScheduler / autoSendSMSScheduler / triggerSMSScheduler /
+//    sendBulkSMS / getBulkSMSStats / onReservationCreated / onReservationUpdated
+//    → 전부 **Firebase 에서 삭제된 함수**다. 되살리면:
+//      · autoSendSMSScheduler·triggerSMSScheduler = 문자 **이중발송** (Vercel Cron 이 이미 보낸다)
+//      · onReservationCreated/Updated = 예약확정 문자 **이중발송** (lib/reservation-notify.js 가 보낸다)
+//      · sendSENSSMS·sendBulkSMS = **인증 없이 문자 발송 가능**하던 보안 구멍
+//    파일은 Phase 8 삭제 전까지 참고용으로만 남긴다. **다시 export 하지 말 것.**

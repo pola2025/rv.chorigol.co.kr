@@ -21,7 +21,6 @@
     "@fullcalendar/react": "^6.1.18",
     "@react-spring/web": "^10.0.3",
     "@tanstack/react-query": "^5.85.5",
-    "airtable": "^0.12.2",
     "apexcharts": "^5.3.3",
     "crypto-js": "^4.2.0",
     "date-fns": "^3.6.0",
