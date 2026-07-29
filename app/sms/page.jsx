@@ -132,7 +132,8 @@ export default async function SmsPage({ searchParams }) {
                               key={i}
                               className={p.mark ? "sv-seg sv-add" : "sv-seg"}
                             >
-                              {withVars(p.text.replace(/\n+$/, ""))}
+                              {/* 경계 개행 정리는 segments() 가 이미 했다 — 여기서 또 지우면 촘촘해진다 */}
+                              {withVars(p.text)}
                             </span>
                           ))}
                         </div>

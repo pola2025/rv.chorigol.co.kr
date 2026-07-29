@@ -127,5 +127,16 @@ export function segments(content, marks) {
     }
     parts = next;
   }
+
+  // 조각을 block 으로 쌓으면 경계마다 줄바꿈이 하나 저절로 생긴다.
+  // 그만큼을 딱 한 번 덜어내야 화면이 실제 문자와 같아진다 — 앞 조각 끝의 개행을
+  // 지우고, 앞이 개행으로 끝나지 않으면 뒤 조각 앞의 개행을 지운다.
+  // (덜 지우면 빈 줄이 늘고, 더 지우면 실제보다 촘촘해진다. 둘 다 검토를 망친다)
+  for (let i = 0; i < parts.length - 1; i++) {
+    if (parts[i].text.endsWith("\n"))
+      parts[i].text = parts[i].text.slice(0, -1);
+    else if (parts[i + 1].text.startsWith("\n"))
+      parts[i + 1].text = parts[i + 1].text.slice(1);
+  }
   return parts;
 }
