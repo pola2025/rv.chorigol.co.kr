@@ -4,6 +4,8 @@
 import { cookies } from "next/headers";
 import { query } from "../../lib/d1.js";
 import { VIEW_COOKIE, isUnlocked } from "./token.js";
+import CopyButton from "./CopyButton.jsx";
+import { marksFor, segments, NAVER_ROOMS, NAVER_OPTIONS } from "./texts.js";
 
 export const metadata = {
   title: "초호펜션 안내문자",
@@ -26,25 +28,6 @@ const ROOM_ORDER = [
   "야유회",
   "1박2일워크샵",
 ];
-
-// 2026-07-29 추가된 문구 (하이라이트용) — 저장값과 글자 단위로 같아야 잡힌다
-const ADDED = {
-  "Forest 패밀리": `포레스트 패밀리
-- 36개월 미만 아동 인원에는 포함(요금은 미부과)
-
-어른5명 이용불가
-어른4명 + 36개월 미만 1명 까지만 가능
-`,
-  "Forest mini 패밀리": `포레스트 미니패밀리
-
-- 36개월 미만 아동 인원에는 포함(요금은 미부과)
-
-어른3명 이용불가
-어른2명 까지 사용 가능
-
-어른2명 + 36개월 미만 1명 까지만 가능
-`,
-};
 
 // lib/sms.js 가 발송 직전 지우는 이모지 (같은 정규식)
 const EMOJI =
@@ -123,8 +106,10 @@ export default async function SmsPage({ searchParams }) {
                   const r = set.find((x) => x.kind === k.kind);
                   if (!r) return null;
                   const shelter = r.business !== "choho";
-                  const added = ADDED[r.room_name];
-                  const at = added ? r.content.indexOf(added) : -1;
+                  const parts = segments(
+                    r.content,
+                    marksFor(r.room_name, k.kind),
+                  );
                   EMOJI.lastIndex = 0;
                   const hasEmoji = EMOJI.test(r.content);
 
@@ -142,23 +127,14 @@ export default async function SmsPage({ searchParams }) {
                           {shelter ? "010-5871-0038" : "010-7932-0029"}
                         </p>
                         <div className="sv-msg">
-                          {at === -1 ? (
-                            <span className="sv-seg">{withVars(r.content)}</span>
-                          ) : (
-                            <>
-                              <span className="sv-seg">
-                                {withVars(
-                                  r.content.slice(0, at).replace(/\n$/, ""),
-                                )}
-                              </span>
-                              <span className="sv-seg sv-add">
-                                {withVars(added.replace(/\n$/, ""))}
-                              </span>
-                              <span className="sv-seg">
-                                {withVars(r.content.slice(at + added.length))}
-                              </span>
-                            </>
-                          )}
+                          {parts.map((p, i) => (
+                            <span
+                              key={i}
+                              className={p.mark ? "sv-seg sv-add" : "sv-seg"}
+                            >
+                              {withVars(p.text.replace(/\n+$/, ""))}
+                            </span>
+                          ))}
                         </div>
                         {hasEmoji ? (
                           <p className="sv-tip">
@@ -175,10 +151,43 @@ export default async function SmsPage({ searchParams }) {
           ))}
         </div>
 
+        <section className="sv-naver">
+          <h2 className="sv-h2">
+            네이버 스마트플레이스
+            <span>문자와 별개로, 네이버에 직접 붙여넣는 문구입니다</span>
+          </h2>
+
+          <h3 className="sv-h3">객실정보</h3>
+          <div className="sv-grid2">
+            {NAVER_ROOMS.map((x) => (
+              <article className="sv-npcard" key={`room-${x.room}`}>
+                <div className="sv-nphd">
+                  <h4>{x.room}</h4>
+                  <CopyButton text={x.text} />
+                </div>
+                <pre className="sv-pre">{x.text}</pre>
+              </article>
+            ))}
+          </div>
+
+          <h3 className="sv-h3">옵션설정</h3>
+          <div className="sv-grid2">
+            {NAVER_OPTIONS.map((x) => (
+              <article className="sv-npcard" key={`opt-${x.room}`}>
+                <div className="sv-nphd">
+                  <h4>{x.room}</h4>
+                  <CopyButton text={x.text} />
+                </div>
+                <pre className="sv-pre">{x.text}</pre>
+              </article>
+            ))}
+          </div>
+        </section>
+
         <footer className="sv-ft">
           <p>
-            <span className="sv-v">{"{ }"}</span> 안은 예약 정보로 자동 채워집니다
-            — 고객명, 일정, 인원, 금액.
+            <span className="sv-v">{"{ }"}</span> 안은 예약 정보로 자동
+            채워집니다 — 고객명, 일정, 인원, 금액.
           </p>
           <p>
             문구를 고치려면 예약관리 → 알림설정에서 수정하면 즉시 반영됩니다.
@@ -244,8 +253,8 @@ const CSS = `
 /* theme.css:177 이 h1~h6·p·span·div 에 color 를 **직접** 박아둔다.
    상속(.sv{color}) 은 어떤 명시 선언에도 지므로, 초록 헤더 위 글자가 어두운 색으로 나왔다.
    여기서 요소 색을 되돌려 부모에게서 물려받게 만든다 — 클래스가 하나 더 있어 특이도로 이긴다. */
-.sv h1,.sv h2,.sv p,.sv span,.sv div,.sv b,.sv em,.sv i,.sv label,.sv nav,
-.sv section,.sv article,.sv header,.sv footer,.sv form{color:inherit}
+.sv h1,.sv h2,.sv h3,.sv h4,.sv p,.sv span,.sv div,.sv b,.sv em,.sv i,.sv label,.sv nav,
+.sv section,.sv article,.sv header,.sv footer,.sv form,.sv pre{color:inherit}
 .sv .sv-wrap{max-width:1240px;margin:0 auto;padding:26px 16px 56px}
 .sv .sv-eyebrow{margin:0 0 6px;font-size:11.5px;letter-spacing:.09em;color:var(--forest);font-weight:700}
 .sv h1{margin:0 0 8px;font-size:25px;line-height:1.25;letter-spacing:-.02em;font-weight:800;text-wrap:balance}
@@ -300,6 +309,25 @@ const CSS = `
 .sv .sv-tip{margin:9px 0 0;padding:6px 9px;border-left:2px solid var(--mark);
   background:var(--markbg);color:var(--mark);font-size:11px;line-height:1.45;border-radius:0 5px 5px 0}
 
+.sv .sv-naver{margin-top:34px;padding-top:20px;border-top:2px solid var(--line)}
+.sv .sv-h2{margin:0 0 4px;font-size:17px;font-weight:800;letter-spacing:-.01em;
+  display:flex;flex-wrap:wrap;align-items:baseline;gap:9px}
+.sv .sv-h2 span{font-size:12px;font-weight:400;color:var(--dim)}
+.sv .sv-h3{margin:18px 0 9px;font-size:12px;font-weight:700;letter-spacing:.05em;color:var(--forest)}
+.sv .sv-grid2{display:grid;gap:12px}
+@media (min-width:760px){ .sv .sv-grid2{grid-template-columns:repeat(2,1fr);align-items:start} }
+.sv .sv-npcard{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.sv .sv-nphd{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:9px 12px;border-bottom:1px solid var(--line);border-left:4px solid var(--forest)}
+.sv .sv-nphd h4{margin:0;font-size:14px;font-weight:800;color:var(--ink)}
+.sv .sv-pre{margin:0;padding:13px;font-family:inherit;font-size:12.5px;line-height:1.6;
+  white-space:pre-wrap;word-break:keep-all;color:var(--ink);background:var(--paper)}
+.sv .sv-cp{border:1px solid var(--forest);background:var(--forest);color:var(--on-accent);
+  border-radius:7px;padding:5px 13px;font-size:12px;font-weight:700;cursor:pointer;
+  font-family:inherit;white-space:nowrap}
+.sv .sv-cp:hover{filter:brightness(1.1)}
+.sv .sv-cp-done{background:var(--card);color:var(--forest)}
+.sv .sv-cp:focus-visible{outline:2px solid var(--forest);outline-offset:2px}
 .sv .sv-ft{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);
   color:var(--dim);font-size:12.5px;line-height:1.7}
 .sv .sv-ft p{margin:0}
