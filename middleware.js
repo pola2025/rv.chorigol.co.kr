@@ -6,7 +6,15 @@ import { NextResponse } from "next/server";
 import { COOKIE_NAME, verifyToken } from "./lib/auth-jwt.js";
 
 // 인증 없이 접근 가능한 경로 — 최소로 유지할 것
-const PUBLIC_PATHS = ["/login", "/api/auth/login", "/api/auth/logout"];
+// /sms 는 관리자 로그인 없이 열리지만 자체 코드 관문 + HMAC 쿠키로 막는다.
+// 보이는 것은 문자 템플릿 문구뿐이고 예약·고객 데이터는 다루지 않는다.
+const PUBLIC_PATHS = [
+  "/login",
+  "/api/auth/login",
+  "/api/auth/logout",
+  "/sms",
+  "/api/sms-unlock",
+];
 
 export async function middleware(request) {
   const { pathname, search } = request.nextUrl;

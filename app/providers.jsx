@@ -39,6 +39,11 @@ export default function Providers({ children }) {
   // 단 `.app` 래퍼는 씌운다 — App.jsx 도 로그인 화면을 `.app` 안에서 그렸다.
   if (pathname === "/login") return <div className="app">{children}</div>;
 
+  // /sms 는 광고주·운영자에게 보여주는 열람 전용 페이지다. 관리자 헤더·하단탭이 붙으면
+  // 눌러도 못 가는 링크만 보이고, FirebaseProvider 의 스냅샷 로드는 인증이 없어 401 이다.
+  // `.app` 래퍼도 씌우지 않는다 — 배경(#f8f9fa)이 고정돼 다크모드가 죽는다.
+  if (pathname === "/sms") return children;
+
   return (
     <QueryClientProvider client={queryClient}>
       {/* `.app` = App.css:13 — width 100% / min-height 100vh / **background #f8f9fa** / flex column.
